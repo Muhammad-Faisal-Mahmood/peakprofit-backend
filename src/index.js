@@ -14,12 +14,11 @@ const auth = require("./auth/auth.controller");
 const user = require("./user/user.controller");
 
 const app = express();
-const PORT = process.env.PORT; // Use PORT from .env or default to 3000
-console.log("port: ", PORT);
+const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(
   cors({
-    origin: "*", // Consider restricting this to your frontend's actual origin in production
+    origin: "*",
   })
 );
 

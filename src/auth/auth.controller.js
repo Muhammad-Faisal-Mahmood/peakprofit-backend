@@ -155,25 +155,17 @@ router.get("/verify-account", async (req, res) => {
     });
 
     if (!authRecord) {
-      return res.redirect(
-        `${process.env.FRONT_APP_URL_DEV}/verify-email?error=Invalid Verification Link!`
-      );
+      return res.redirect(`${process.env.FRONT_APP_URL_DEV}`);
     }
     if (authRecord.authCode != code) {
-      return res.redirect(
-        `${process.env.FRONT_APP_URL_DEV}/verify-email?error=Invalid Link`
-      );
+      return res.redirect(`${process.env.FRONT_APP_URL_DEV}`);
     }
     if (new Date() > new Date(authRecord.expiration)) {
-      return res.redirect(
-        `${process.env.FRONT_APP_URL_DEV}/verify-email?error=Link has expired`
-      );
+      return res.redirect(`${process.env.FRONT_APP_URL_DEV}`);
     }
     let user = await UserService.findByEmail(email);
     if (!user) {
-      return res.redirect(
-        `${process.env.FRONT_APP_URL_DEV}/verify-email?error=Email does not exist`
-      );
+      return res.redirect(`${process.env.FRONT_APP_URL_DEV}`);
     }
 
     // Generate JWT token
@@ -197,7 +189,7 @@ router.get("/verify-account", async (req, res) => {
         isVerified: true,
       }
     );
-    return res.redirect(`${process.env.FRONT_APP_URL_DEV}/verify-email`);
+    return res.redirect(`${process.env.FRONT_APP_URL_DEV}`);
   } catch (error) {
     console.error("Error verifying OTP:", error);
     return sendErrorResponse(res, "Internal server error");
