@@ -128,13 +128,17 @@ router.post("/login", async (req, res, next) => {
   let data = {
     email: user.email,
     userId: user._id,
+    role: user?.role,
   };
-  const token = simplejwt.sign(data, process.env.JWT_SECRET);
+  const token = simplejwt.sign(data, process.env.JWT_SECRET, {
+    expiresIn: "7d",
+  });
 
   let result = {
     _id: user._id,
     email: user.email,
     profilePicture: user.profilePicture || "",
+    role: user.role || null,
     token: token,
   };
 

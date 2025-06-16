@@ -11,6 +11,7 @@ const userSchema = mongoose.Schema(
     resetTokenExpiration: { type: Date, default: null },
     isVerified: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },
+    role: { type: String, enum: ["Admin", "User"], default: "User" },
   },
   { timestamps: true }
 );

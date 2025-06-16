@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Welcome to Our Prop Trading Firm</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 0;
+        color: #333333;
+      }
+      .container {
+        width: 100%;
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .header {
+        text-align: center;
+        padding: 20px 0;
+      }
+      .header img {
+        width: 150px;
+      }
+      .content {
+        padding: 20px;
+      }
+      .content h1 {
+        font-size: 24px;
+        margin-bottom: 20px;
+        color: #1f5b48;
+      }
+      .content p {
+        font-size: 16px;
+        margin-bottom: 15px;
+        line-height: 1.5;
+      }
+      .cta-button {
+        display: inline-block;
+        padding: 12px 25px;
+        background-color: #1f5b48;
+        color: #ffffff !important;
+        text-decoration: none;
+        border-radius: 5px;
+        font-size: 16px;
+        margin: 20px 0;
+      }
+      .footer {
+        text-align: center;
+        padding: 20px 0;
+        font-size: 14px;
+        color: #777777;
+        border-top: 1px solid #eeeeee;
+        margin-top: 20px;
+      }
+      .links {
+        margin: 25px 0;
+      }
+      .links a {
+        color: #1f5b48;
+        text-decoration: none;
+        margin: 0 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <svg
+          class="brxe-svg"
+          xmlns="http://www.w3.org/2000/svg"
+          width="152"
+          height="63"
+          viewBox="0 0 152 63"
+          fill="none"
+        >
+          <!-- Your SVG logo here -->
+        </svg>
+      </div>
+      <div class="content">
+        <h1>Welcome to Peak Profit!</h1>
+
+        <p>Dear {{name}},</p>
+
+        <p>
+          Thank you for subscribing to our proprietary trading firm. We're
+          excited to have you on board!
+        </p>
+
+        <p>
+          At our firm, we provide traders with the capital, technology, and
+          support needed to succeed in today's financial markets.
+        </p>
+
+        <p>Here's what you can expect from us:</p>
+        <ul>
+          <li>Competitive profit splits</li>
+          <li>Cutting-edge trading technology</li>
+          <li>Flexible trading rules</li>
+          <li>24/7 support from our expert team</li>
+        </ul>
+
+        <div style="text-align: center">
+          <a href="{{dashboardUrl}}" class="cta-button">Sign up to Dashboard</a>
+        </div>
+
+        <div class="links" style="text-align: center">
+          <a href="{{websiteUrl}}/contact">Learn About Us</a>
+          <a href="{{websiteUrl}}">Trading Rules</a>
+          <a href="{{websiteUrl}}/faq">FAQ</a>
+        </div>
+
+        <p>
+          If you have any questions, don't hesitate to reach out to our support
+          team at <a href="mailto:{{supportEmail}}">{{supportEmail}}</a>.
+        </p>
+
+        <p>Happy trading!</p>
+        <p><strong>The Trading Team</strong></p>
+      </div>
+      <div class="footer">
+        <p>© 2023 Our Prop Trading Firm. All rights reserved.</p>
+        <p>
+          If you didn't request this subscription, please
+          <a href="mailto:{{supportEmail}}">contact us</a>.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
