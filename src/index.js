@@ -3,11 +3,10 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 const passport = require("passport");
 const session = require("express-session");
-
-const path = require("path"); // Add this line
+const path = require("path");
 
 require("dotenv").config({
-  path: path.resolve(__dirname, "..", ".env"), // Go up one directory from src
+  path: path.resolve(__dirname, "..", ".env"),
 });
 
 const auth = require("./auth/auth.controller");
@@ -17,15 +16,19 @@ const subscription = require("./subscription/subscription.controller");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
 app.use(express.json());
-app.use(express.static("public"));
+
+// ✅ Serve static content from the public folder outside src
+app.use(express.static(path.resolve(__dirname, "..", "public")));
+
 app.use(
   cors({
     origin: "*",
   })
 );
 
-// Passport
+// Passport setup
 app.use(
   session({
     secret: process.env.PASSPORT_SECRET,
@@ -49,11 +52,10 @@ const connectToMongoDB = async () => {
     console.log("Connected to MongoDB");
   } catch (error) {
     console.error("Error connecting to MongoDB:", error.message);
-    process.exit(1); // Exit process if MongoDB connection fails
+    process.exit(1);
   }
 };
 
-// Connect to MongoDB and then start the server
 connectToMongoDB().then(() => {
   app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
