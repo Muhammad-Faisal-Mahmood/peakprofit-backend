@@ -2,133 +2,136 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>Welcome to Our Prop Trading Firm</title>
+    <title>Welcome to PeakProfit Funding</title>
     <style>
       body {
-        font-family: Arial, sans-serif;
-        background-color: #f4f4f4;
+        font-family: Arial, Helvetica, sans-serif;
+        color: #111111;
+        font-size: 13px;
+        letter-spacing: normal;
+        background-color: #f0f0f0;
         margin: 0;
         padding: 0;
-        color: #333333;
       }
       .container {
         width: 100%;
         max-width: 600px;
         margin: 0 auto;
         background-color: #ffffff;
-        padding: 20px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
-      .header {
+      .content-cell {
+        padding: 6px 16px;
+        overflow-wrap: break-word;
+        word-break: break-word;
+      }
+      .logo {
+        width: 100%;
+        max-width: 100%;
+        vertical-align: top;
+      }
+      .center-text {
         text-align: center;
-        padding: 20px 0;
-      }
-      .header img {
-        width: 150px;
-      }
-      .content {
-        padding: 20px;
-      }
-      .content h1 {
-        font-size: 24px;
-        margin-bottom: 20px;
-        color: #1f5b48;
-      }
-      .content p {
-        font-size: 16px;
-        margin-bottom: 15px;
-        line-height: 1.5;
       }
       .cta-button {
         display: inline-block;
-        padding: 12px 25px;
-        background-color: #1f5b48;
+        padding: 7px 20px;
+        background-color: #9900ff;
         color: #ffffff !important;
         text-decoration: none;
-        border-radius: 5px;
-        font-size: 16px;
-        margin: 20px 0;
+        border-radius: 15px;
+        font-size: 13.3333px;
+        font-weight: 400;
+        border: none;
       }
-      .footer {
-        text-align: center;
-        padding: 20px 0;
-        font-size: 14px;
-        color: #777777;
-        border-top: 1px solid #eeeeee;
-        margin-top: 20px;
-      }
-      .links {
-        margin: 25px 0;
-      }
-      .links a {
-        color: #1f5b48;
-        text-decoration: none;
-        margin: 0 10px;
+      b {
+        font-weight: bold;
       }
     </style>
   </head>
   <body>
     <div class="container">
-      <div class="header">
-        <svg
-          class="brxe-svg"
-          xmlns="http://www.w3.org/2000/svg"
-          width="152"
-          height="63"
-          viewBox="0 0 152 63"
-          fill="none"
-        >
-          <!-- Your SVG logo here -->
-        </svg>
-      </div>
-      <div class="content">
-        <h1>Welcome to Peak Profit!</h1>
-
-        <p>Dear {{name}},</p>
-
-        <p>
-          Thank you for subscribing to our proprietary trading firm. We're
-          excited to have you on board!
-        </p>
-
-        <p>
-          At our firm, we provide traders with the capital, technology, and
-          support needed to succeed in today's financial markets.
-        </p>
-
-        <p>Here's what you can expect from us:</p>
-        <ul>
-          <li>Competitive profit splits</li>
-          <li>Cutting-edge trading technology</li>
-          <li>Flexible trading rules</li>
-          <li>24/7 support from our expert team</li>
-        </ul>
-
-        <div style="text-align: center">
-          <a href="{{dashboardUrl}}" class="cta-button">Sign up to Dashboard</a>
-        </div>
-
-        <div class="links" style="text-align: center">
-          <a href="{{websiteUrl}}/contact">Learn About Us</a>
-          <a href="{{websiteUrl}}">Trading Rules</a>
-          <a href="{{websiteUrl}}/faq">FAQ</a>
-        </div>
-
-        <p>
-          If you have any questions, don't hesitate to reach out to our support
-          team at <a href="mailto:{{supportEmail}}">{{supportEmail}}</a>.
-        </p>
-
-        <p>Happy trading!</p>
-        <p><strong>The Trading Team</strong></p>
-      </div>
-      <div class="footer">
-        <p>© 2023 Our Prop Trading Firm. All rights reserved.</p>
-        <p>
-          If you didn't request this subscription, please
-          <a href="mailto:{{supportEmail}}">contact us</a>.
-        </p>
-      </div>
+      <table
+        cellspacing="0"
+        cellpadding="0"
+        width="100%"
+        style="width: 100%; border: 0px; border-collapse: collapse"
+      >
+        <tr>
+          <td class="content-cell">
+            <p style="font-size: 13px; margin: 0; padding: 0">PEAK PROFIT</p>
+          </td>
+        </tr>
+        <tr>
+          <td class="content-cell">
+            <p style="width: 100%; padding: 0px; margin: 0px">
+              <img
+                alt="PeakProfit Logo"
+                class="logo"
+                src="https://api.peakprofitfunding.com/public/images/logo.jpg"
+              />
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td class="content-cell center-text">
+            <p style="font-size: 13px; padding: 0px; margin: 0px">
+              <b><span>Welcome to the Firm Built for Winners 🏆🚀💼</span></b>
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td class="content-cell">
+            <p class="center-text">Hi {{name}},</p>
+            <p class="center-text"><br /></p>
+            <p class="center-text">
+              Thank you for subscribing to PeakProfit Funding — we're thrilled
+              to have you join our growing community of elite traders.
+            </p>
+            <p class="center-text"><br /></p>
+            <p class="center-text"><b>Who We Are</b></p>
+            <p class="center-text">
+              PeakProfit Funding is a performance-based proprietary trading firm
+              providing serious traders with real capital, same-day payouts, no
+              daily drawdowns, and access to Forex, Crypto, and Futures markets.
+              Our mission is simple: fund traders who are ready to monetize
+              their edge.
+            </p>
+            <p class="center-text"><br /></p>
+            <p class="center-text"><b>What's Next?</b></p>
+            <p class="center-text">
+              You're now on the list to receive exclusive updates, funding
+              opportunities, platform access, educational content, and more. We
+              recommend getting started immediately — your trading future starts
+              now.
+            </p>
+            <p class="center-text"><br /></p>
+            <p class="center-text"><br /></p>
+            <p class="center-text">🎯 <b>Ready to Get Funded?</b></p>
+            <p class="center-text">
+              Click the button below to begin your evaluation or activate your
+              free trial account.
+            </p>
+            <p class="center-text"><br /></p>
+            <p class="center-text" style="text-align: center">
+              <a href="{{dashboardUrl}}" class="cta-button">Get Funded</a>
+            </p>
+            <p class="center-text"><br /></p>
+            <p class="center-text">
+              If you have any questions, our support team is here for you. Let's
+              build your trading legacy — together.
+            </p>
+            <p class="center-text"><br /></p>
+            <p class="center-text">To your success,</p>
+            <p class="center-text"><b>The PeakProfit Funding Team</b></p>
+            <p class="center-text">
+              <a href="mailto:{{supportEmail}}">{{supportEmail}}</a>
+            </p>
+            <p class="center-text">
+              <a href="{{websiteUrl}}">{{websiteUrl}}</a>
+            </p>
+          </td>
+        </tr>
+      </table>
     </div>
   </body>
 </html>
