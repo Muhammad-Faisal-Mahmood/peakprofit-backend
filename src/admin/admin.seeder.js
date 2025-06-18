@@ -33,6 +33,7 @@ async function createAdmin() {
       password: hashedPassword,
       isVerified: true,
       role: "Admin",
+      profilePicture: "",
     });
 
     await admin.save();

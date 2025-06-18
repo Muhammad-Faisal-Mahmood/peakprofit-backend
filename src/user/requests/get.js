@@ -21,6 +21,7 @@ const getUser = async (req, res) => {
       email: user.email,
       name: user.name,
       profilePicture: user.profilePicture,
+      role: user.role,
     };
 
     res.json(userData);
