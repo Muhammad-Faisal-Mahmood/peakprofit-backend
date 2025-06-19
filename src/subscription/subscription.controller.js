@@ -52,9 +52,10 @@ async function sendWelcomeEmail(email) {
       websiteUrl: process.env.WEBSITE_URL || "https://peakprofitfunding.com",
       dashboardUrl:
         process.env.DASHBOARD_URL || "https://dashboard.peakprofitfunding.com",
+      EMAIL: email,
     };
 
-    const template = path.join(__dirname, "mails", "welcome-subscriber.html");
+    const template = path.join(__dirname, "mails", "welcome-subscriber-2.html");
 
     await sendEmail("Welcome to Peak Profit!", template, email, replacements);
 
