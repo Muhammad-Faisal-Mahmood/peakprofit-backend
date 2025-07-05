@@ -129,6 +129,7 @@ router.post("/login", async (req, res, next) => {
     email: user.email,
     userId: user._id,
     role: user?.role,
+    name: user.name,
   };
   const token = simplejwt.sign(data, process.env.JWT_SECRET, {
     expiresIn: "7d",
@@ -140,6 +141,7 @@ router.post("/login", async (req, res, next) => {
     profilePicture: user.profilePicture || "",
     role: user.role || null,
     token: token,
+    name: user.name,
   };
 
   // await NotificationService.create("Login successfully!", user._id);
