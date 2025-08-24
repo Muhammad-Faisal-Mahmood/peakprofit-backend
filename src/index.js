@@ -14,6 +14,7 @@ const user = require("./user/user.controller");
 const admin = require("./admin/admin.controller");
 const subscription = require("./subscription/subscription.controller");
 const contact = require("./contact/contact.controller");
+const affiliate = require("./affiliate/affiliate.controller");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -46,6 +47,7 @@ app.use("/api/user", user);
 app.use("/api/admin", admin);
 app.use("/api/subscription", subscription);
 app.use("/api/contact", contact);
+app.use("/api/affiliate", affiliate);
 
 // MongoDB Connection
 const connectToMongoDB = async () => {
