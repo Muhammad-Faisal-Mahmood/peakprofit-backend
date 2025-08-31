@@ -34,6 +34,7 @@ const TwoFactorAuth = require("./auth.model.js");
 
 // Services
 const UserService = require("../user/user.service.js");
+const affiliateService = require("../affiliate/affiliate.service.js");
 
 // Response Helpers
 const {
@@ -43,7 +44,7 @@ const {
 
 //SignUp
 router.post("/sign-up", checkCreateParams, async (req, res, next) => {
-  const { name, email, password, inviteToken } = req.body;
+  const { name, email, password, inviteToken, refcode } = req.body;
 
   try {
     let userModel = await UserService.findByEmail(email.toLowerCase());
@@ -52,6 +53,28 @@ router.post("/sign-up", checkCreateParams, async (req, res, next) => {
     }
 
     let user = await UserService.create(name, email, password);
+
+    let referredByUserId = null;
+    if (refcode) {
+      try {
+        referredByUserId = await affiliateService.processReferralSignup(
+          refcode,
+          user._id
+        );
+        if (referredByUserId) {
+          // Update the user document with referral information
+          user.referredBy = referredByUserId;
+          user.referralCode = refcode;
+          await user.save();
+          console.log(
+            `User ${user._id} referred by ${referredByUserId} using code ${refcode}`
+          );
+        }
+      } catch (referralError) {
+        console.error("Error processing referral:", referralError);
+        // Don't fail signup if referral processing fails
+      }
+    }
 
     // Handle invitation if token exists
     let projectId = null;
@@ -93,7 +116,8 @@ router.post("/sign-up", checkCreateParams, async (req, res, next) => {
     return sendSuccessResponse(res, "Verification sent to your email", {
       userId: user._id,
       data: authData,
-      projectId: projectId,
+      // projectId: projectId,
+      referredBy: referredByUserId,
     });
   } catch (error) {
     console.error("Error while signing up:", error);

@@ -2,6 +2,57 @@ const mongoose = require("mongoose");
 
 const { Schema } = mongoose;
 
+// Sub-schema for individual referral records
+const referralRecordSchema = new Schema(
+  {
+    referredUser: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    signupDate: {
+      type: Date,
+      required: true,
+      default: Date.now,
+    },
+    signupCommission: {
+      type: Number,
+      default: 1, // $1 for signup
+    },
+    purchases: [
+      {
+        challenge: {
+          type: Schema.Types.ObjectId,
+          ref: "Challenge",
+          required: true,
+        },
+        purchaseDate: {
+          type: Date,
+          required: true,
+          default: Date.now,
+        },
+        challengeCost: {
+          type: Number,
+          required: true,
+        },
+        commissionEarned: {
+          type: Number,
+          required: true,
+        },
+        commissionPercentage: {
+          type: Number,
+          required: true,
+        },
+      },
+    ],
+    totalEarnings: {
+      type: Number,
+      default: 1, // Starts with signup commission
+    },
+  },
+  { timestamps: true }
+);
+
 const affiliateSchema = new Schema(
   {
     userId: {
@@ -25,13 +76,17 @@ const affiliateSchema = new Schema(
       type: String,
       required: true,
     },
-    referrals: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "User",
-      },
-    ],
-    earnings: {
+    // UPDATED: Now stores detailed referral records instead of just user IDs
+    referrals: [referralRecordSchema],
+
+    // UPDATED: This will be calculated from referral records
+    totalEarnings: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    // NEW: Current available balance (totalEarnings - totalWithdrawn)
+    balance: {
       type: Number,
       default: 0,
       min: 0,
@@ -43,8 +98,103 @@ const affiliateSchema = new Schema(
       max: 100,
       required: true,
     },
+    // Track total number of referrals for quick access
+    totalReferrals: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    // NEW: Array of withdraw references
+    withdraws: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Withdraw",
+      },
+    ],
+    // NEW: Track total amount withdrawn
+    totalWithdrawn: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
   { timestamps: true }
 );
+
+// Method to add a new referral
+affiliateSchema.methods.addReferral = function (referredUserId) {
+  const newReferral = {
+    referredUser: referredUserId,
+    signupDate: new Date(),
+    signupCommission: 1,
+    purchases: [],
+    totalEarnings: 1,
+  };
+
+  this.referrals.push(newReferral);
+  this.totalReferrals += 1;
+  this.totalEarnings += 1;
+  this.balance += 1; // NEW: Update balance
+
+  return this.save();
+};
+
+// Method to add a purchase to an existing referral
+affiliateSchema.methods.addPurchase = function (
+  referredUserId,
+  challengeId,
+  challengeCost
+) {
+  const referral = this.referrals.find(
+    (ref) => ref.referredUser.toString() === referredUserId.toString()
+  );
+
+  if (!referral) {
+    throw new Error("Referral record not found");
+  }
+
+  const commissionEarned = (challengeCost * this.commissionPercentage) / 100;
+
+  const purchase = {
+    challenge: challengeId,
+    purchaseDate: new Date(),
+    challengeCost: challengeCost,
+    commissionEarned: commissionEarned,
+    commissionPercentage: this.commissionPercentage,
+  };
+
+  referral.purchases.push(purchase);
+  referral.totalEarnings += commissionEarned;
+  this.totalEarnings += commissionEarned;
+  this.balance += commissionEarned; // NEW: Update balance
+
+  return this.save();
+};
+
+// NEW: Method to process a withdrawal
+affiliateSchema.methods.processWithdraw = function (
+  withdrawId,
+  amount,
+  status
+) {
+  this.withdraws.push(withdrawId);
+
+  if (status === "PAID") {
+    this.totalWithdrawn += amount;
+    this.balance -= amount;
+  }
+
+  return this.save();
+};
+
+// NEW: Method to get available balance
+affiliateSchema.methods.getAvailableBalance = function () {
+  return this.balance;
+};
+
+// NEW: Method to validate withdrawal amount
+affiliateSchema.methods.canWithdraw = function (amount) {
+  return this.balance >= amount && amount > 0;
+};
 
 module.exports = mongoose.model("Affiliate", affiliateSchema);

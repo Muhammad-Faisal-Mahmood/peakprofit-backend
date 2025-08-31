@@ -17,6 +17,11 @@ const userSchema = mongoose.Schema(
       ref: "Affiliate",
       default: null,
     },
+    referredBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User", // The user who referred this user (not the affiliate document)
+      default: null,
+    },
   },
   { timestamps: true }
 );
