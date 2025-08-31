@@ -12,6 +12,11 @@ const userSchema = mongoose.Schema(
     isVerified: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },
     role: { type: String, enum: ["Admin", "User"], default: "User" },
+    affiliateId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Affiliate",
+      default: null,
+    },
   },
   { timestamps: true }
 );

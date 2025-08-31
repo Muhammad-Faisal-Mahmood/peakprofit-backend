@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welcome to Our Affiliate Program</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f4f4f4;
+      }
+      .email-container {
+        background-color: #ffffff;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+      .header {
+        text-align: center;
+        border-bottom: 3px solid #007bff;
+        padding-bottom: 20px;
+        margin-bottom: 30px;
+      }
+      .header h1 {
+        color: #007bff;
+        margin: 0;
+        font-size: 28px;
+      }
+      .credentials-box {
+        background-color: #f8f9fa;
+        border-left: 4px solid #28a745;
+        padding: 20px;
+        margin: 25px 0;
+        border-radius: 5px;
+      }
+      .credential-item {
+        margin: 10px 0;
+        font-size: 16px;
+      }
+      .credential-label {
+        font-weight: bold;
+        color: #495057;
+      }
+      .credential-value {
+        background-color: #e9ecef;
+        padding: 8px 12px;
+        border-radius: 4px;
+        font-family: "Courier New", monospace;
+        font-weight: bold;
+        color: #495057;
+        display: inline-block;
+        margin-left: 10px;
+      }
+      .tier-badge {
+        display: inline-block;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: bold;
+        text-transform: uppercase;
+        margin-left: 10px;
+      }
+      .tier-bronze {
+        background-color: #cd7f32;
+        color: white;
+      }
+      .tier-silver {
+        background-color: #c0c0c0;
+        color: #333;
+      }
+      .tier-gold {
+        background-color: #ffd700;
+        color: #333;
+      }
+      .tier-secret {
+        background-color: #6f42c1;
+        color: white;
+      }
+      .warning-box {
+        background-color: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 5px;
+        padding: 15px;
+        margin: 20px 0;
+      }
+      .warning-icon {
+        color: #856404;
+        font-weight: bold;
+        font-size: 16px;
+      }
+      .referral-box {
+        background-color: #e8f5e8;
+        border: 2px solid #28a745;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 25px 0;
+        text-align: center;
+      }
+      .referral-link {
+        background-color: #28a745;
+        color: white;
+        padding: 12px 20px;
+        text-decoration: none;
+        border-radius: 5px;
+        display: inline-block;
+        margin-top: 10px;
+        font-weight: bold;
+      }
+      .footer {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #dee2e6;
+        text-align: center;
+        color: #6c757d;
+      }
+      .cta-button {
+        background-color: #007bff;
+        color: white;
+        padding: 15px 30px;
+        text-decoration: none;
+        border-radius: 5px;
+        display: inline-block;
+        margin: 20px 0;
+        font-weight: bold;
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="email-container">
+      <div class="header">
+        <h1>🎉 Welcome to Our Affiliate Program!</h1>
+      </div>
+
+      <p>Dear <strong>{{name}}</strong>,</p>
+
+      <p>
+        Congratulations! Your affiliate application has been
+        <strong>approved</strong>. We're excited to have you join our affiliate
+        family and start earning commissions with us!
+      </p>
+
+      <div class="credentials-box">
+        <h3 style="margin-top: 0; color: #28a745">
+          📧 Your Account Credentials
+        </h3>
+        <div class="credential-item">
+          <span class="credential-label">Email:</span>
+          <span class="credential-value">{{email}}</span>
+        </div>
+        <div class="credential-item">
+          <span class="credential-label">Password:</span>
+          <span class="credential-value">{{password}}</span>
+        </div>
+        <!-- <div class="credential-item">
+          <span class="credential-label">Affiliate Tier:</span>
+          <span class="tier-badge tier-{{tier}}">{{tier}}</span>
+        </div> -->
+      </div>
+
+      <div class="warning-box">
+        <span class="warning-icon">⚠️ Important Security Notice:</span>
+        <p style="margin: 8px 0 0 0">
+          Please change your password immediately after logging in for enhanced
+          security. Never share your login credentials with anyone.
+        </p>
+      </div>
+
+      <div class="referral-box">
+        <h3 style="margin-top: 0; color: #28a745">
+          🔗 Your Unique Referral Information
+        </h3>
+        <div class="credential-item">
+          <span class="credential-label">Referral Code:</span>
+          <span class="credential-value">{{referralCode}}</span>
+        </div>
+        <p style="margin: 15px 0 5px 0">
+          <strong>Your Personal Referral Link:</strong>
+        </p>
+        <a href="{{referralLink}}" class="referral-link">{{referralLink}}</a>
+        <p style="font-size: 14px; margin-top: 10px; color: #6c757d">
+          Share this link to earn commissions on every successful referral!
+        </p>
+      </div>
+
+      <h3>🚀 What's Next?</h3>
+      <ul style="padding-left: 20px">
+        <li>
+          <strong>Login:</strong> Access your affiliate dashboard with your
+          credentials above
+        </li>
+        <li>
+          <strong>Change Password:</strong> Update your password for security
+        </li>
+        <li>
+          <strong>Start Promoting:</strong> Use your referral link to start
+          earning
+        </li>
+        <li>
+          <strong>Track Performance:</strong> Monitor your referrals and
+          earnings in real-time
+        </li>
+      </ul>
+
+      <div style="text-align: center">
+        <a href="#" class="cta-button">Access Your Dashboard</a>
+      </div>
+
+      <h3>💰 Earning Potential</h3>
+      <p>
+        As a <strong>{{tier}}</strong> tier affiliate, you'll enjoy competitive
+        commission rates and exclusive benefits. The more you promote, the more
+        you earn!
+      </p>
+
+      <p>
+        If you have any questions or need assistance, don't hesitate to reach
+        out to our affiliate support team. We're here to help you succeed!
+      </p>
+
+      <div class="footer">
+        <p>
+          <strong>Best regards,</strong><br />
+          The Affiliate Team
+        </p>
+        <p style="font-size: 12px; color: #868e96">
+          This email was sent to {{email}}. If you didn't apply for our
+          affiliate program, please contact us immediately.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
