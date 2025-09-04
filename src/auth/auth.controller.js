@@ -10,6 +10,7 @@ const path = require("path");
 //Strategy
 require("./google.strategy");
 require("./github.strategy");
+const { getAffiliateStatusByUserId } = require("../shared/GeneralHelper.js");
 
 // JWT
 const jwt = require("../middleware/jwt.js");
@@ -159,6 +160,7 @@ router.post("/login", async (req, res, next) => {
     expiresIn: "7d",
   });
 
+  const affiliateStatus = await getAffiliateStatusByUserId(user._id);
   let result = {
     _id: user._id,
     email: user.email,
@@ -166,6 +168,9 @@ router.post("/login", async (req, res, next) => {
     role: user.role || null,
     token: token,
     name: user.name,
+    affiliateId: user?.affiliateId,
+    referredBy: user?.referredBy,
+    affiliateStatus: affiliateStatus,
   };
 
   // await NotificationService.create("Login successfully!", user._id);

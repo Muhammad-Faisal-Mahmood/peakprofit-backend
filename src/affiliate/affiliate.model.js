@@ -117,9 +117,44 @@ const affiliateSchema = new Schema(
       default: 0,
       min: 0,
     },
+    // NEW: Track tier upgrade history
+    tierHistory: [
+      {
+        tier: {
+          type: String,
+          enum: ["BRONZE", "SILVER", "GOLD", "PLATINUM"],
+          required: true,
+        },
+        upgradedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        referralsCount: {
+          type: Number,
+          required: true,
+        },
+        commissionPercentage: {
+          type: Number,
+          required: true,
+        },
+      },
+    ],
   },
   { timestamps: true }
 );
+
+// Initialize tier history on creation
+affiliateSchema.pre("save", function (next) {
+  if (this.isNew && this.tierHistory.length === 0) {
+    this.tierHistory.push({
+      tier: this.tier,
+      upgradedAt: new Date(),
+      referralsCount: this.totalReferrals,
+      commissionPercentage: this.commissionPercentage,
+    });
+  }
+  next();
+});
 
 // Method to add a new referral
 affiliateSchema.methods.addReferral = function (referredUserId) {
@@ -171,6 +206,31 @@ affiliateSchema.methods.addPurchase = function (
   return this.save();
 };
 
+// NEW: Method to upgrade tier
+affiliateSchema.methods.upgradeTier = function (
+  newTier,
+  newCommissionPercentage
+) {
+  const oldTier = this.tier;
+
+  this.tier = newTier;
+  this.commissionPercentage = newCommissionPercentage;
+
+  // Add to tier history
+  this.tierHistory.push({
+    tier: newTier,
+    upgradedAt: new Date(),
+    referralsCount: this.totalReferrals,
+    commissionPercentage: newCommissionPercentage,
+  });
+
+  return {
+    oldTier,
+    newTier,
+    newCommissionPercentage,
+  };
+};
+
 // NEW: Method to process a withdrawal
 affiliateSchema.methods.processWithdraw = function (
   withdrawId,
@@ -195,6 +255,24 @@ affiliateSchema.methods.getAvailableBalance = function () {
 // NEW: Method to validate withdrawal amount
 affiliateSchema.methods.canWithdraw = function (amount) {
   return this.balance >= amount && amount > 0;
+};
+
+// NEW: Method to get tier eligibility
+affiliateSchema.methods.getTierEligibility = function () {
+  const referrals = this.totalReferrals;
+
+  if (referrals >= 100) return "PLATINUM";
+  if (referrals >= 50) return "GOLD";
+  if (referrals >= 10) return "SILVER";
+  return "BRONZE";
+};
+
+// NEW: Method to check if tier upgrade is due
+affiliateSchema.methods.needsTierUpgrade = function () {
+  const eligibleTier = this.getTierEligibility();
+  const tierOrder = ["BRONZE", "SILVER", "GOLD", "PLATINUM"];
+
+  return tierOrder.indexOf(eligibleTier) > tierOrder.indexOf(this.tier);
 };
 
 module.exports = mongoose.model("Affiliate", affiliateSchema);

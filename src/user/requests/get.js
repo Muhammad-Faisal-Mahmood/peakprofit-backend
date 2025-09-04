@@ -1,4 +1,5 @@
 const User = require("../user.model"); // Adjust the path based on your project structure
+const { getAffiliateStatusByUserId } = require("../../shared/GeneralHelper");
 
 const getUser = async (req, res) => {
   try {
@@ -14,14 +15,16 @@ const getUser = async (req, res) => {
       return res.status(404).json({ error: "User not found." });
     }
 
-    // Select only the required fields
-    console.log(user);
+    const affiliateStatus = await getAffiliateStatusByUserId(user._id);
     const userData = {
       id: user._id,
       email: user.email,
       name: user.name,
       profilePicture: user.profilePicture,
       role: user.role,
+      affiliateId: user?.affiliateId,
+      referredBy: user?.referredBy,
+      affiliateStatus: affiliateStatus,
     };
 
     res.json(userData);
