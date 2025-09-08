@@ -73,7 +73,6 @@ const requestWithdraw = async (req, res) => {
       paymentMethod: paymentMethod,
       challengeId: challengeId,
       notes: notes.trim(),
-      status: "REQUESTED",
       requestedDate: new Date(),
     };
 

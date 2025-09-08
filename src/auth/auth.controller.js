@@ -155,6 +155,7 @@ router.post("/login", async (req, res, next) => {
     userId: user._id,
     role: user?.role,
     name: user.name,
+    affiliateId: user?.affiliateId,
   };
   const token = simplejwt.sign(data, process.env.JWT_SECRET, {
     expiresIn: "7d",

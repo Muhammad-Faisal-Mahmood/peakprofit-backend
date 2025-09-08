@@ -74,8 +74,8 @@ const withdrawSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["REQUESTED", "APPROVED", "DENIED", "PAID"],
-      default: "REQUESTED",
+      enum: ["PENDING", "APPROVED", "DENIED", "PAID"],
+      default: "PENDING",
       required: true,
     },
     // Payment method details for this withdrawal

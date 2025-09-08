@@ -9,6 +9,11 @@ const getAllAffiliateApplications = require("./requests/getAllAffiliateApplicati
 const updateAffiliateApplicationStatus = require("./requests/updateAffiliateApplicationStatus");
 const updatePlatinumAffiliateCommission = require("./requests/updatePlatinumAffiliateCommission");
 const getAllAffiliates = require("./requests/getAllAffiliates");
+const getAllCommissions = require("./requests/getAllCommissions");
+const getAllAffiliateWithdraws = require("./requests/getAllAffiliateWithdraws");
+const getPayoutStats = require("./requests/getPayoutStats");
+const updateWithdrawStatus = require("./requests/updateWithdrawStatus");
+
 router.get("/users", jwt, getAllUsers);
 router.get("/subscriptions", jwt, getSubscriptions);
 router.get("/contacts", jwt, getAllContacts);
@@ -26,5 +31,9 @@ router.put(
 );
 
 router.get("/affiliates", jwt, getAllAffiliates);
+router.get("/commissions", jwt, getAllCommissions);
+router.get("/affiliateWithdraws", jwt, getAllAffiliateWithdraws);
+router.get("/payoutStats", jwt, getPayoutStats);
+router.put("/updateWithdrawStatus/:withdrawId", jwt, updateWithdrawStatus);
 
 module.exports = router;
