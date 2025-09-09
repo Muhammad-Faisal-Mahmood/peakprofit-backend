@@ -3,6 +3,7 @@ const {
   sendSuccessResponse,
   sendErrorResponse,
 } = require("../../shared/response.service");
+const { Withdraw } = require("../../withdraw/withdraw.model");
 
 const getAllAffiliates = async (req, res) => {
   const VALID_TIERS = ["bronze", "silver", "gold", "platinum"];
@@ -101,6 +102,12 @@ const getAllAffiliates = async (req, res) => {
       const [affiliates, totalCount] = await Promise.all([
         Affiliate.find(query)
           .populate("userId", "name email profilePicture")
+          .populate("referrals.referredUser", "name email") // who was referred
+          .populate("referrals.purchases.challenge", "title price") // challenge details
+          .populate({
+            path: "withdraws",
+            model: Withdraw,
+          })
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(perPage),
@@ -110,27 +117,27 @@ const getAllAffiliates = async (req, res) => {
       const totalPages = Math.ceil(totalCount / perPage);
 
       // Format the response data
-      const formattedAffiliates = affiliates.map((affiliate) => ({
-        _id: affiliate._id,
-        userId: affiliate.userId._id,
-        user: {
-          name: affiliate.userId.name,
-          email: affiliate.userId.email,
-          profilePicture: affiliate.userId.profilePicture,
-        },
-        tier: affiliate.tier,
-        referralCode: affiliate.referralCode,
-        referralLink: affiliate.referralLink,
-        referrals: affiliate.referrals,
-        referralsCount: affiliate.referrals.length,
-        earnings: affiliate.earnings,
-        commissionPercentage: affiliate.commissionPercentage,
-        createdAt: affiliate.createdAt,
-        updatedAt: affiliate.updatedAt,
-      }));
+      // const formattedAffiliates = affiliates.map((affiliate) => ({
+      //   _id: affiliate._id,
+      //   userId: affiliate.userId._id,
+      //   user: {
+      //     name: affiliate.userId.name,
+      //     email: affiliate.userId.email,
+      //     profilePicture: affiliate.userId.profilePicture,
+      //   },
+      //   tier: affiliate.tier,
+      //   referralCode: affiliate.referralCode,
+      //   referralLink: affiliate.referralLink,
+      //   referrals: affiliate.referrals,
+      //   referralsCount: affiliate.referrals.length,
+      //   earnings: affiliate.earnings,
+      //   commissionPercentage: affiliate.commissionPercentage,
+      //   createdAt: affiliate.createdAt,
+      //   updatedAt: affiliate.updatedAt,
+      // }));
 
       return sendSuccessResponse(res, "Affiliates retrieved successfully", {
-        data: formattedAffiliates,
+        data: affiliates,
         pagination: {
           currentPage: pageNo,
           perPage,
