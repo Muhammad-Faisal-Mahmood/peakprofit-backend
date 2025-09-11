@@ -78,10 +78,19 @@ const requestWithdraw = async (req, res) => {
 
     // Only add affiliateId for affiliate withdrawals
     if (!challengeId && affiliate) {
-      withdrawData.affiliateId = affiliate._id;
     }
 
     const newWithdraw = new Withdraw(withdrawData);
+    withdrawData.affiliateId = affiliate._id;
+    try {
+      affiliate.processWithdraw(
+        newWithdraw._id,
+        newWithdraw.amount,
+        newWithdraw.status
+      );
+    } catch (error) {
+      return sendErrorResponse(res, error.message);
+    }
 
     // Save withdrawal request
     await newWithdraw.save();
