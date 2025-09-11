@@ -56,24 +56,12 @@ const updateWithdrawStatus = async (req, res) => {
       );
     }
 
-    // Validate transactionRef for PAID status
-    if (uppercaseStatus === "PAID" && !transactionRef) {
-      return sendErrorResponse(
-        res,
-        "Transaction reference is required for PAID status"
-      );
-    }
-
     // Update withdraw status and additional fields
     withdraw.status = uppercaseStatus;
     withdraw.processedDate = new Date();
 
-    if (transactionRef) {
+    if (transactionRef && uppercaseStatus === "PAID") {
       withdraw.transactionRef = transactionRef;
-    }
-
-    if (req.body.notes) {
-      withdraw.notes = req.body.notes;
     }
 
     // If this is an affiliate-related withdraw, process it through the affiliate system

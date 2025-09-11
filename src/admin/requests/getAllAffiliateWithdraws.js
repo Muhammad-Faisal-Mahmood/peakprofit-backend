@@ -18,7 +18,7 @@ const getAllAffiliateWithdraws = async (req, res) => {
     const search = req.query.search || null;
     const status = req.query.status ? req.query.status.toUpperCase() : null;
 
-    // Build query
+    // Build base query for status filter
     const query = {};
 
     // Filter by status
@@ -30,14 +30,6 @@ const getAllAffiliateWithdraws = async (req, res) => {
         );
       }
       query.status = status;
-    }
-
-    // Add search functionality for affiliate name/email
-    if (search) {
-      query.$or = [
-        { "affiliateDetails.name": { $regex: search, $options: "i" } },
-        { "affiliateDetails.email": { $regex: search, $options: "i" } },
-      ];
     }
 
     const skip = (pageNo - 1) * perPage;
@@ -66,37 +58,140 @@ const getAllAffiliateWithdraws = async (req, res) => {
       counts.TOTAL += item.count;
     });
 
-    const [withdraws, totalCount] = await Promise.all([
-      Withdraw.find(query)
-        .populate({
-          path: "userId",
-          select: "name email",
-        })
-        .populate({
-          path: "affiliateId",
-          select: "affiliateId",
-          populate: {
-            path: "userId",
-            select: "name email",
-          },
-        })
-        .populate({
-          path: "challengeId",
-          select: "name cost",
-        })
-        .sort({ requestedDate: -1 })
-        .skip(skip)
-        .limit(perPage)
-        .lean(),
-      Withdraw.countDocuments(query),
-    ]);
+    // Build aggregation pipeline for search functionality
+    const pipeline = [];
+
+    // First, populate the affiliateId and userId
+    pipeline.push(
+      {
+        $lookup: {
+          from: "affiliates", // Make sure this matches your actual collection name
+          localField: "affiliateId",
+          foreignField: "_id",
+          as: "affiliate",
+        },
+      },
+      {
+        $lookup: {
+          from: "users", // Make sure this matches your actual collection name
+          localField: "userId",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      {
+        $lookup: {
+          from: "users", // Lookup for affiliate's user details
+          localField: "affiliate.userId",
+          foreignField: "_id",
+          as: "affiliateUser",
+        },
+      },
+      {
+        $lookup: {
+          from: "challenges", // Make sure this matches your actual collection name
+          localField: "challengeId",
+          foreignField: "_id",
+          as: "challenge",
+        },
+      }
+    );
+
+    // Apply status filter if provided
+    if (status) {
+      pipeline.push({
+        $match: { status: status },
+      });
+    }
+
+    // Apply search filter if provided
+    if (search) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { "affiliateUser.name": { $regex: search, $options: "i" } },
+            { "affiliateUser.email": { $regex: search, $options: "i" } },
+            { "user.name": { $regex: search, $options: "i" } },
+            { "user.email": { $regex: search, $options: "i" } },
+          ],
+        },
+      });
+    }
+
+    // Add pagination
+    pipeline.push(
+      { $sort: { requestedDate: -1 } },
+      { $skip: skip },
+      { $limit: perPage }
+    );
+
+    // Execute the aggregation
+    const withdraws = await Withdraw.aggregate(pipeline);
+
+    // Get total count for pagination (need separate query for count)
+    const countPipeline = [];
+
+    // Same lookups for counting
+    countPipeline.push(
+      {
+        $lookup: {
+          from: "affiliates",
+          localField: "affiliateId",
+          foreignField: "_id",
+          as: "affiliate",
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "affiliate.userId",
+          foreignField: "_id",
+          as: "affiliateUser",
+        },
+      }
+    );
+
+    // Apply same filters for counting
+    if (status) {
+      countPipeline.push({
+        $match: { status: status },
+      });
+    }
+
+    if (search) {
+      countPipeline.push({
+        $match: {
+          $or: [
+            { "affiliateUser.name": { $regex: search, $options: "i" } },
+            { "affiliateUser.email": { $regex: search, $options: "i" } },
+            { "user.name": { $regex: search, $options: "i" } },
+            { "user.email": { $regex: search, $options: "i" } },
+          ],
+        },
+      });
+    }
+
+    countPipeline.push({ $count: "total" });
+
+    const countResult = await Withdraw.aggregate(countPipeline);
+    const totalCount = countResult.length > 0 ? countResult[0].total : 0;
 
     const totalPages = Math.ceil(totalCount / perPage);
 
     // Format the withdraws data for response
     const formattedWithdraws = withdraws.map((withdraw) => {
-      const affiliate = withdraw.affiliateId;
-      const user = withdraw.userId;
+      const affiliate = withdraw.affiliate?.[0];
+      const affiliateUser = withdraw.affiliateUser?.[0];
+      const user = withdraw.user?.[0];
+      const challenge = withdraw.challenge?.[0];
 
       return {
         id: withdraw._id,
@@ -110,9 +205,25 @@ const getAllAffiliateWithdraws = async (req, res) => {
         affiliate: {
           id: affiliate?._id,
           affiliateId: affiliate?.affiliateId,
-          name: affiliate?.userId?.name,
-          email: affiliate?.userId?.email,
+          name: affiliateUser?.name,
+          email: affiliateUser?.email,
         },
+
+        // User Details (the one who made the withdrawal request)
+        user: {
+          id: user?._id,
+          name: user?.name,
+          email: user?.email,
+        },
+
+        // Challenge Details (if applicable)
+        challenge: challenge
+          ? {
+              id: challenge._id,
+              name: challenge.name,
+              cost: challenge.cost,
+            }
+          : null,
 
         // Payment Method Details
         paymentMethod: {

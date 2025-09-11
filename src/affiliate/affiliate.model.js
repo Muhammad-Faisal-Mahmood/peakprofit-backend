@@ -238,7 +238,7 @@ affiliateSchema.methods.processWithdraw = function (
   status
 ) {
   // Check if the withdrawal would make balance negative
-  if (status === "PAID" && this.balance < amount) {
+  if (status === "PENDING" && this.balance < amount) {
     throw new Error(
       `Insufficient balance. Available: $${this.balance.toFixed(
         2
@@ -246,20 +246,15 @@ affiliateSchema.methods.processWithdraw = function (
     );
   }
 
-  this.withdraws.push(withdrawId);
-
-  if (status === "PAID") {
+  if (status === "PENDING") {
+    this.withdraws.push(withdrawId);
     this.totalWithdrawn += amount;
     this.balance -= amount;
+  }
 
-    // Additional safety check to ensure balance doesn't go negative
-    if (this.balance < 0) {
-      throw new Error(
-        `Balance cannot be negative. Current balance: $${this.balance.toFixed(
-          2
-        )}`
-      );
-    }
+  if (status === "DENIED") {
+    this.totalWithdrawn -= amount;
+    this.balance += amount;
   }
 
   return this.save();
