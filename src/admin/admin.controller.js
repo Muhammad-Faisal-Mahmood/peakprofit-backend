@@ -13,6 +13,7 @@ const getAllCommissions = require("./requests/getAllCommissions");
 const getAllAffiliateWithdraws = require("./requests/getAllAffiliateWithdraws");
 const getPayoutStats = require("./requests/getPayoutStats");
 const updateWithdrawStatus = require("./requests/updateWithdrawStatus");
+const { getCommissionStats } = require("./requests/getCommissionStats");
 
 router.get("/users", jwt, getAllUsers);
 router.get("/subscriptions", jwt, getSubscriptions);
@@ -35,5 +36,6 @@ router.get("/commissions", jwt, getAllCommissions);
 router.get("/affiliateWithdraws", jwt, getAllAffiliateWithdraws);
 router.get("/payoutStats", jwt, getPayoutStats);
 router.put("/updateWithdrawStatus/:withdrawId", jwt, updateWithdrawStatus);
+router.get("/commissionStats", jwt, getCommissionStats);
 
 module.exports = router;
