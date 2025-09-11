@@ -106,7 +106,7 @@ const getAllCommissions = async (req, res) => {
           challenge: commission.challenge
             ? {
                 id: commission.challenge._id,
-                title: commission.challenge.name,
+                name: commission.challenge.name,
                 price: commission.challenge.cost,
               }
             : null,

@@ -255,8 +255,8 @@ async function getAffiliateCommissions(affiliateId, options = {}) {
     sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1;
 
     const commissions = await Commission.find(query)
-      .populate("referredUser", "email firstName lastName")
-      .populate("challenge", "title price")
+      .populate("referredUser", "email name")
+      .populate("challenge", "name cost")
       .sort(sortOptions)
       .limit(limit * 1)
       .skip((page - 1) * limit)

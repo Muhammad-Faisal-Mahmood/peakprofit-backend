@@ -127,9 +127,20 @@ commissionSchema.methods.getDisplayInfo = function () {
     referralCode: this.metadata.referralCode,
   };
 
+  // Ensure referredUser is populated
+  const referredUser =
+    this.populated("referredUser") && this.referredUser
+      ? {
+          _id: this.referredUser._id,
+          email: this.referredUser.email,
+          title: this.referredUser.title,
+        }
+      : this.referredUser; // fallback to ObjectId if not populated
+
   if (this.type === "PURCHASE") {
     return {
       ...baseInfo,
+      referredUser,
       challenge: this.challenge,
       originalAmount: this.originalAmount,
       formattedOriginalAmount: this.formattedOriginalAmount,
@@ -139,6 +150,7 @@ commissionSchema.methods.getDisplayInfo = function () {
 
   return {
     ...baseInfo,
+    referredUser,
     userSignupDate: this.metadata.userSignupDate,
   };
 };
