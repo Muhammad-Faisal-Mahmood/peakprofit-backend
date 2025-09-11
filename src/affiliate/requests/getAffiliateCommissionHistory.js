@@ -24,6 +24,7 @@ async function getAffiliateCommissionHistory(req, res) {
       endDate,
       sortBy = "earnedAt",
       sortOrder = "desc",
+      search,
     } = req.query;
 
     // Build options object from query parameters
@@ -35,6 +36,7 @@ async function getAffiliateCommissionHistory(req, res) {
       endDate: endDate || null,
       sortBy,
       sortOrder,
+      search,
     };
 
     // Validate numeric parameters

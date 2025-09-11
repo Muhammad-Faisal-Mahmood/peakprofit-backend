@@ -133,7 +133,7 @@ commissionSchema.methods.getDisplayInfo = function () {
       ? {
           _id: this.referredUser._id,
           email: this.referredUser.email,
-          title: this.referredUser.title,
+          name: this.referredUser.name,
         }
       : this.referredUser; // fallback to ObjectId if not populated
 

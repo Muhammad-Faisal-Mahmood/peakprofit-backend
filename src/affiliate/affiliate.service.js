@@ -237,8 +237,10 @@ async function getAffiliateCommissions(affiliateId, options = {}) {
       endDate = null,
       sortBy = "earnedAt",
       sortOrder = "desc",
+      search = null, // New search parameter
     } = options;
 
+    // Build the base query
     const query = { affiliate: affiliateId };
 
     if (type) {
@@ -251,18 +253,48 @@ async function getAffiliateCommissions(affiliateId, options = {}) {
       if (endDate) query.earnedAt.$lte = new Date(endDate);
     }
 
+    // Handle search functionality
+    let searchQuery = query;
+    if (search) {
+      // Split search terms (handles cases where + was converted to space)
+      const searchTerms = search.trim().split(/\s+/);
+
+      // Create regex patterns for each search term
+      const searchConditions = [];
+
+      searchTerms.forEach((term) => {
+        searchConditions.push(
+          { name: { $regex: term, $options: "i" } },
+          { email: { $regex: term, $options: "i" } }
+        );
+      });
+
+      // Find users that match any of the search terms
+      const matchingUsers = await User.find({
+        $or: searchConditions,
+      }).select("_id");
+
+      const userIds = matchingUsers.map((user) => user._id);
+
+      // Add the user filter to the commission query
+      searchQuery = {
+        ...query,
+        referredUser: { $in: userIds },
+      };
+    }
+
     const sortOptions = {};
     sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1;
 
-    const commissions = await Commission.find(query)
-      .populate("referredUser", "email name")
-      .populate("challenge", "name cost")
+    const commissions = await Commission.find(searchQuery)
+      .populate("referredUser", "name email")
+      .populate("challenge", "cost name")
       .sort(sortOptions)
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .exec();
 
-    const totalCommissions = await Commission.countDocuments(query);
+    const totalCommissions = await Commission.countDocuments(searchQuery);
 
     return {
       commissions: commissions.map((commission) => commission.getDisplayInfo()),
