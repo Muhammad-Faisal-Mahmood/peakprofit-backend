@@ -28,10 +28,14 @@ const tierDetails = async (req, res) => {
       };
     }
 
-    return sendSuccessResponse(res, tierDetails);
+    return sendSuccessResponse(
+      res,
+      "Tier details sent successfully",
+      tierDetails
+    );
   } catch (error) {
     console.error("Error in requestTierDetails:", error);
-    return sendErrorResponse(res, "Internal server error", 500);
+    return sendErrorResponse(res, "Internal server error");
   }
 };
 
