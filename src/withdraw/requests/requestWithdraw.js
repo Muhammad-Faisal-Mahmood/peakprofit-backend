@@ -57,6 +57,8 @@ const requestWithdraw = async (req, res) => {
       );
     }
 
+    let withdrawData;
+
     // Validate challenge if provided
     if (challengeId) {
       const Challenge = require("../../challenge/challenge.model");
@@ -64,24 +66,32 @@ const requestWithdraw = async (req, res) => {
       if (!challenge) {
         return sendErrorResponse(res, "Invalid challenge ID");
       }
+
+      withdrawData = {
+        userId: userId,
+        amount: amount,
+        paymentMethod: paymentMethod,
+        challengeId: challengeId,
+        notes: notes.trim(),
+        requestedDate: new Date(),
+      };
     }
 
     // Create withdrawal request
-    const withdrawData = {
-      userId: userId,
-      amount: amount,
-      paymentMethod: paymentMethod,
-      challengeId: challengeId,
-      notes: notes.trim(),
-      requestedDate: new Date(),
-    };
 
     // Only add affiliateId for affiliate withdrawals
     if (!challengeId && affiliate) {
+      withdrawData = {
+        userId: userId,
+        amount: amount,
+        paymentMethod: paymentMethod,
+        affiliateId: affiliate._id,
+        notes: notes.trim(),
+        requestedDate: new Date(),
+      };
     }
 
     const newWithdraw = new Withdraw(withdrawData);
-    withdrawData.affiliateId = affiliate._id;
     try {
       affiliate.processWithdraw(
         newWithdraw._id,

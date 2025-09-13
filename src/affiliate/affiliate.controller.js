@@ -7,10 +7,12 @@ const { stats } = require("./requests/stats");
 const {
   getAffiliateCommissionHistory,
 } = require("./requests/getAffiliateCommissionHistory");
+const { tierDetails } = require("./requests/tierDetails");
 
 router.post("/apply", apply);
 router.get("/profile", jwt, getAffiliateProfile);
 router.get("/stats", jwt, stats);
 router.get("/commissionHistory", jwt, getAffiliateCommissionHistory);
+router.get("/tierDetails", jwt, tierDetails);
 
 module.exports = router;

@@ -6,23 +6,30 @@ const Commission = require("./commission/commission.model"); // Add this new mod
 const TIER_CONFIG = {
   BRONZE: {
     minReferrals: 0,
-    commissionPercentage: 5,
+    commissionPercentage: 10,
     nextTier: "SILVER",
+    minEarning: 0,
+    maxEarning: 499,
   },
   SILVER: {
-    minReferrals: 10,
-    commissionPercentage: 10,
+    minReferrals: 25,
+    commissionPercentage: 15,
     nextTier: "GOLD",
+    minEarning: 500,
+    maxEarning: 1999,
   },
   GOLD: {
     minReferrals: 50,
-    commissionPercentage: 15,
+    commissionPercentage: 20,
     nextTier: "PLATINUM",
+    minEarning: 2000,
+    maxEarning: 4999,
   },
   PLATINUM: {
-    minReferrals: 100,
-    commissionPercentage: 20,
+    minReferrals: 75,
+    commissionPercentage: 25,
     nextTier: null, // Highest tier
+    minEarning: 5000,
   },
 };
 
@@ -78,19 +85,36 @@ async function createCommissionEntry({
 }
 
 // Function to check and upgrade affiliate tier
+// Function to check and upgrade affiliate tier
 async function checkAndUpgradeTier(affiliate) {
   const currentTier = affiliate.tier;
   const totalReferrals = affiliate.totalReferrals;
+  const totalEarnings = affiliate.totalEarnings;
 
   let newTier = currentTier;
   let upgraded = false;
 
-  // Check tier upgrades
-  if (currentTier === "BRONZE" && totalReferrals >= 10) {
+  // Check tier upgrades - must meet BOTH referral and earning requirements
+  if (
+    currentTier === "BRONZE" &&
+    totalReferrals >= TIER_CONFIG.SILVER.minReferrals &&
+    totalEarnings >= TIER_CONFIG.SILVER.minEarning
+  ) {
     newTier = "SILVER";
     upgraded = true;
-  } else if (currentTier === "SILVER" && totalReferrals >= 50) {
+  } else if (
+    currentTier === "SILVER" &&
+    totalReferrals >= TIER_CONFIG.GOLD.minReferrals &&
+    totalEarnings >= TIER_CONFIG.GOLD.minEarning
+  ) {
     newTier = "GOLD";
+    upgraded = true;
+  } else if (
+    currentTier === "GOLD" &&
+    totalReferrals >= TIER_CONFIG.PLATINUM.minReferrals &&
+    totalEarnings >= TIER_CONFIG.PLATINUM.minEarning
+  ) {
+    newTier = "PLATINUM";
     upgraded = true;
   }
 
@@ -106,9 +130,6 @@ async function checkAndUpgradeTier(affiliate) {
     console.log(
       `🎉 Affiliate ${affiliate.referralCode} upgraded to ${newTier} tier! New commission: ${affiliate.commissionPercentage}%`
     );
-
-    // Recalculate existing commissions with new percentage
-    // await recalculateExistingCommissions(affiliate, oldCommissionPercentage);
 
     return {
       upgraded: true,
@@ -207,11 +228,13 @@ async function processPurchase(userId, challengeId, challengeCost) {
     // Update affiliate totals
     affiliate.totalEarnings += commissionAmount;
     affiliate.balance += commissionAmount;
-    await affiliate.save();
+    const savedAffiliate = await affiliate.save();
 
     console.log(
       `💰 Purchase commission processed: $${commissionAmount} for affiliate ${affiliate.referralCode}`
     );
+
+    checkAndUpgradeTier(savedAffiliate);
 
     return {
       success: true,

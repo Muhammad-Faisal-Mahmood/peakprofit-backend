@@ -117,6 +117,12 @@ const affiliateSchema = new Schema(
       default: 0,
       min: 0,
     },
+
+    lastWithdrawDate: {
+      type: Date,
+      default: null,
+    },
+
     // NEW: Track tier upgrade history
     tierHistory: [
       {
@@ -237,16 +243,48 @@ affiliateSchema.methods.processWithdraw = function (
   amount,
   status
 ) {
-  // Check if the withdrawal would make balance negative
-  if (status === "PENDING" && this.balance < amount) {
-    throw new Error(
-      `Insufficient balance. Available: $${this.balance.toFixed(
-        2
-      )}, Attempted withdrawal: $${amount.toFixed(2)}`
-    );
-  }
-
+  // Check if the last withdrawal was less than a week ago (for PENDING withdrawals only)
   if (status === "PENDING") {
+    if (this.lastWithdrawDate) {
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+      if (this.lastWithdrawDate > oneWeekAgo) {
+        const timeLeftMs =
+          this.lastWithdrawDate.getTime() +
+          7 * 24 * 60 * 60 * 1000 -
+          Date.now();
+        const hoursLeft = Math.ceil(timeLeftMs / (1000 * 60 * 60));
+        const daysLeft = Math.floor(hoursLeft / 24);
+        const remainingHours = hoursLeft % 24;
+
+        let timeLeftMessage = "You can withdraw again in ";
+        if (daysLeft > 0) {
+          timeLeftMessage += `${daysLeft} day${daysLeft > 1 ? "s" : ""}`;
+          if (remainingHours > 0) {
+            timeLeftMessage += ` and ${remainingHours} hour${
+              remainingHours > 1 ? "s" : ""
+            }`;
+          }
+        } else {
+          timeLeftMessage += `${hoursLeft} hour${hoursLeft > 1 ? "s" : ""}`;
+        }
+
+        throw new Error(`Weekly withdrawal limit. ${timeLeftMessage}.`);
+      }
+    }
+
+    // Check if the withdrawal would make balance negative
+    if (this.balance < amount) {
+      throw new Error(
+        `Insufficient balance. Available: $${this.balance.toFixed(
+          2
+        )}, Attempted withdrawal: $${amount.toFixed(2)}`
+      );
+    }
+
+    // Update last withdrawal date for successful PENDING withdrawals
+    this.lastWithdrawDate = new Date();
     this.withdraws.push(withdrawId);
     this.totalWithdrawn += amount;
     this.balance -= amount;
@@ -254,6 +292,7 @@ affiliateSchema.methods.processWithdraw = function (
 
   if (status === "DENIED") {
     this.totalWithdrawn -= amount;
+    this.withdraws = this.withdraws.filter((id) => !id.equals(withdrawId));
     this.balance += amount;
   }
 
