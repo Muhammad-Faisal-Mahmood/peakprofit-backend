@@ -10,6 +10,7 @@ const path = require("path");
 //Strategy
 require("./google.strategy");
 require("./github.strategy");
+const { getAffiliateStatusByUserId } = require("../shared/GeneralHelper.js");
 
 // JWT
 const jwt = require("../middleware/jwt.js");
@@ -34,6 +35,7 @@ const TwoFactorAuth = require("./auth.model.js");
 
 // Services
 const UserService = require("../user/user.service.js");
+const affiliateService = require("../affiliate/affiliate.service.js");
 
 // Response Helpers
 const {
@@ -43,7 +45,7 @@ const {
 
 //SignUp
 router.post("/sign-up", checkCreateParams, async (req, res, next) => {
-  const { name, email, password, inviteToken } = req.body;
+  const { name, email, password, inviteToken, refcode } = req.body;
 
   try {
     let userModel = await UserService.findByEmail(email.toLowerCase());
@@ -52,6 +54,28 @@ router.post("/sign-up", checkCreateParams, async (req, res, next) => {
     }
 
     let user = await UserService.create(name, email, password);
+
+    let referredByUserId = null;
+    if (refcode) {
+      try {
+        referredByUserId = await affiliateService.processReferralSignup(
+          refcode,
+          user._id
+        );
+        if (referredByUserId) {
+          // Update the user document with referral information
+          user.referredBy = referredByUserId;
+          user.referralCode = refcode;
+          await user.save();
+          console.log(
+            `User ${user._id} referred by ${referredByUserId} using code ${refcode}`
+          );
+        }
+      } catch (referralError) {
+        console.error("Error processing referral:", referralError);
+        // Don't fail signup if referral processing fails
+      }
+    }
 
     // Handle invitation if token exists
     let projectId = null;
@@ -93,7 +117,8 @@ router.post("/sign-up", checkCreateParams, async (req, res, next) => {
     return sendSuccessResponse(res, "Verification sent to your email", {
       userId: user._id,
       data: authData,
-      projectId: projectId,
+      // projectId: projectId,
+      referredBy: referredByUserId,
     });
   } catch (error) {
     console.error("Error while signing up:", error);
@@ -130,11 +155,13 @@ router.post("/login", async (req, res, next) => {
     userId: user._id,
     role: user?.role,
     name: user.name,
+    affiliateId: user?.affiliateId,
   };
   const token = simplejwt.sign(data, process.env.JWT_SECRET, {
     expiresIn: "7d",
   });
 
+  const affiliateStatus = await getAffiliateStatusByUserId(user._id);
   let result = {
     _id: user._id,
     email: user.email,
@@ -142,6 +169,9 @@ router.post("/login", async (req, res, next) => {
     role: user.role || null,
     token: token,
     name: user.name,
+    affiliateId: user?.affiliateId,
+    referredBy: user?.referredBy,
+    affiliateStatus: affiliateStatus,
   };
 
   // await NotificationService.create("Login successfully!", user._id);
