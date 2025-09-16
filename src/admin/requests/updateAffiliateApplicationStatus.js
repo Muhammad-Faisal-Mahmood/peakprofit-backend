@@ -175,7 +175,7 @@ const updateAffiliateApplicationStatus = async (req, res) => {
 
     // Generate unique referral code and link
     const referralCode = await generateUniqueReferralCode(application.name);
-    const backendUrl = process.env.BACKEND_URL || "http://localhost:3000";
+    const backendUrl = process.env.FRONT_APP_URL_DEV || "http://localhost:5173";
     const referralLink = `${backendUrl}/signup?refcode=${referralCode}`;
 
     // Determine tier
