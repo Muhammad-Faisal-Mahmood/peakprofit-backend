@@ -22,6 +22,11 @@ const userSchema = mongoose.Schema(
       ref: "User", // The user who referred this user (not the affiliate document)
       default: null,
     },
+    kycId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "KYC",
+      default: null,
+    },
   },
   { timestamps: true }
 );

@@ -37,5 +37,15 @@ router.get("/affiliateWithdraws", jwt, getAllAffiliateWithdraws);
 router.get("/payoutStats", jwt, getPayoutStats);
 router.put("/updateWithdrawStatus/:withdrawId", jwt, updateWithdrawStatus);
 router.get("/commissionStats", jwt, getCommissionStats);
+router.get(
+  "/kycApplications",
+  jwt,
+  require("./requests/getAllKYCApplications")
+);
+router.put(
+  "/reviewKYCApplication/:kycId",
+  jwt,
+  require("./requests/reviewKYCApplication")
+);
 
 module.exports = router;

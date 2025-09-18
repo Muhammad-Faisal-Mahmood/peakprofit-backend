@@ -17,6 +17,7 @@ const contact = require("./contact/contact.controller");
 const affiliate = require("./affiliate/affiliate.controller");
 const challenge = require("./challenge/challenge.controller");
 const withdraw = require("./withdraw/withdraw.controller");
+const kyc = require("./kyc/kyc.controller");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -52,6 +53,7 @@ app.use("/api/contact", contact);
 app.use("/api/affiliate", affiliate);
 app.use("/api/challenge", challenge);
 app.use("/api/withdraw", withdraw);
+app.use("/api/kyc", kyc);
 
 // MongoDB Connection
 const connectToMongoDB = async () => {
