@@ -1,5 +1,6 @@
 const User = require("../user.model"); // Adjust the path based on your project structure
 const { getAffiliateStatusByUserId } = require("../../shared/GeneralHelper");
+const mongoose = require("mongoose");
 
 const getUser = async (req, res) => {
   try {
@@ -16,6 +17,24 @@ const getUser = async (req, res) => {
     }
 
     const affiliateStatus = await getAffiliateStatusByUserId(user._id);
+    let kycInfo = null;
+    if (user?.kycId) {
+      const kyc = await mongoose
+        .model("KYC")
+        .findById(user.kycId)
+        .select("_id status rejectionReason");
+      if (kyc) {
+        console.log(kyc);
+        kycInfo = {
+          id: kyc._id,
+          status: kyc.status,
+        };
+
+        if (kyc.status === "rejected") {
+          kycInfo.rejectionReason = kyc.rejectionReason || "No reason provided";
+        }
+      }
+    }
     const userData = {
       id: user._id,
       email: user.email,
@@ -25,6 +44,7 @@ const getUser = async (req, res) => {
       affiliateId: user?.affiliateId,
       referredBy: user?.referredBy,
       affiliateStatus: affiliateStatus,
+      kyc: kycInfo,
     };
 
     res.json(userData);

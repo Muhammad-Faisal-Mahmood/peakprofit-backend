@@ -162,6 +162,27 @@ router.post("/login", async (req, res, next) => {
   });
 
   const affiliateStatus = await getAffiliateStatusByUserId(user._id);
+
+  // 🔹 KYC Info
+  let kycInfo = null;
+  if (user?.kycId) {
+    const kyc = await mongoose
+      .model("KYC")
+      .findById(user.kycId)
+      .select("_id status rejectionReason");
+    if (kyc) {
+      console.log(kyc);
+      kycInfo = {
+        id: kyc._id,
+        status: kyc.status,
+      };
+
+      if (kyc.status === "rejected") {
+        kycInfo.rejectionReason = kyc.rejectionReason || "No reason provided";
+      }
+    }
+  }
+
   let result = {
     _id: user._id,
     email: user.email,
@@ -172,9 +193,9 @@ router.post("/login", async (req, res, next) => {
     affiliateId: user?.affiliateId,
     referredBy: user?.referredBy,
     affiliateStatus: affiliateStatus,
+    kyc: kycInfo, // 👈 Added here
   };
 
-  // await NotificationService.create("Login successfully!", user._id);
   return sendSuccessResponse(res, "Login Successful", result);
 });
 
