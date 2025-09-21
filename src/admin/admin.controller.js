@@ -48,4 +48,8 @@ router.put(
   require("./requests/reviewKYCApplication")
 );
 
+router.get("/tickets", jwt, require("./requests/getAllTickets"));
+router.put("/updateTicket/:id", jwt, require("./requests/updateTicket"));
+router.post("/ticketNote/:id", jwt, require("./requests/addTicketNote"));
+
 module.exports = router;

@@ -18,6 +18,7 @@ const affiliate = require("./affiliate/affiliate.controller");
 const challenge = require("./challenge/challenge.controller");
 const withdraw = require("./withdraw/withdraw.controller");
 const kyc = require("./kyc/kyc.controller");
+const ticket = require("./ticket/ticket.controller");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -26,6 +27,7 @@ app.use(express.json());
 
 // ✅ Serve static content from the public folder outside src
 app.use(express.static(path.resolve(__dirname, "..", "public")));
+app.use(express.static(path.resolve(__dirname, "..", "uploads")));
 
 app.use(
   cors({
@@ -54,6 +56,7 @@ app.use("/api/affiliate", affiliate);
 app.use("/api/challenge", challenge);
 app.use("/api/withdraw", withdraw);
 app.use("/api/kyc", kyc);
+app.use("/api/ticket", ticket);
 
 // MongoDB Connection
 const connectToMongoDB = async () => {
