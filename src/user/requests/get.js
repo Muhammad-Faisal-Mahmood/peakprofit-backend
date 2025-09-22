@@ -45,6 +45,7 @@ const getUser = async (req, res) => {
       referredBy: user?.referredBy,
       affiliateStatus: affiliateStatus,
       kyc: kycInfo,
+      kycApplicationsCount: user?.kycHistory ? user.kycHistory.length : 0,
     };
 
     res.json(userData);

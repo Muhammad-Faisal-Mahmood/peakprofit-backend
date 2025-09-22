@@ -1,4 +1,4 @@
-const KYC = require("../kyc.model");
+const User = require("../../user/user.model");
 const {
   sendSuccessResponse,
   sendErrorResponse,
@@ -11,28 +11,68 @@ const getUserKYCStatus = async (req, res) => {
       return sendErrorResponse(res, "Authentication required");
     }
 
-    // Find user's KYC application
-    const kycApplication = await KYC.findOne({ user: req.user.userId })
-      .populate("user", "name email")
-      .select("-socials"); // Don't return SSN for security
+    // Find user with KYC history populated
+    const user = await User.findById(req.user.userId)
+      .populate({
+        path: "kycId",
+        select:
+          "status dateOfBirth rejectionReason idFrontImage idBackImage createdAt updatedAt",
+      })
+      .populate({
+        path: "kycHistory",
+        select:
+          "status dateOfBirth rejectionReason idFrontImage idBackImage createdAt updatedAt",
+        options: { sort: { createdAt: -1 } }, // Latest first
+      })
+      .select("kycId kycHistory");
 
-    if (!kycApplication) {
-      return sendSuccessResponse(res, "No KYC application found", {
-        hasKYC: false,
-        status: null,
-      });
+    if (!user) {
+      return sendErrorResponse(res, "User not found");
     }
 
-    return sendSuccessResponse(res, "KYC status retrieved successfully", {
-      hasKYC: true,
-      kyc: {
-        _id: kycApplication._id,
-        status: kycApplication.status,
-        dateOfBirth: kycApplication.dateOfBirth,
-        rejectionReason: kycApplication.rejectionReason,
+    // Format current KYC if exists
+    let currentKYC = null;
+    if (user.kycId) {
+      currentKYC = {
+        _id: user.kycId._id,
+        status: user.kycId.status,
+        dateOfBirth: user.kycId.dateOfBirth,
+        rejectionReason: user.kycId.rejectionReason,
+        idFrontImageUrl: `${process.env.BACKEND_URL}/uploads/kyc/${user.kycId.idFrontImage}`,
+        idBackImageUrl: `${process.env.BACKEND_URL}/uploads/kyc/${user.kycId.idBackImage}`,
+        createdAt: user.kycId.createdAt,
+        updatedAt: user.kycId.updatedAt,
+      };
+    }
 
-        createdAt: kycApplication.createdAt,
-        updatedAt: kycApplication.updatedAt,
+    // Format KYC history
+    const kycHistory = user.kycHistory
+      ? user.kycHistory.map((kyc) => ({
+          _id: kyc._id,
+          status: kyc.status,
+          dateOfBirth: kyc.dateOfBirth,
+          rejectionReason: kyc.rejectionReason,
+          idFrontImageUrl: `${process.env.BACKEND_URL}/uploads/kyc/${kyc.idFrontImage}`,
+          idBackImageUrl: `${process.env.BACKEND_URL}/uploads/kyc/${kyc.idBackImage}`,
+          createdAt: kyc.createdAt,
+          updatedAt: kyc.updatedAt,
+        }))
+      : [];
+
+    // Calculate submission stats
+    const totalSubmissions = user.kycHistory ? user.kycHistory.length : 0;
+    const submissionsLeft = Math.max(0, 5 - totalSubmissions);
+    const canResubmit =
+      (!user.kycId || (user.kycId && user.kycId.status === "rejected")) &&
+      submissionsLeft > 0;
+
+    return sendSuccessResponse(res, "KYC status retrieved successfully", {
+      currentKYC: currentKYC,
+      kycHistory: kycHistory,
+      submissionStats: {
+        totalSubmissions: totalSubmissions,
+        submissionsLeft: submissionsLeft,
+        canResubmit: canResubmit,
       },
     });
   } catch (error) {

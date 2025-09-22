@@ -28,27 +28,38 @@ const submitKYCApplication = async (req, res) => {
       );
     }
 
-    // Check if user already has a KYC application
-    const existingKYC = await KYC.findOne({ user: req.user.userId });
-    if (existingKYC) {
+    // Get user with KYC history
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return sendErrorResponse(res, "User not found");
+    }
+
+    // Check if user has reached maximum KYC submissions (5)
+    if (user.kycHistory && user.kycHistory.length >= 5) {
       return sendErrorResponse(
         res,
-        "KYC application already exists for this user"
+        "Maximum KYC submission limit reached (5 applications)"
       );
     }
 
-    // Validate date of birth
-    let dob = new Date(dateOfBirth);
-    if (isNaN(dob.getTime())) {
-      return sendErrorResponse(res, "Invalid date of birth format");
+    // Check if user has an existing KYC application that's not rejected
+    if (user.kycId) {
+      const existingKYC = await KYC.findById(user.kycId);
+      if (existingKYC && existingKYC.status !== "rejected") {
+        return sendErrorResponse(
+          res,
+          `Cannot resubmit KYC while current application is ${existingKYC.status}`
+        );
+      }
     }
 
+    // Validate date of birth
+    let dob;
     try {
-      // Parse as date only (not datetime) to avoid timezone issues
       const dobString = dateOfBirth.includes("T")
         ? dateOfBirth.split("T")[0]
         : dateOfBirth;
-      dob = new Date(dobString + "T12:00:00.000Z"); // Set to noon UTC to avoid timezone shifts
+      dob = new Date(dobString + "T12:00:00.000Z");
 
       if (isNaN(dob.getTime())) {
         throw new Error("Invalid date");
@@ -60,14 +71,7 @@ const submitKYCApplication = async (req, res) => {
       );
     }
 
-    // Check if user is at least 18 years old
-    // const eighteenYearsAgo = new Date();
-    // eighteenYearsAgo.setFullYear(eighteenYearsAgo.getFullYear() - 18);
-    // if (dob > eighteenYearsAgo) {
-    //   return sendErrorResponse(res, "User must be at least 18 years old");
-    // }
-
-    // Create KYC application
+    // Create new KYC application
     const kycApplication = new KYC({
       _id: new mongoose.Types.ObjectId(),
       user: req.user.userId,
@@ -80,15 +84,23 @@ const submitKYCApplication = async (req, res) => {
 
     await kycApplication.save();
 
-    // Update user's KYC reference
-    await User.findByIdAndUpdate(req.user.userId, {
+    // Update user's current KYC reference and add to history
+    const updateData = {
       kycId: kycApplication._id,
-    });
+      $push: { kycHistory: kycApplication._id },
+    };
+
+    await User.findByIdAndUpdate(req.user.userId, updateData);
 
     return sendSuccessResponse(res, "KYC application submitted successfully", {
       kycId: kycApplication._id,
       status: kycApplication.status,
       submittedAt: kycApplication.createdAt,
+      totalSubmissions: (user.kycHistory ? user.kycHistory.length : 0) + 1,
+      submissionsLeft: Math.max(
+        0,
+        5 - ((user.kycHistory ? user.kycHistory.length : 0) + 1)
+      ),
     });
   } catch (error) {
     console.error("Error submitting KYC application:", error);

@@ -194,6 +194,7 @@ router.post("/login", async (req, res, next) => {
     referredBy: user?.referredBy,
     affiliateStatus: affiliateStatus,
     kyc: kycInfo, // 👈 Added here
+    kycApplicationsCount: user?.kycHistory ? user.kycHistory.length : 0,
   };
 
   return sendSuccessResponse(res, "Login Successful", result);

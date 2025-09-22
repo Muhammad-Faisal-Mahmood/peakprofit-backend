@@ -7,7 +7,6 @@ const kycSchema = mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      unique: true, // One KYC per user
     },
     dateOfBirth: {
       type: Date,
