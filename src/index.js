@@ -27,7 +27,7 @@ app.use(express.json());
 
 // ✅ Serve static content from the public folder outside src
 app.use(express.static(path.resolve(__dirname, "..", "public")));
-app.use(express.static(path.resolve(__dirname, "..", "uploads")));
+app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
 app.use(
   cors({

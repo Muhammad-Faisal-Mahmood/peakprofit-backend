@@ -141,8 +141,17 @@ const getAllKYCApplications = async (req, res) => {
     statusCounts.all =
       statusCounts.pending + statusCounts.approved + statusCounts.rejected;
 
+    const BACKEND_URL = process.env.BACKEND_URL;
+
+    // Prepend backend URL to image paths
+    const applicationsWithFullImageUrls = applications.map((application) => ({
+      ...application,
+      idFrontImage: `${BACKEND_URL}/uploads/kyc/${application.idFrontImage}`,
+      idBackImage: `${BACKEND_URL}/uploads/kyc/${application.idBackImage}`,
+    }));
+
     return sendSuccessResponse(res, "KYC applications retrieved successfully", {
-      data: applications,
+      data: applicationsWithFullImageUrls,
       counts: statusCounts,
       pagination: {
         currentPage: pageNo,
