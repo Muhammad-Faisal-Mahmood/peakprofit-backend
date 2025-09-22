@@ -59,20 +59,6 @@ const getAllKYCApplications = async (req, res) => {
         ? [{ $match: matchConditions }]
         : []),
       {
-        $lookup: {
-          from: "users",
-          localField: "reviewedBy",
-          foreignField: "_id",
-          as: "reviewedBy",
-        },
-      },
-      {
-        $unwind: {
-          path: "$reviewedBy",
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
         $project: {
           _id: 1,
           user: {
@@ -86,7 +72,6 @@ const getAllKYCApplications = async (req, res) => {
           idBackImage: 1,
           status: 1,
           rejectionReason: 1,
-
           createdAt: 1,
           updatedAt: 1,
         },
@@ -94,17 +79,71 @@ const getAllKYCApplications = async (req, res) => {
       { $sort: { createdAt: -1 } },
     ];
 
-    const [applications, totalCountResult] = await Promise.all([
-      KYC.aggregate([...pipeline, { $skip: skip }, { $limit: perPage }]),
-      KYC.aggregate([...pipeline, { $count: "total" }]),
-    ]);
+    // Get status counts (all statuses regardless of search/filter)
+    const statusCountsPipeline = [
+      {
+        $lookup: {
+          from: "users",
+          localField: "user",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: "$user" },
+    ];
+
+    // Add search conditions to status counts if search is provided
+    if (search) {
+      statusCountsPipeline.push({
+        $match: {
+          $or: [
+            { "user.email": { $regex: search, $options: "i" } },
+            { "user.name": { $regex: search, $options: "i" } },
+          ],
+        },
+      });
+    }
+
+    statusCountsPipeline.push({
+      $group: {
+        _id: "$status",
+        count: { $sum: 1 },
+      },
+    });
+
+    const [applications, totalCountResult, statusCountsResult] =
+      await Promise.all([
+        KYC.aggregate([...pipeline, { $skip: skip }, { $limit: perPage }]),
+        KYC.aggregate([...pipeline, { $count: "total" }]),
+        KYC.aggregate(statusCountsPipeline),
+      ]);
 
     const totalCount =
       totalCountResult.length > 0 ? totalCountResult[0].total : 0;
     const totalPages = Math.ceil(totalCount / perPage);
 
+    // Process status counts
+    const statusCounts = {
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      all: 0,
+    };
+
+    // Update counts from aggregation result
+    statusCountsResult.forEach((item) => {
+      if (VALID_STATUSES.includes(item._id)) {
+        statusCounts[item._id] = item.count;
+      }
+    });
+
+    // Calculate total (all)
+    statusCounts.all =
+      statusCounts.pending + statusCounts.approved + statusCounts.rejected;
+
     return sendSuccessResponse(res, "KYC applications retrieved successfully", {
       data: applications,
+      counts: statusCounts,
       pagination: {
         currentPage: pageNo,
         perPage,
