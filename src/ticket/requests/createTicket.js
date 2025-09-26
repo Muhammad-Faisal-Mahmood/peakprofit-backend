@@ -31,12 +31,13 @@ module.exports = createTicket = async (req, res) => {
 
     // Process attachments if any
     const attachments = [];
+    const BACKEND_URL = process.env.BACKEND_URL;
     if (req.files && req.files.length > 0) {
       req.files.forEach((file) => {
         attachments.push({
           filename: file.filename,
           originalName: file.originalname,
-          path: file.path,
+          path: BACKEND_URL + "/" + file.path,
           size: file.size,
         });
       });
