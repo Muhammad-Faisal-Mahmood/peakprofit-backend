@@ -22,6 +22,24 @@ const userSchema = mongoose.Schema(
       ref: "User", // The user who referred this user (not the affiliate document)
       default: null,
     },
+    kycId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "KYC",
+      default: null,
+    },
+
+    kycHistory: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "KYC",
+        validate: {
+          validator: function (value) {
+            return value.length <= 5;
+          },
+          message: "kycHistory cannot exceed 5 entries.",
+        },
+      },
+    ],
   },
   { timestamps: true }
 );
