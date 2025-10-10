@@ -22,31 +22,15 @@ const ticket = require("./ticket/ticket.controller");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const frontendUrl = process.env.FRONT_APP_URL_DEV;
+console.log(frontendUrl);
 
 app.use(express.json());
 
 // ✅ Serve static content from the public folder outside src
 app.use(express.static(path.resolve(__dirname, "..", "public")));
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://dashboard.peakprofitfunding.com",
-];
-
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // allow requests with no origin (like mobile apps or curl)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      } else {
-        return callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-  })
-);
+app.use(cors({ origin: frontendUrl, credentials: true }));
 
 // Passport setup
 app.use(
