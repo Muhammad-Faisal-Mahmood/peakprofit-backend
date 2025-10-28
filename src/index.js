@@ -19,6 +19,7 @@ const challenge = require("./challenge/challenge.controller");
 const withdraw = require("./withdraw/withdraw.controller");
 const kyc = require("./kyc/kyc.controller");
 const ticket = require("./ticket/ticket.controller");
+const tradeJournal = require("./trade/journal/journal.controller");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -54,6 +55,7 @@ app.use("/api/challenge", challenge);
 app.use("/api/withdraw", withdraw);
 app.use("/api/kyc", kyc);
 app.use("/api/ticket", ticket);
+app.use("/api/trade/journal", tradeJournal);
 
 // MongoDB Connection
 const connectToMongoDB = async () => {
