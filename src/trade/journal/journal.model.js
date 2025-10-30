@@ -4,6 +4,7 @@ const TradeJournalSchema = mongoose.Schema(
   {
     title: { type: String, required: true },
     content: { type: String, required: true },
+    media: [{ type: String }],
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

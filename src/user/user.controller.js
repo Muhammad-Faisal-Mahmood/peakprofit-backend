@@ -8,6 +8,7 @@ const jwt = require("../middleware/jwt.js");
 const role = require("../middleware/role.js");
 const getUser = require("./requests/get.js");
 const updateUser = require("./requests/update.js");
+const removeProfilePicture = require("./requests/removeProfilePicture");
 
 // Response Helpers
 const {
@@ -56,6 +57,7 @@ const upload = multer({
 
 router.get("/get-user", jwt, getUser);
 router.put("/update-user", jwt, upload.single("profilePicture"), updateUser);
+router.delete("/remove-profile-picture", jwt, removeProfilePicture);
 
 module.exports = router;
 

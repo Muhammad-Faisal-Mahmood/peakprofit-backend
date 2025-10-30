@@ -23,15 +23,30 @@ const tradeJournal = require("./trade/journal/journal.controller");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const frontendUrl = process.env.FRONT_APP_URL_DEV;
-console.log(frontendUrl);
+const allowedOrigins = [
+  process.env.MARKETING_SITE_URL,
+  process.env.FRONT_APP_URL_DEV,
+];
 
 app.use(express.json());
 
 // ✅ Serve static content from the public folder outside src
 app.use(express.static(path.resolve(__dirname, "..", "public")));
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
-app.use(cors({ origin: frontendUrl, credentials: true }));
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like Postman)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        return callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
 
 // Passport setup
 app.use(

@@ -14,9 +14,14 @@ async function createJournal(req, res) {
       return sendErrorResponse(res, "Title and content are required.");
     }
 
+    const mediaPaths = req.files
+      ? req.files.map((file) => process.env.BACKEND_URL + "/" + file.path)
+      : [];
+
     const newJournal = await TradeJournal.create({
       title,
       content,
+      media: mediaPaths,
       createdBy: userId,
     });
 
