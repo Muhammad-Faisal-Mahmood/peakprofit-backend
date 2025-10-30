@@ -8,14 +8,14 @@ const {
 async function updateJournal(req, res) {
   try {
     const { id } = req.params;
-    const { title, content, removeMedia = [] } = req.body;
+    const { title, content, removeMedia } = req.body; // removeMedia is now a string
     const userId = req.user.userId;
 
-    // Check if the user provided *anything* to update
+    // Check if any field or media was updated
     const hasNewFiles = req.files && req.files.length > 0;
-    const hasRemovals = Array.isArray(removeMedia) && removeMedia.length > 0;
+    const hasRemoval = !!removeMedia && typeof removeMedia === "string";
 
-    if (!title && !content && !hasNewFiles && !hasRemovals) {
+    if (!title && !content && !hasNewFiles && !hasRemoval) {
       return sendErrorResponse(
         res,
         "Please provide at least one field or media change to update."
@@ -29,30 +29,30 @@ async function updateJournal(req, res) {
     }
 
     // Step 1️⃣ — Handle new media uploads
-    const newMedia = hasNewFiles ? req.files.map((file) => file.path) : [];
+    const newMedia = hasNewFiles
+      ? req.files.map((file) => process.env.BACKEND_URL + "/" + file.path)
+      : [];
 
-    // Step 2️⃣ — Handle removal of selected media files
+    // Step 2️⃣ — Handle single media removal
     let updatedMedia = journal.media || [];
 
-    if (hasRemovals) {
-      updatedMedia = updatedMedia.filter((path) => !removeMedia.includes(path));
+    if (hasRemoval) {
+      updatedMedia = updatedMedia.filter((path) => path !== removeMedia);
 
-      // Delete the removed files from storage
-      for (const filePath of removeMedia) {
-        try {
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-          }
-        } catch (err) {
-          console.error("Error deleting file:", err);
+      // Delete the removed file from storage
+      try {
+        if (fs.existsSync(removeMedia)) {
+          fs.unlinkSync(removeMedia);
         }
+      } catch (err) {
+        console.error("Error deleting file:", err);
       }
     }
 
-    // Step 3️⃣ — Merge old + new media
+    // Step 3️⃣ — Merge remaining + new media
     updatedMedia = [...updatedMedia, ...newMedia];
 
-    // Step 4️⃣ — Update only the provided fields
+    // Step 4️⃣ — Update only provided fields
     if (title) journal.title = title;
     if (content) journal.content = content;
     journal.media = updatedMedia;

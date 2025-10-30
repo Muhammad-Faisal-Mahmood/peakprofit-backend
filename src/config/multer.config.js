@@ -5,7 +5,7 @@ const fs = require("fs");
 // Function to create multer configuration
 const createMulterConfig = (folderName) => {
   // Define allowed file types
-  const allowedFileTypes = /jpeg|jpg|png|gif|pdf|doc|docx|txt/;
+  const allowedFileTypes = /jpeg|jpg|png|gif|webp|pdf|doc|docx|txt/;
 
   // Create storage configuration
   const storage = multer.diskStorage({
