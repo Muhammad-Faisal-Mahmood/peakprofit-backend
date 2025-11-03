@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const passport = require("passport");
 const session = require("express-session");
 const path = require("path");
+const expressWs = require("express-ws");
 
 require("dotenv").config({
   path: path.resolve(__dirname, "..", ".env"),
@@ -20,8 +21,11 @@ const withdraw = require("./withdraw/withdraw.controller");
 const kyc = require("./kyc/kyc.controller");
 const ticket = require("./ticket/ticket.controller");
 const tradeJournal = require("./trade/journal/journal.controller");
+const polygon = require("./polygon/polygon.controller");
 
 const app = express();
+expressWs(app); // Enable WebSocket support
+
 const PORT = process.env.PORT || 3000;
 const allowedOrigins = [
   process.env.MARKETING_SITE_URL,
@@ -71,6 +75,7 @@ app.use("/api/withdraw", withdraw);
 app.use("/api/kyc", kyc);
 app.use("/api/ticket", ticket);
 app.use("/api/trade/journal", tradeJournal);
+app.use("/api/polygon", polygon);
 
 // MongoDB Connection
 const connectToMongoDB = async () => {
