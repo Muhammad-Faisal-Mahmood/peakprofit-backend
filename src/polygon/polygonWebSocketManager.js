@@ -70,6 +70,7 @@ class PolygonWebSocketManager {
 
     ws.on("message", (data) => {
       this.handleMessage(connectionState, data.toString());
+      console.log("data:", data.toString());
     });
 
     ws.on("error", (error) => {
@@ -170,8 +171,17 @@ class PolygonWebSocketManager {
       }
     } else if (market === "forex") {
       if (msg.ev === "C") {
-        symbol = msg.p;
-        price = msg.a || msg.b;
+        console.log("msg is c");
+        symbol = msg.p?.replace("/", "-");
+        if (typeof msg.a === "number" && typeof msg.b === "number") {
+          price = (msg.a + msg.b) / 2; // ✅ mid-price
+        } else if (typeof msg.a === "number") {
+          price = msg.a;
+        } else if (typeof msg.b === "number") {
+          price = msg.b;
+        } else {
+          return null; // invalid
+        }
         timestamp = msg.t;
       } else if (msg.ev === "CA") {
         symbol = msg.pair;
@@ -184,7 +194,12 @@ class PolygonWebSocketManager {
       }
     }
 
-    if (!symbol || !price) return null;
+    if (!symbol || price === undefined || price === null) return null;
+
+    if (msg.ev === "C") {
+      console.log("msg is c 2");
+      console.log("our symbol is ", symbol);
+    }
 
     return {
       symbol,
