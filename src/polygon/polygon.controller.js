@@ -78,6 +78,40 @@ router.get(
   }
 );
 
+// ✅ GET /api/polygon/prev/:ticker
+router.get("/prev/:ticker", async (req, res) => {
+  try {
+    const { ticker } = req.params;
+    const { adjusted } = req.query;
+
+    // Build query parameters
+    const params = new URLSearchParams();
+    if (adjusted) params.append("adjusted", adjusted);
+    params.append("apiKey", process.env.POLYGON_API_KEY);
+
+    // Construct Polygon endpoint
+    const url = `${POLYGON_BASE_URL}/v2/aggs/ticker/${ticker}/prev?${params.toString()}`;
+
+    // Fetch from Polygon
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Polygon API responded with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error(
+      "[Polygon Proxy] Error fetching previous close:",
+      error.message
+    );
+    res.status(500).json({
+      status: "ERROR",
+      error: error.message,
+    });
+  }
+});
+
 // Initialize Polygon WebSocket Manager
 const polygonManager = new PolygonWebSocketManager(process.env.POLYGON_API_KEY);
 
