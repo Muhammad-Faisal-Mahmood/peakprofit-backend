@@ -12,7 +12,7 @@ const SOCKET_URLS = {
 
 const MAX_RECONNECT_ATTEMPTS = 5;
 const RECONNECT_DELAY = 3000;
-const MAX_CONNECTIONS_PER_MARKET = 3;
+const MAX_CONNECTIONS_PER_MARKET = 1;
 
 class PolygonWebSocketManager {
   constructor(apiKey) {
