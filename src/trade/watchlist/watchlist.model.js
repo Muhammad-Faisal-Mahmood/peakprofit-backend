@@ -47,6 +47,10 @@ const WatchlistSchema = new mongoose.Schema(
       unique: true,
     },
     items: [WatchlistItemSchema],
+    activeItem: {
+      type: WatchlistItemSchema,
+      default: null,
+    },
     lastUpdated: {
       type: Date,
       default: Date.now,
