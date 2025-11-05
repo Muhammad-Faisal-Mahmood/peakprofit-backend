@@ -68,9 +68,32 @@ class PolygonWebSocketManager {
       this.authenticate(connectionState);
     });
 
+    let lastMessageTime = 0;
+    let queuedData = null;
+    let throttleTimer = null;
+
     ws.on("message", (data) => {
-      this.handleMessage(connectionState, data.toString());
-      console.log("data:", data.toString());
+      const now = Date.now();
+
+      // If enough time has passed, handle immediately
+      if (now - lastMessageTime >= 1000) {
+        lastMessageTime = now;
+        this.handleMessage(connectionState, data.toString());
+      } else {
+        // Queue the latest message (drop intermediate ones)
+        queuedData = data;
+
+        if (!throttleTimer) {
+          throttleTimer = setTimeout(() => {
+            if (queuedData) {
+              this.handleMessage(connectionState, queuedData.toString());
+              queuedData = null;
+              lastMessageTime = Date.now();
+            }
+            throttleTimer = null;
+          }, 1000 - (now - lastMessageTime));
+        }
+      }
     });
 
     ws.on("error", (error) => {
@@ -171,7 +194,6 @@ class PolygonWebSocketManager {
       }
     } else if (market === "forex") {
       if (msg.ev === "C") {
-        console.log("msg is c");
         symbol = msg.p?.replace("/", "-");
         if (typeof msg.a === "number" && typeof msg.b === "number") {
           price = (msg.a + msg.b) / 2; // ✅ mid-price
@@ -195,11 +217,6 @@ class PolygonWebSocketManager {
     }
 
     if (!symbol || price === undefined || price === null) return null;
-
-    if (msg.ev === "C") {
-      console.log("msg is c 2");
-      console.log("our symbol is ", symbol);
-    }
 
     return {
       symbol,
