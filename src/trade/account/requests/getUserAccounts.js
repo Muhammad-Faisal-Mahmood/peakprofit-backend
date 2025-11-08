@@ -17,10 +17,25 @@ async function getUserAccounts(req, res) {
     const accounts = await Account.find({ userId })
       .populate("openPositions")
       .populate("closedPositions")
-      .populate("challengeId", "name cost accountSize") // optional fields from Challenge
+      .populate({
+        path: "challengeId",
+        select: "name cost accountSize",
+      })
       .sort({ createdAt: -1 });
 
-    return sendSuccessResponse(res, "Accounts fetched successfully.", accounts);
+    // Transform the response to rename challengeId to challenge
+    const transformedAccounts = accounts.map((account) => {
+      const accountObj = account.toObject();
+      accountObj.challenge = accountObj.challengeId;
+      delete accountObj.challengeId;
+      return accountObj;
+    });
+
+    return sendSuccessResponse(
+      res,
+      "Accounts fetched successfully.",
+      transformedAccounts
+    );
   } catch (error) {
     console.error("Error fetching user accounts:", error);
     return sendErrorResponse(res, "Failed to fetch user accounts.");

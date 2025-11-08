@@ -24,6 +24,7 @@ const tradeJournal = require("./trade/journal/journal.controller");
 const polygon = require("./polygon/polygon.controller");
 const watchlist = require("./trade/watchlist/watchlist.controller");
 const Account = require("./trade/account/account.controller");
+const Trade = require("./trade/trade.controller");
 
 const app = express();
 expressWs(app); // Enable WebSocket support
@@ -80,6 +81,7 @@ app.use("/api/trade/journal", tradeJournal);
 app.use("/api/polygon", polygon);
 app.use("/api/trade/watchlist", watchlist);
 app.use("/api/trade/account", Account);
+app.use("/api/trade", Trade);
 
 // MongoDB Connection
 const connectToMongoDB = async () => {

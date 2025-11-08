@@ -85,7 +85,7 @@ const tradeSchema = new Schema(
       type: Number,
       default: 0,
     },
-    leverageAtOpen: {
+    leverage: {
       type: Number,
       default: 50, // same as Account default
     },

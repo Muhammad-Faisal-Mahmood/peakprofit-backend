@@ -16,13 +16,25 @@ async function getAccountById(req, res) {
     const account = await Account.findById(id)
       .populate("openPositions")
       .populate("closedPositions")
-      .populate("challengeId", "name cost accountSize");
+      .populate({
+        path: "challengeId",
+        select: "name cost accountSize",
+      });
 
     if (!account) {
       return sendErrorResponse(res, "Account not found.");
     }
 
-    return sendSuccessResponse(res, "Account fetched successfully.", account);
+    // Transform the response to rename challengeId to challenge
+    const accountObj = account.toObject();
+    accountObj.challenge = accountObj.challengeId;
+    delete accountObj.challengeId;
+
+    return sendSuccessResponse(
+      res,
+      "Account fetched successfully.",
+      accountObj
+    );
   } catch (error) {
     console.error("Error fetching account by ID:", error);
     return sendErrorResponse(res, "Failed to fetch account.");

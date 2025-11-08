@@ -6,6 +6,7 @@
 const express = require("express");
 const expressWs = require("express-ws");
 const PolygonWebSocketManager = require("./polygonWebSocketManager");
+const tradeMonitorService = require("../trade/tradeMonitor.service");
 
 const router = express.Router();
 expressWs(router);
@@ -120,6 +121,7 @@ const clients = new Map();
 
 // Set callback for broadcasting data to clients
 polygonManager.setDataCallback((data) => {
+  tradeMonitorService.processPriceUpdate(data);
   // Find all clients subscribed to this symbol
   const subscriptionKey = `${data.symbol}`;
 
