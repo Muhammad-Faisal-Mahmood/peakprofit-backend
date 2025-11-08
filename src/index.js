@@ -23,6 +23,7 @@ const ticket = require("./ticket/ticket.controller");
 const tradeJournal = require("./trade/journal/journal.controller");
 const polygon = require("./polygon/polygon.controller");
 const watchlist = require("./trade/watchlist/watchlist.controller");
+const Account = require("./trade/account/account.controller");
 
 const app = express();
 expressWs(app); // Enable WebSocket support
@@ -78,6 +79,7 @@ app.use("/api/ticket", ticket);
 app.use("/api/trade/journal", tradeJournal);
 app.use("/api/polygon", polygon);
 app.use("/api/trade/watchlist", watchlist);
+app.use("/api/trade/account", Account);
 
 // MongoDB Connection
 const connectToMongoDB = async () => {

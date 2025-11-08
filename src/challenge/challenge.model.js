@@ -13,6 +13,10 @@ const challengeSchema = new Schema(
       type: Number,
       required: true,
     },
+    accountSize: {
+      type: Number,
+      required: true,
+    },
   },
   { timestamps: true }
 );

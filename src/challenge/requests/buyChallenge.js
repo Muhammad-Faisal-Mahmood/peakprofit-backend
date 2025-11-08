@@ -4,6 +4,7 @@ const {
   sendSuccessResponse,
 } = require("../../shared/response.service");
 const affiliateService = require("../../affiliate/affiliate.service");
+const createAccount = require("../../utils/createAccount");
 const buyChallenge = async (req, res) => {
   const { challengeId } = req.params;
   const userId = req.user.userId;
@@ -18,10 +19,17 @@ const buyChallenge = async (req, res) => {
     // Process the purchase (your existing logic here)
     // ... purchase processing logic ...
 
+    const newAccount = await createAccount({
+      userId,
+      challengeId: challenge._id,
+      accountType: "demo", // or "evaluation" depending on your flow
+    });
+
     // Process affiliate commission if user was referred
     await affiliateService.processPurchase(userId, challengeId, challenge.cost);
 
     return sendSuccessResponse(res, "Challenge purchased successfully", {
+      account: newAccount,
       challenge: challenge,
       cost: challenge.cost,
     });
