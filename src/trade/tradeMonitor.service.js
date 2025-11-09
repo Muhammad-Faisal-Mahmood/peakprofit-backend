@@ -20,9 +20,6 @@ const openTradesMap = new Map();
 // }
 const accountRiskMap = new Map();
 
-// Assumed Constant (You need to define this based on your markets)
-// const CONTRACT_MULTIPLIER = 1; // e.g., 1 for crypto, 100000 for standard forex lot
-
 /**
  * Calculates the total unrealized PnL for an account.
  * @param {string} accountId
@@ -169,7 +166,7 @@ async function processPriceUpdate(priceData) {
     }
 
     // Track which accounts are impacted by this price
-    const affectedAccounts = new Set();
+    const affectedAccounts = new Map(); // accountId -> { trades: [], hasSlTpHit: boolean }
 
     for (const trade of trades) {
       const tradeId = trade._id;
@@ -195,37 +192,37 @@ async function processPriceUpdate(priceData) {
         if (price <= takeProfit) hitTP = true;
       }
 
-      if (hitSL || hitTP) {
-        const reason = hitSL ? "stopLoss" : "takeProfit";
-        console.log(
-          `[TradeMonitor] Trade ${tradeId} hit ${reason}. Closing...`
-        );
+      // --- Update unrealized PnL in-memory (whether SL/TP hit or not) ---
+      const direction = side === "buy" ? 1 : -1;
+      const symbolAmount = tradeSize / entryPrice;
+      const pnl = (price - entryPrice) * symbolAmount * direction;
 
-        await closeTrade(trade, price, reason);
-        removeTradeFromMonitoring(tradeId, accountId);
-      } else {
-        // --- Update unrealized PnL in-memory ---
-        const direction = side === "buy" ? 1 : -1;
-        symbolAmount = tradeSize / entryPrice;
-        const pnl = (price - entryPrice) * symbolAmount * direction;
-
-        const riskData = accountRiskMap.get(accountId);
-        if (riskData) {
-          riskData.openPositionsPnl.set(tradeId, pnl);
-        }
+      const riskData = accountRiskMap.get(accountId);
+      if (riskData) {
+        riskData.openPositionsPnl.set(tradeId, pnl);
       }
 
-      affectedAccounts.add(accountId);
+      // Track affected accounts
+      if (!affectedAccounts.has(accountId)) {
+        affectedAccounts.set(accountId, { trades: [], hasSlTpHit: false });
+      }
+      const accountData = affectedAccounts.get(accountId);
+      accountData.trades.push({ trade, hitSL, hitTP, pnl });
+      if (hitSL || hitTP) {
+        accountData.hasSlTpHit = true;
+      }
     }
 
-    // --- Now check drawdown rules for affected accounts (in-memory only) ---
-    for (const accountId of affectedAccounts) {
+    // --- Check drawdown rules for ALL affected accounts BEFORE closing any trades ---
+    const accountsToLiquidate = new Set();
+
+    for (const [accountId, accountData] of affectedAccounts) {
       const riskData = accountRiskMap.get(accountId);
       if (!riskData) continue;
 
       const totalOpenPnl = getTotalOpenPnl(accountId);
 
-      // Compute in-memory equity
+      // Compute in-memory equity (including the PnL from trades that hit SL/TP)
       const newEquity =
         (riskData.currentBalance || riskData.initialBalance) + totalOpenPnl;
       console.log("New Equity for Account", accountId, "is", newEquity);
@@ -237,13 +234,43 @@ async function processPriceUpdate(priceData) {
       const violation = checkAccountRules(accountId, newEquity);
 
       if (violation) {
-        // Only now go to DB — this is a major event
-        await handleAccountLiquidation(
-          accountId,
-          violation,
-          newEquity,
-          priceData
+        console.warn(
+          `[TradeMonitor] Account ${accountId} violated ${violation} rule. Marking for liquidation.`
         );
+        accountsToLiquidate.add(accountId);
+        affectedAccounts.get(accountId).violation = violation;
+      }
+    }
+
+    // --- Handle liquidations FIRST (closes all trades including the one that hit SL/TP) ---
+    for (const accountId of accountsToLiquidate) {
+      const accountData = affectedAccounts.get(accountId);
+      await handleAccountLiquidation(
+        accountId,
+        accountData.violation,
+        accountRiskMap.get(accountId).currentEquity,
+        priceData
+      );
+    }
+
+    // --- Only close individual SL/TP trades if account was NOT liquidated ---
+    for (const [accountId, accountData] of affectedAccounts) {
+      // Skip if account was liquidated (all trades already closed)
+      if (accountsToLiquidate.has(accountId)) {
+        continue;
+      }
+
+      // Close individual trades that hit SL/TP
+      for (const { trade, hitSL, hitTP } of accountData.trades) {
+        if (hitSL || hitTP) {
+          const reason = hitSL ? "stopLoss" : "takeProfit";
+          console.log(
+            `[TradeMonitor] Trade ${trade._id} hit ${reason}. Closing...`
+          );
+
+          await closeTrade(trade, price, reason);
+          removeTradeFromMonitoring(trade._id, accountId);
+        }
       }
     }
   } catch (err) {
@@ -327,35 +354,21 @@ async function handleAccountLiquidation(
     },
   });
 
-  // 2. Close all open positions at the current price
+  // 2. Close ALL open positions at the current price (including ones that just hit SL/TP)
   const tradesToClose = Array.from(openTradesMap.values()).filter(
     (t) => t.accountId === accountId
   );
 
-  // In a real system, you would fire a service to execute market closes for these trades
-  // For now, we simulate the closure and update the database.
+  console.log(
+    `[LIQUIDATION] Closing ${tradesToClose.length} trades for account ${accountId}`
+  );
+
+  // Close all trades using the closeTrade function for consistency
   for (const trade of tradesToClose) {
-    // Calculate realized PnL for closure
     const currentPrice = priceData.price;
-    let realizedPnl;
 
-    const symbolAmount = trade.tradeSize / trade.entryPrice;
-    realizedPnl = symbolAmount * (currentPrice - trade.entryPrice);
-
-    if (trade.side === "buy") {
-      realizedPnl = realizedPnl;
-    } else {
-      realizedPnl = realizedPnl * -1;
-    }
-
-    // Update Trade in DB
-    await Trade.findByIdAndUpdate(trade._id, {
-      status: "closed",
-      exitPrice: currentPrice,
-      closedAt: new Date(),
-      profit: realizedPnl,
-      $push: { violatedRules: violationRule },
-    });
+    // Close the trade with the violation reason
+    await closeTrade(trade, currentPrice, violationRule);
 
     // Remove from the in-memory map
     removeTradeFromMonitoring(trade._id, accountId);

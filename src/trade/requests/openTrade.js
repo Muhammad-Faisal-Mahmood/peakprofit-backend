@@ -112,7 +112,6 @@ const openTrade = async (req, res) => {
 
     // Add trade to monitoring service
     await TradeMonitor.addTradeForMonitoring(account, trade);
-    await TradeMonitor.processPriceUpdate({ symbol: "BTC-USD", price: 97000 });
 
     return sendSuccessResponse(res, "Trade opened successfully.", trade);
   } catch (err) {
