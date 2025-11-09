@@ -21,7 +21,7 @@ const openTradesMap = new Map();
 const accountRiskMap = new Map();
 
 // Assumed Constant (You need to define this based on your markets)
-const CONTRACT_MULTIPLIER = 1; // e.g., 1 for crypto, 100000 for standard forex lot
+// const CONTRACT_MULTIPLIER = 1; // e.g., 1 for crypto, 100000 for standard forex lot
 
 /**
  * Calculates the total unrealized PnL for an account.
@@ -57,8 +57,10 @@ async function addTradeForMonitoring(accountDoc, tradeDoc) {
 
     accountRiskMap.set(accountId, {
       initialBalance: accountDoc.initialBalance,
-      dailyDrawdownLimit: accountDoc.initialBalance * 0.025, // 2.5% [cite: 4]
-      maxDrawdownLimit: accountDoc.initialBalance * 0.07, // 7% [cite: 5]
+      dailyDrawdownLimit: accountDoc.dailyDrawdownLimit, // 2.5% [cite: 4]
+      maxDrawdownLimit: accountDoc.maxDrawdownLimit, // 7% [cite: 5]
+      currentBalance: accountDoc.balance, // updated when trade closes
+      currentEquity: accountDoc.equity, // updated continuously
       currentDailyLoss: 0,
       highestEquity: accountDoc.equity,
       maxDrawdownThreshold,
@@ -75,14 +77,16 @@ async function addTradeForMonitoring(accountDoc, tradeDoc) {
   // but the trade entry is useful for PnL calculation.
 
   openTradesMap.set(tradeId, {
+    _id: tradeId,
     accountId: accountId,
     userId: tradeDoc.userId.toString(),
     symbol: tradeDoc.symbol,
     side: tradeDoc.side,
-    volume: tradeDoc.volume,
+    tradeSize: tradeDoc.tradeSize,
     entryPrice: tradeDoc.entryPrice,
+    stopLoss: tradeDoc.stopLoss,
+    takeProfit: tradeDoc.takeProfit,
     market: tradeDoc.market,
-    contractMultiplier: CONTRACT_MULTIPLIER, // Placeholder
   });
 
   // 3. For an *actual* market/liquidity check, subscribe to the symbol via Polygon.
@@ -131,46 +135,15 @@ function checkAccountRules(accountId, newEquity) {
 
   let violation = null;
 
-  // --- 1. Max Trailing Drawdown Check (7%) ---
-  // Rule: Max Total Drawdown may not exceed 7% maximum trailing drawdown[cite: 5].
+  // Max Drawdown (Trailing 7%)
   if (newEquity < riskData.maxDrawdownThreshold) {
     violation = "maxDrawdown";
-    console.error(
-      `[VIOLATION] Account ${accountId} failed Max Drawdown. Equity: ${newEquity.toFixed(
-        2
-      )} < Threshold: ${riskData.maxDrawdownThreshold.toFixed(2)}`
-    );
   }
 
-  // --- 2. Daily Loss Limit Check (2.5%) ---
-  // Rule: Daily Loss Limit is 2.5% of starting account balance[cite: 4].
-  // NOTE: This check should include REALIZED Daily Loss + Current Unrealized Loss
-  const currentDrawdownFromStartOfDay = riskData.initialBalance - newEquity; // Simplified assumption for daily check
-  const maxDailyLossAllowed = riskData.dailyDrawdownLimit;
-
-  if (currentDrawdownFromStartOfDay > maxDailyLossAllowed) {
-    // This is a simplified check. A true daily check compares against (Previous Day's Close Balance or Initial Balance).
-    // For simplicity, we compare to the Initial Balance for now.
+  // Daily Loss (2.5%)
+  const dailyLoss = riskData.initialBalance - newEquity;
+  if (dailyLoss > riskData.dailyDrawdownLimit) {
     violation = violation || "dailyDrawdown";
-    console.error(
-      `[VIOLATION] Account ${accountId} failed Daily Loss Limit. Daily Drawdown: ${currentDrawdownFromStartOfDay.toFixed(
-        2
-      )} > Limit: ${maxDailyLossAllowed.toFixed(2)}`
-    );
-  }
-
-  // --- 3. Update Highest Equity (For Trailing Drawdown) ---
-  // Max Drawdown Trailing logic: if new equity is higher, update the high water mark.
-  if (newEquity > riskData.highestEquity) {
-    riskData.highestEquity = newEquity;
-    // Recalculate the new max drawdown threshold
-    riskData.maxDrawdownThreshold =
-      riskData.highestEquity - riskData.maxDrawdownLimit;
-    console.log(
-      `[TradeMonitor] Account ${accountId} highest equity updated to ${newEquity.toFixed(
-        2
-      )}. New threshold: ${riskData.maxDrawdownThreshold.toFixed(2)}`
-    );
   }
 
   return violation;
@@ -182,77 +155,150 @@ function checkAccountRules(accountId, newEquity) {
  */
 async function processPriceUpdate(priceData) {
   const { symbol, price } = priceData;
-  console.log(`[TradeMonitor] Processing price update for ${symbol}: ${price}`);
+  console.log(`\n[TradeMonitor] >>> Processing tick for ${symbol} at ${price}`);
 
-  // 1. Find all open trades for this symbol
-  const tradesToUpdate = Array.from(openTradesMap.values()).filter(
-    (t) => t.symbol === symbol
-  );
+  try {
+    // Get all open trades for this symbol
+    const trades = Array.from(openTradesMap.values()).filter(
+      (t) => t.symbol === symbol
+    );
+
+    if (!trades.length) {
+      console.log(`[TradeMonitor] No open trades for ${symbol}.`);
+      return;
+    }
+
+    // Track which accounts are impacted by this price
+    const affectedAccounts = new Set();
+
+    for (const trade of trades) {
+      const tradeId = trade._id;
+      const {
+        side,
+        entryPrice,
+        stopLoss,
+        takeProfit,
+        tradeSize,
+        leverage = 50,
+        accountId,
+      } = trade;
+
+      let hitSL = false;
+      let hitTP = false;
+
+      // --- Check SL/TP ---
+      if (side === "buy") {
+        if (price <= stopLoss) hitSL = true;
+        if (price >= takeProfit) hitTP = true;
+      } else {
+        if (price >= stopLoss) hitSL = true;
+        if (price <= takeProfit) hitTP = true;
+      }
+
+      if (hitSL || hitTP) {
+        const reason = hitSL ? "stopLoss" : "takeProfit";
+        console.log(
+          `[TradeMonitor] Trade ${tradeId} hit ${reason}. Closing...`
+        );
+
+        await closeTrade(trade, price, reason);
+        removeTradeFromMonitoring(tradeId, accountId);
+      } else {
+        // --- Update unrealized PnL in-memory ---
+        const direction = side === "buy" ? 1 : -1;
+        symbolAmount = tradeSize / entryPrice;
+        const pnl = (price - entryPrice) * symbolAmount * direction;
+
+        const riskData = accountRiskMap.get(accountId);
+        if (riskData) {
+          riskData.openPositionsPnl.set(tradeId, pnl);
+        }
+      }
+
+      affectedAccounts.add(accountId);
+    }
+
+    // --- Now check drawdown rules for affected accounts (in-memory only) ---
+    for (const accountId of affectedAccounts) {
+      const riskData = accountRiskMap.get(accountId);
+      if (!riskData) continue;
+
+      const totalOpenPnl = getTotalOpenPnl(accountId);
+
+      // Compute in-memory equity
+      const newEquity =
+        (riskData.currentBalance || riskData.initialBalance) + totalOpenPnl;
+      console.log("New Equity for Account", accountId, "is", newEquity);
+
+      // Store this in-memory for next tick
+      riskData.currentEquity = newEquity;
+
+      // Check rules
+      const violation = checkAccountRules(accountId, newEquity);
+
+      if (violation) {
+        // Only now go to DB — this is a major event
+        await handleAccountLiquidation(
+          accountId,
+          violation,
+          newEquity,
+          priceData
+        );
+      }
+    }
+  } catch (err) {
+    console.error(`[TradeMonitor][ERROR] Tick processing failed:`, err);
+  }
+}
+
+async function closeTrade(trade, currentPrice, reason) {
+  const { side, entryPrice, tradeSize, leverage = 50, _id, accountId } = trade;
+
+  const direction = side === "buy" ? 1 : -1;
+  const symbolAmount = tradeSize / entryPrice;
+  const pnl = (currentPrice - entryPrice) * symbolAmount * direction;
+
+  const account = await Account.findById(accountId);
+  if (!account) {
+    console.error(`[closeTrade] Account ${accountId} not found`);
+    return;
+  }
+
+  const marginToRelease = (tradeSize * entryPrice) / leverage;
+  account.marginUsed = Math.max(0, account.marginUsed - marginToRelease);
+  account.balance += pnl;
+  account.equity = account.balance; // assuming no open PnL now
+
+  // ✅ Proper array manipulation
+  if (Array.isArray(account.openPositions)) {
+    account.openPositions = account.openPositions.filter(
+      (posId) => posId.toString() !== _id.toString()
+    );
+  }
+  if (Array.isArray(account.closedPositions)) {
+    account.closedPositions.push(_id);
+  }
+
+  await account.save();
+
+  const updateData = {
+    status: "closed",
+    exitPrice: currentPrice,
+    closedAt: new Date(),
+    profit: pnl,
+  };
+
+  if (["dailyDrawdown", "maxDrawdown"].includes(reason)) {
+    updateData.$push = { violatedRules: reason };
+  }
+
+  await Trade.findByIdAndUpdate(_id, updateData);
 
   console.log(
-    `[TradeMonitor] Found ${tradesToUpdate.length} open trades for ${symbol}.`
+    `[TradeMonitor] Trade ${_id} closed at ${currentPrice}. Reason: ${reason}, PnL: ${pnl.toFixed(
+      2
+    )}`
   );
-
-  if (tradesToUpdate.length === 0) return;
-
-  const accountsToUpdate = new Set();
-
-  //   2. Calculate PnL for each trade and accumulate by account
-  for (const trade of tradesToUpdate) {
-    const contractMultiplier = trade.contractMultiplier;
-    let pnl;
-
-    // PnL = (Current Price - Entry Price) * Volume * Multiplier * Direction (1 or -1)
-    if (trade.side === "buy") {
-      pnl = (price - trade.entryPrice) * trade.volume * contractMultiplier;
-    } else {
-      // 'sell'
-      pnl = (trade.entryPrice - price) * trade.volume * contractMultiplier;
-    }
-
-    // Update the in-memory PnL for this specific trade
-    const riskData = accountRiskMap.get(trade.accountId);
-    if (riskData) {
-      riskData.openPositionsPnl.set(trade._id, pnl);
-      accountsToUpdate.add(trade.accountId);
-    }
-  }
-
-  // 3. Check rules for affected accounts
-  for (const accountId of accountsToUpdate) {
-    const riskData = accountRiskMap.get(accountId);
-    if (!riskData) continue;
-
-    // Calculate new equity
-    const totalOpenPnl = getTotalOpenPnl(accountId);
-    // NOTE: We MUST fetch the current *realized balance* from the DB or keep it in memory.
-    // For simplicity here, we assume a placeholder current realized balance.
-    // In a real system, you would need to frequently sync the realized balance from the DB.
-    const accountDoc = await Account.findById(accountId)
-      .select("balance")
-      .lean();
-    if (!accountDoc) continue;
-
-    const currentBalance = accountDoc.balance; // Realized Balance
-    const newEquity = currentBalance + totalOpenPnl;
-
-    // Perform the rule check
-    const violation = checkAccountRules(accountId, newEquity);
-
-    if (violation) {
-      // Rule failed! Immediately liquidate the account and update the database.
-      // This is a critical action that must be robust.
-      await handleAccountLiquidation(
-        accountId,
-        violation,
-        newEquity,
-        priceData
-      );
-    } else {
-      // Update the equity in the database for accurate dashboard reporting
-      await Account.findByIdAndUpdate(accountId, { equity: newEquity });
-    }
-  }
 }
 
 /**
@@ -293,16 +339,13 @@ async function handleAccountLiquidation(
     const currentPrice = priceData.price;
     let realizedPnl;
 
+    const symbolAmount = trade.tradeSize / trade.entryPrice;
+    realizedPnl = symbolAmount * (currentPrice - trade.entryPrice);
+
     if (trade.side === "buy") {
-      realizedPnl =
-        (currentPrice - trade.entryPrice) *
-        trade.volume *
-        trade.contractMultiplier;
+      realizedPnl = realizedPnl;
     } else {
-      realizedPnl =
-        (trade.entryPrice - currentPrice) *
-        trade.volume *
-        trade.contractMultiplier;
+      realizedPnl = realizedPnl * -1;
     }
 
     // Update Trade in DB

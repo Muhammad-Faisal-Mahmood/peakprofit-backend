@@ -40,9 +40,13 @@ const tradeSchema = new Schema(
       required: true,
     },
 
-    // Trade size
-    volume: {
-      type: Number, // in lots or units depending on your platform
+    units: {
+      type: Number, // actual units traded
+      required: true,
+    },
+
+    tradeSize: {
+      type: Number,
       required: true,
     },
 
@@ -101,13 +105,7 @@ const tradeSchema = new Schema(
     violatedRules: [
       {
         type: String,
-        enum: [
-          "dailyDrawdown",
-          "maxDrawdown",
-          "newsTrading",
-          "marketClosure",
-          "latencyArbitrage",
-        ],
+        enum: ["dailyDrawdown", "maxDrawdown"],
       },
     ],
   },

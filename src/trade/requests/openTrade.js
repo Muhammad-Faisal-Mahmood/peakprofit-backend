@@ -15,11 +15,11 @@ const openTrade = async (req, res) => {
       polygonSymbol,
       market,
       side,
-      volume,
+      units,
       entryPrice,
       stopLoss,
       takeProfit,
-      leverage,
+      leverage = 50,
     } = req.body;
 
     const userId = req.user.userId;
@@ -35,7 +35,7 @@ const openTrade = async (req, res) => {
       !symbol ||
       !polygonSymbol ||
       !side ||
-      !volume ||
+      !units ||
       !entryPrice
     ) {
       return sendErrorResponse(res, "Missing required trade parameters.");
@@ -44,9 +44,15 @@ const openTrade = async (req, res) => {
     // Fetch the account
     const account = await Account.findById(accountId);
     if (!account) return sendErrorResponse(res, "Account not found.");
+    if (account.status == "failed" || account.status == "suspended") {
+      return sendErrorResponse(
+        res,
+        `Account is ${account.status}. No new trades allowed.`
+      );
+    }
 
     // Calculate margin used (simplified)
-    const marginUsed = (volume * entryPrice) / leverage;
+    const marginUsed = (units * entryPrice) / leverage;
 
     // Check if account has enough free margin
     const freeMargin = account.balance - account.marginUsed;
@@ -57,6 +63,29 @@ const openTrade = async (req, res) => {
       );
     }
 
+    // ✅ Handle Actively Traded Days logic
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10); // format YYYY-MM-DD
+    let incrementTradingDay = false;
+
+    if (!account.lastTradeTimestamp) {
+      // First-ever trade
+      account.activelyTradedDays = 1;
+      incrementTradingDay = true;
+    } else {
+      const lastTradeDate = account.lastTradeTimestamp
+        .toISOString()
+        .slice(0, 10);
+      if (lastTradeDate !== today) {
+        // First trade of a new day
+        account.activelyTradedDays += 1;
+        incrementTradingDay = true;
+      }
+    }
+
+    // Always update last trade timestamp
+    account.lastTradeTimestamp = now;
+
     // Create the trade
     const trade = new Trade({
       accountId,
@@ -65,7 +94,8 @@ const openTrade = async (req, res) => {
       polygonSymbol,
       market,
       side,
-      volume,
+      units,
+      tradeSize: units * entryPrice * leverage,
       entryPrice,
       stopLoss,
       takeProfit,
@@ -75,13 +105,14 @@ const openTrade = async (req, res) => {
 
     await trade.save();
 
-    // Update account: margin used + add trade to openPositions
+    // Update account margin and open positions
     account.marginUsed += marginUsed;
     account.openPositions.push(trade._id);
     await account.save();
 
-    // Add trade to monitoring
+    // Add trade to monitoring service
     await TradeMonitor.addTradeForMonitoring(account, trade);
+    await TradeMonitor.processPriceUpdate({ symbol: "BTC-USD", price: 97000 });
 
     return sendSuccessResponse(res, "Trade opened successfully.", trade);
   } catch (err) {

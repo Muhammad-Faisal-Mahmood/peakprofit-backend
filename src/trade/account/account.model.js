@@ -28,9 +28,12 @@ const AccountSchema = new mongoose.Schema(
     minTradingDays: {
       type: Number,
       default: 5,
-      required: true,
     },
-
+    activelyTradedDays: {
+      type: Number,
+      default: 0,
+    },
+    lastTradeTimestamp: { type: Date },
     // States
     status: {
       type: String,
