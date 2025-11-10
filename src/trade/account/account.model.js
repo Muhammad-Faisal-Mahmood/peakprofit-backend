@@ -43,6 +43,10 @@ const AccountSchema = new mongoose.Schema(
 
     openPositions: [{ type: mongoose.Schema.Types.ObjectId, ref: "Trade" }],
     closedPositions: [{ type: mongoose.Schema.Types.ObjectId, ref: "Trade" }],
+
+    currentDayEquity: {
+      type: Number,
+    },
   },
   { timestamps: true }
 );

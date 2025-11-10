@@ -108,6 +108,17 @@ const tradeSchema = new Schema(
         enum: ["dailyDrawdown", "maxDrawdown"],
       },
     ],
+
+    tradeClosureReason: {
+      type: String,
+      enum: [
+        "userClosed",
+        "stopLossHit",
+        "takeProfitHit",
+        "dailyDrawdownViolated",
+        "maxDrawdownViolated",
+      ],
+    },
   },
   { timestamps: true }
 );

@@ -66,21 +66,21 @@ const openTrade = async (req, res) => {
     // ✅ Handle Actively Traded Days logic
     const now = new Date();
     const today = now.toISOString().slice(0, 10); // format YYYY-MM-DD
-    let incrementTradingDay = false;
 
-    if (!account.lastTradeTimestamp) {
-      // First-ever trade
-      account.activelyTradedDays = 1;
-      incrementTradingDay = true;
-    } else {
-      const lastTradeDate = account.lastTradeTimestamp
-        .toISOString()
-        .slice(0, 10);
-      if (lastTradeDate !== today) {
-        // First trade of a new day
-        account.activelyTradedDays += 1;
-        incrementTradingDay = true;
-      }
+    const isNewTradingDay =
+      !account.lastTradeTimestamp ||
+      account.lastTradeTimestamp.toISOString().slice(0, 10) !== today;
+
+    if (isNewTradingDay) {
+      // Increment active trading days only on first trade of the day
+      account.activelyTradedDays += 1;
+
+      // ✅ Reset daily baseline equity
+      account.currentDayEquity = account.equity || account.balance;
+
+      console.log(
+        `[Account] New trading day detected for account ${account._id}. Daily baseline equity set to ${account.currentDayEquity}`
+      );
     }
 
     // Always update last trade timestamp

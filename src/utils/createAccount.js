@@ -51,6 +51,7 @@ async function createAccount({
     status: "active",
     openPositions: [],
     closedPositions: [],
+    currentDayEquity: initialBalance,
   });
 
   return newAccount;

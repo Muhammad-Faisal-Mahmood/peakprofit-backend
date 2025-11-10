@@ -63,6 +63,7 @@ async function addTradeForMonitoring(accountDoc, tradeDoc) {
       maxDrawdownThreshold,
       openPositionsPnl: new Map(),
       symbolsInUse: new Set(),
+      currentDayEquity: accountDoc.currentDayEquity,
     });
   }
 
@@ -137,10 +138,16 @@ function checkAccountRules(accountId, newEquity) {
     violation = "maxDrawdown";
   }
 
+  const dailyLoss = riskData.currentDayEquity - newEquity;
+  const dailyDrawdownThreshold = riskData.currentDayEquity * 0.025;
   // Daily Loss (2.5%)
-  const dailyLoss = riskData.initialBalance - newEquity;
-  if (dailyLoss > riskData.dailyDrawdownLimit) {
+  if (dailyLoss > dailyDrawdownThreshold) {
     violation = violation || "dailyDrawdown";
+    console.warn(
+      `[TradeMonitor] ⚠️ Daily drawdown exceeded! Loss: ${dailyLoss.toFixed(
+        2
+      )} > Threshold: ${dailyDrawdownThreshold.toFixed(2)}`
+    );
   }
 
   return violation;
@@ -263,12 +270,12 @@ async function processPriceUpdate(priceData) {
       // Close individual trades that hit SL/TP
       for (const { trade, hitSL, hitTP } of accountData.trades) {
         if (hitSL || hitTP) {
-          const reason = hitSL ? "stopLoss" : "takeProfit";
+          const closureReason = hitSL ? "stopLossHit" : "takeProfitHit";
           console.log(
-            `[TradeMonitor] Trade ${trade._id} hit ${reason}. Closing...`
+            `[TradeMonitor] Trade ${trade._id} hit ${closureReason}. Closing...`
           );
 
-          await closeTrade(trade, price, reason);
+          await closeTrade(trade, price, closureReason);
           removeTradeFromMonitoring(trade._id, accountId);
         }
       }
@@ -313,6 +320,7 @@ async function closeTrade(trade, currentPrice, reason) {
     exitPrice: currentPrice,
     closedAt: new Date(),
     profit: pnl,
+    tradeClosureReason: closureReason,
   };
 
   if (["dailyDrawdown", "maxDrawdown"].includes(reason)) {
@@ -349,9 +357,6 @@ async function handleAccountLiquidation(
   await Account.findByIdAndUpdate(accountId, {
     status: "failed",
     equity: finalEquity,
-    $push: {
-      // Optional: log the violation to the account
-    },
   });
 
   // 2. Close ALL open positions at the current price (including ones that just hit SL/TP)
@@ -363,12 +368,17 @@ async function handleAccountLiquidation(
     `[LIQUIDATION] Closing ${tradesToClose.length} trades for account ${accountId}`
   );
 
+  const closureReason =
+    violationRule === "dailyDrawdown"
+      ? "dailyDrawdownViolated"
+      : "maxDrawdownViolated";
+
   // Close all trades using the closeTrade function for consistency
   for (const trade of tradesToClose) {
     const currentPrice = priceData.price;
 
     // Close the trade with the violation reason
-    await closeTrade(trade, currentPrice, violationRule);
+    await closeTrade(trade, currentPrice, closureReason);
 
     // Remove from the in-memory map
     removeTradeFromMonitoring(trade._id, accountId);
@@ -387,4 +397,5 @@ module.exports = {
   addTradeForMonitoring,
   removeTradeFromMonitoring,
   processPriceUpdate,
+  closeTrade,
 };
