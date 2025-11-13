@@ -68,32 +68,8 @@ class PolygonWebSocketManager {
       this.authenticate(connectionState);
     });
 
-    let lastMessageTime = 0;
-    let queuedData = null;
-    let throttleTimer = null;
-
     ws.on("message", (data) => {
-      const now = Date.now();
-
-      // If enough time has passed, handle immediately
-      if (now - lastMessageTime >= 1000) {
-        lastMessageTime = now;
-        this.handleMessage(connectionState, data.toString());
-      } else {
-        // Queue the latest message (drop intermediate ones)
-        queuedData = data;
-
-        if (!throttleTimer) {
-          throttleTimer = setTimeout(() => {
-            if (queuedData) {
-              this.handleMessage(connectionState, queuedData.toString());
-              queuedData = null;
-              lastMessageTime = Date.now();
-            }
-            throttleTimer = null;
-          }, 1000 - (now - lastMessageTime));
-        }
-      }
+      this.handleMessage(connectionState, data.toString());
     });
 
     ws.on("error", (error) => {

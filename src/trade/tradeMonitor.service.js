@@ -1,80 +1,36 @@
 const Account = require("../trade/account/account.model");
 const Trade = require("../trade/trade.model");
+const redis = require("../utils/redis.helper");
 
-// In-memory map to store critical trade and account info:
-// Key: tradeId (string)
-// Value: { accountId, userId, symbol, side, volume, entryPrice, contractMultiplier, dailyLossThresholdPrice, maxDrawdownThresholdPrice }
-const openTradesMap = new Map();
-
-// In-memory map to store account-level risk parameters:
-// Key: accountId (string)
-// Value: {
-//    initialBalance: number,
-//    dailyDrawdownLimit: number, // dollar amount of 2.5% loss
-//    maxDrawdownLimit: number, // dollar amount of 7% loss (static or trailing)
-//    currentDailyLoss: number, // realized loss for the day (resets daily)
-//    highestEquity: number,
-//    maxDrawdownThreshold: number, // highestEquity - (initialBalance * 0.07)
-//    openPositionsPnl: Map<string, number>, // tradeId -> unrealizedPnl
-//    symbolsInUse: Set<string> // Track which symbols have open trades
-// }
-const accountRiskMap = new Map();
-
-/**
- * Calculates the total unrealized PnL for an account.
- * @param {string} accountId
- * @returns {number}
- */
-function getTotalOpenPnl(accountId) {
-  const riskData = accountRiskMap.get(accountId);
-  if (!riskData) return 0;
-
-  let totalPnl = 0;
-  for (const pnl of riskData.openPositionsPnl.values()) {
-    totalPnl += pnl;
-  }
-  return totalPnl;
-}
-
-/**
- * Loads and prepares a trade for real-time monitoring.
- * Called immediately after a trade is successfully opened and saved to MongoDB.
- * @param {object} accountDoc - The Mongoose Account document
- * @param {object} tradeDoc - The Mongoose Trade document
- */
 async function addTradeForMonitoring(accountDoc, tradeDoc) {
   const accountId = accountDoc._id.toString();
   const tradeId = tradeDoc._id.toString();
 
-  // 1. Initialize Account Risk Data if not present
-  if (!accountRiskMap.has(accountId)) {
-    // Fetch the initial/highest equity from the database on startup/initial trade.
+  // 1. Initialize Account Risk Data if not present in Redis
+  const existingRiskData = await redis.getAccountRisk(accountId);
+
+  if (!existingRiskData) {
     const maxDrawdownThreshold =
       accountDoc.initialBalance - accountDoc.initialBalance * 0.07;
 
-    accountRiskMap.set(accountId, {
+    await redis.setAccountRisk(accountId, {
       initialBalance: accountDoc.initialBalance,
-      dailyDrawdownLimit: accountDoc.dailyDrawdownLimit, // 2.5% [cite: 4]
-      maxDrawdownLimit: accountDoc.maxDrawdownLimit, // 7% [cite: 5]
-      currentBalance: accountDoc.balance, // updated when trade closes
-      currentEquity: accountDoc.equity, // updated continuously
+      dailyDrawdownLimit: accountDoc.dailyDrawdownLimit,
+      maxDrawdownLimit: accountDoc.maxDrawdownLimit,
+      currentBalance: accountDoc.balance,
+      currentEquity: accountDoc.equity,
       currentDailyLoss: 0,
       highestEquity: accountDoc.equity,
       maxDrawdownThreshold,
-      openPositionsPnl: new Map(),
-      symbolsInUse: new Set(),
       currentDayEquity: accountDoc.currentDayEquity,
     });
   }
 
-  const riskData = accountRiskMap.get(accountId);
-  riskData.symbolsInUse.add(tradeDoc.symbol);
+  // 2. Add symbol to account's active symbols
+  await redis.addAccountSymbol(accountId, tradeDoc.symbol);
 
-  // 2. Add Trade to Open Trades Map
-  // NOTE: Daily and Max Trailing Drawdown are calculated at the ACCOUNT level (Equity),
-  // but the trade entry is useful for PnL calculation.
-
-  openTradesMap.set(tradeId, {
+  // 3. Store trade in Redis
+  await redis.setOpenTrade(tradeId, {
     _id: tradeId,
     accountId: accountId,
     userId: tradeDoc.userId.toString(),
@@ -87,48 +43,36 @@ async function addTradeForMonitoring(accountDoc, tradeDoc) {
     market: tradeDoc.market,
   });
 
-  // 3. For an *actual* market/liquidity check, subscribe to the symbol via Polygon.
-  // This part will be handled in the calling function in the trade service.
-
   console.log(
     `[TradeMonitor] Trade ${tradeId} added for real-time monitoring.`
   );
 }
 
-/**
- * Removes a trade from monitoring when closed or failed.
- * @param {string} tradeId
- * @param {string} accountId
- */
-function removeTradeFromMonitoring(tradeId, accountId) {
-  const trade = openTradesMap.get(tradeId);
+async function removeTradeFromMonitoring(tradeId, accountId) {
+  const trade = await redis.getOpenTrade(tradeId);
   if (!trade) return;
 
-  openTradesMap.delete(tradeId);
+  // Delete trade from Redis
+  await redis.deleteOpenTrade(tradeId);
 
-  const riskData = accountRiskMap.get(accountId);
-  if (riskData) {
-    riskData.openPositionsPnl.delete(tradeId);
-    // Check if other open trades use this symbol before removing it from symbolsInUse
-    const symbolStillInUse = Array.from(openTradesMap.values()).some(
-      (t) => t.symbol === trade.symbol && t.accountId === accountId
-    );
-    if (!symbolStillInUse) {
-      riskData.symbolsInUse.delete(trade.symbol);
-    }
+  // Delete PnL entry
+  await redis.deleteTradePnL(accountId, tradeId);
+
+  // Check if other open trades use this symbol before removing it
+  const allAccountTrades = await redis.getOpenTradesByAccount(accountId);
+  const symbolStillInUse = allAccountTrades.some(
+    (t) => t.symbol === trade.symbol && t._id !== tradeId
+  );
+
+  if (!symbolStillInUse) {
+    await redis.removeAccountSymbol(accountId, trade.symbol);
   }
 
   console.log(`[TradeMonitor] Trade ${tradeId} removed from monitoring.`);
 }
 
-/**
- * Core function to check account-level rules on every price tick.
- * @param {string} accountId
- * @param {number} newEquity
- * @returns {string|null} The violation rule key if failed, otherwise null.
- */
-function checkAccountRules(accountId, newEquity) {
-  const riskData = accountRiskMap.get(accountId);
+async function checkAccountRules(accountId, newEquity) {
+  const riskData = await redis.getAccountRisk(accountId);
   if (!riskData) return null;
 
   let violation = null;
@@ -140,6 +84,7 @@ function checkAccountRules(accountId, newEquity) {
 
   const dailyLoss = riskData.currentDayEquity - newEquity;
   const dailyDrawdownThreshold = riskData.currentDayEquity * 0.025;
+
   // Daily Loss (2.5%)
   if (dailyLoss > dailyDrawdownThreshold) {
     violation = violation || "dailyDrawdown";
@@ -153,19 +98,13 @@ function checkAccountRules(accountId, newEquity) {
   return violation;
 }
 
-/**
- * Processes a new price tick from Polygon.
- * @param {object} priceData - { symbol, price }
- */
 async function processPriceUpdate(priceData) {
   const { symbol, price } = priceData;
   console.log(`\n[TradeMonitor] >>> Processing tick for ${symbol} at ${price}`);
 
   try {
-    // Get all open trades for this symbol
-    const trades = Array.from(openTradesMap.values()).filter(
-      (t) => t.symbol === symbol
-    );
+    // Get all open trades for this symbol from Redis
+    const trades = await redis.getOpenTradesBySymbol(symbol);
 
     if (!trades.length) {
       console.log(`[TradeMonitor] No open trades for ${symbol}.`);
@@ -173,7 +112,7 @@ async function processPriceUpdate(priceData) {
     }
 
     // Track which accounts are impacted by this price
-    const affectedAccounts = new Map(); // accountId -> { trades: [], hasSlTpHit: boolean }
+    const affectedAccounts = new Map();
 
     for (const trade of trades) {
       const tradeId = trade._id;
@@ -190,7 +129,7 @@ async function processPriceUpdate(priceData) {
       let hitSL = false;
       let hitTP = false;
 
-      // --- Check SL/TP ---
+      // Check SL/TP
       if (side === "buy") {
         if (price <= stopLoss) hitSL = true;
         if (price >= takeProfit) hitTP = true;
@@ -199,15 +138,12 @@ async function processPriceUpdate(priceData) {
         if (price <= takeProfit) hitTP = true;
       }
 
-      // --- Update unrealized PnL in-memory (whether SL/TP hit or not) ---
+      // Calculate and update unrealized PnL in Redis
       const direction = side === "buy" ? 1 : -1;
       const symbolAmount = tradeSize / entryPrice;
       const pnl = (price - entryPrice) * symbolAmount * direction;
 
-      const riskData = accountRiskMap.get(accountId);
-      if (riskData) {
-        riskData.openPositionsPnl.set(tradeId, pnl);
-      }
+      await redis.setTradePnL(accountId, tradeId, pnl);
 
       // Track affected accounts
       if (!affectedAccounts.has(accountId)) {
@@ -220,25 +156,25 @@ async function processPriceUpdate(priceData) {
       }
     }
 
-    // --- Check drawdown rules for ALL affected accounts BEFORE closing any trades ---
+    // Check drawdown rules for ALL affected accounts BEFORE closing any trades
     const accountsToLiquidate = new Set();
 
     for (const [accountId, accountData] of affectedAccounts) {
-      const riskData = accountRiskMap.get(accountId);
+      const riskData = await redis.getAccountRisk(accountId);
       if (!riskData) continue;
 
-      const totalOpenPnl = getTotalOpenPnl(accountId);
+      const totalOpenPnl = await redis.getTotalOpenPnl(accountId);
 
-      // Compute in-memory equity (including the PnL from trades that hit SL/TP)
+      // Compute in-memory equity
       const newEquity =
         (riskData.currentBalance || riskData.initialBalance) + totalOpenPnl;
       console.log("New Equity for Account", accountId, "is", newEquity);
 
-      // Store this in-memory for next tick
-      riskData.currentEquity = newEquity;
+      // Update current equity in Redis
+      await redis.updateAccountRisk(accountId, { currentEquity: newEquity });
 
       // Check rules
-      const violation = checkAccountRules(accountId, newEquity);
+      const violation = await checkAccountRules(accountId, newEquity);
 
       if (violation) {
         console.warn(
@@ -249,20 +185,20 @@ async function processPriceUpdate(priceData) {
       }
     }
 
-    // --- Handle liquidations FIRST (closes all trades including the one that hit SL/TP) ---
+    // Handle liquidations FIRST
     for (const accountId of accountsToLiquidate) {
       const accountData = affectedAccounts.get(accountId);
+      const riskData = await redis.getAccountRisk(accountId);
       await handleAccountLiquidation(
         accountId,
         accountData.violation,
-        accountRiskMap.get(accountId).currentEquity,
+        riskData.currentEquity,
         priceData
       );
     }
 
-    // --- Only close individual SL/TP trades if account was NOT liquidated ---
+    // Only close individual SL/TP trades if account was NOT liquidated
     for (const [accountId, accountData] of affectedAccounts) {
-      // Skip if account was liquidated (all trades already closed)
       if (accountsToLiquidate.has(accountId)) {
         continue;
       }
@@ -276,7 +212,7 @@ async function processPriceUpdate(priceData) {
           );
 
           await closeTrade(trade, price, closureReason);
-          removeTradeFromMonitoring(trade._id, accountId);
+          await removeTradeFromMonitoring(trade._id, accountId);
         }
       }
     }
@@ -301,9 +237,9 @@ async function closeTrade(trade, currentPrice, reason) {
   const marginToRelease = (tradeSize * entryPrice) / leverage;
   account.marginUsed = Math.max(0, account.marginUsed - marginToRelease);
   account.balance += pnl;
-  account.equity = account.balance; // assuming no open PnL now
+  account.equity = account.balance;
 
-  // ✅ Proper array manipulation
+  // Proper array manipulation
   if (Array.isArray(account.openPositions)) {
     account.openPositions = account.openPositions.filter(
       (posId) => posId.toString() !== _id.toString()
@@ -320,7 +256,7 @@ async function closeTrade(trade, currentPrice, reason) {
     exitPrice: currentPrice,
     closedAt: new Date(),
     profit: pnl,
-    tradeClosureReason: closureReason,
+    tradeClosureReason: reason,
   };
 
   if (["dailyDrawdown", "maxDrawdown"].includes(reason)) {
@@ -336,13 +272,6 @@ async function closeTrade(trade, currentPrice, reason) {
   );
 }
 
-/**
- * Handles the critical action of failing an account due to a rule violation.
- * @param {string} accountId
- * @param {string} violationRule
- * @param {number} finalEquity
- * @param {object} priceData - The price that caused the breach
- */
 async function handleAccountLiquidation(
   accountId,
   violationRule,
@@ -353,16 +282,14 @@ async function handleAccountLiquidation(
     `[LIQUIDATION] Account ${accountId} failed due to ${violationRule}.`
   );
 
-  // 1. Update the Account status to 'failed'
+  // Update the Account status to 'failed'
   await Account.findByIdAndUpdate(accountId, {
     status: "failed",
     equity: finalEquity,
   });
 
-  // 2. Close ALL open positions at the current price (including ones that just hit SL/TP)
-  const tradesToClose = Array.from(openTradesMap.values()).filter(
-    (t) => t.accountId === accountId
-  );
+  // Close ALL open positions at the current price
+  const tradesToClose = await redis.getOpenTradesByAccount(accountId);
 
   console.log(
     `[LIQUIDATION] Closing ${tradesToClose.length} trades for account ${accountId}`
@@ -373,27 +300,25 @@ async function handleAccountLiquidation(
       ? "dailyDrawdownViolated"
       : "maxDrawdownViolated";
 
-  // Close all trades using the closeTrade function for consistency
+  // Close all trades
   for (const trade of tradesToClose) {
     const currentPrice = priceData.price;
 
-    // Close the trade with the violation reason
     await closeTrade(trade, currentPrice, closureReason);
-
-    // Remove from the in-memory map
-    removeTradeFromMonitoring(trade._id, accountId);
+    await removeTradeFromMonitoring(trade._id, accountId);
   }
 
-  // 3. Remove the account from the risk map (no longer active)
-  accountRiskMap.delete(accountId);
+  // Clean up all Redis data for this account
+  await redis.deleteAccountRisk(accountId);
+  await redis.deleteAllTradePnLs(accountId);
+  await redis.deleteAccountSymbols(accountId);
 
-  // 4. Log and notify user
-  // (Implementation of a notification service would go here)
+  console.log(
+    `[LIQUIDATION] Account ${accountId} fully liquidated and cleaned up from Redis.`
+  );
 }
 
 module.exports = {
-  openTradesMap, // For external inspection/debugging
-  accountRiskMap,
   addTradeForMonitoring,
   removeTradeFromMonitoring,
   processPriceUpdate,
