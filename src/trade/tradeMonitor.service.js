@@ -2,6 +2,52 @@ const Account = require("../trade/account/account.model");
 const Trade = require("../trade/trade.model");
 const redis = require("../utils/redis.helper");
 
+async function addPendingOrderForMonitoring(accountDoc, orderDoc) {
+  const accountId = accountDoc._id.toString();
+  const orderId = orderDoc._id.toString();
+
+  // Initialize account risk if needed (same as before)
+  const existingRiskData = await redis.getAccountRisk(accountId);
+  if (!existingRiskData) {
+    const maxDrawdownThreshold =
+      accountDoc.initialBalance - accountDoc.initialBalance * 0.07;
+
+    await redis.setAccountRisk(accountId, {
+      initialBalance: accountDoc.initialBalance,
+      dailyDrawdownLimit: accountDoc.dailyDrawdownLimit,
+      maxDrawdownLimit: accountDoc.maxDrawdownLimit,
+      currentBalance: accountDoc.balance,
+      currentEquity: accountDoc.equity,
+      currentDailyLoss: 0,
+      highestEquity: accountDoc.equity,
+      maxDrawdownThreshold,
+      currentDayEquity: accountDoc.currentDayEquity,
+    });
+  }
+
+  // Store pending order in Redis
+  await redis.setPendingOrder(orderId, {
+    _id: orderId,
+    accountId: accountId,
+    userId: orderDoc.userId.toString(),
+    symbol: orderDoc.symbol,
+    side: orderDoc.side,
+    orderType: orderDoc.orderType,
+    triggerPrice: orderDoc.triggerPrice,
+    tradeSize: orderDoc.tradeSize,
+    units: orderDoc.units,
+    stopLoss: orderDoc.stopLoss,
+    takeProfit: orderDoc.takeProfit,
+    leverage: orderDoc.leverage,
+    marginUsed: orderDoc.marginUsed,
+    market: orderDoc.market,
+  });
+
+  console.log(
+    `[TradeMonitor] Pending ${orderDoc.orderType} order ${orderId} added for monitoring.`
+  );
+}
+
 async function addTradeForMonitoring(accountDoc, tradeDoc) {
   const accountId = accountDoc._id.toString();
   const tradeId = tradeDoc._id.toString();
@@ -103,6 +149,7 @@ async function processPriceUpdate(priceData) {
   console.log(`\n[TradeMonitor] >>> Processing tick for ${symbol} at ${price}`);
 
   try {
+    await checkPendingOrders(symbol, price);
     // Get all open trades for this symbol from Redis
     const trades = await redis.getOpenTradesBySymbol(symbol);
 
@@ -239,15 +286,10 @@ async function closeTrade(trade, currentPrice, reason) {
   account.balance += pnl;
   account.equity = account.balance;
 
-  // Proper array manipulation
-  if (Array.isArray(account.openPositions)) {
-    account.openPositions = account.openPositions.filter(
-      (posId) => posId.toString() !== _id.toString()
-    );
-  }
-  if (Array.isArray(account.closedPositions)) {
-    account.closedPositions.push(_id);
-  }
+  account.openPositions = account.openPositions.filter(
+    (posId) => posId.toString() !== _id.toString()
+  );
+  account.closedPositions.push(_id);
 
   await account.save();
 
@@ -263,13 +305,17 @@ async function closeTrade(trade, currentPrice, reason) {
     updateData.$push = { violatedRules: reason };
   }
 
-  await Trade.findByIdAndUpdate(_id, updateData);
+  const updatedTrade = await Trade.findByIdAndUpdate(_id, updateData, {
+    new: true, // Return the updated document
+  });
 
   console.log(
     `[TradeMonitor] Trade ${_id} closed at ${currentPrice}. Reason: ${reason}, PnL: ${pnl.toFixed(
       2
     )}`
   );
+
+  return updatedTrade;
 }
 
 async function handleAccountLiquidation(
@@ -318,9 +364,177 @@ async function handleAccountLiquidation(
   );
 }
 
+async function checkPendingOrders(symbol, currentPrice) {
+  const pendingOrders = await redis.getPendingOrdersBySymbol(symbol);
+
+  if (!pendingOrders.length) return;
+
+  console.log(
+    `[TradeMonitor] Checking ${pendingOrders.length} pending orders for ${symbol}`
+  );
+
+  for (const order of pendingOrders) {
+    const { _id: orderId, accountId, orderType, triggerPrice, side } = order;
+
+    let shouldExecute = false;
+
+    // Check if order should trigger
+    if (orderType === "limit") {
+      // Limit Buy: Execute when price drops to or below trigger
+      // Limit Sell: Execute when price rises to or above trigger
+      if (side === "buy" && currentPrice <= triggerPrice) {
+        shouldExecute = true;
+      } else if (side === "sell" && currentPrice >= triggerPrice) {
+        shouldExecute = true;
+      }
+    } else if (orderType === "stop") {
+      // Stop Buy: Execute when price rises to or above trigger (buy breakout)
+      // Stop Sell: Execute when price drops to or below trigger (sell breakdown)
+      if (side === "buy" && currentPrice >= triggerPrice) {
+        shouldExecute = true;
+      } else if (side === "sell" && currentPrice <= triggerPrice) {
+        shouldExecute = true;
+      }
+    }
+
+    if (shouldExecute) {
+      console.log(
+        `[TradeMonitor] ${orderType.toUpperCase()} order ${orderId} triggered at ${currentPrice}`
+      );
+      await executePendingOrder(order, currentPrice);
+    }
+  }
+}
+
+async function executePendingOrder(order, executionPrice) {
+  const {
+    _id: orderId,
+    accountId,
+    symbol,
+    side,
+    units,
+    stopLoss,
+    takeProfit,
+    leverage,
+    marginUsed,
+  } = order;
+
+  try {
+    // Fetch account
+    const account = await Account.findById(accountId);
+    if (!account) {
+      console.error(`[executePendingOrder] Account ${accountId} not found`);
+      return;
+    }
+
+    // Check if account is still valid
+    if (account.status === "failed" || account.status === "suspended") {
+      console.warn(
+        `[executePendingOrder] Account ${accountId} is ${account.status}. Cancelling order.`
+      );
+      await cancelPendingOrder(orderId, accountId, symbol, "accountInvalid");
+      return;
+    }
+
+    // Update trade in MongoDB
+    const updatedTrade = await Trade.findByIdAndUpdate(
+      orderId,
+      {
+        status: "open",
+        entryPrice: executionPrice,
+        executedAt: new Date(),
+      },
+      { new: true }
+    );
+
+    if (!updatedTrade) {
+      console.error(`[executePendingOrder] Trade ${orderId} not found in DB`);
+      return;
+    }
+
+    // Move margin from pending to used
+    account.pendingMargin = Math.max(0, account.pendingMargin - marginUsed);
+    account.marginUsed += marginUsed;
+
+    // Move order from pending to open
+    account.pendingOrders = account.pendingOrders.filter(
+      (id) => id.toString() !== orderId.toString()
+    );
+    account.openPositions.push(orderId);
+
+    await account.save();
+
+    // Remove from pending orders in Redis
+    await redis.deletePendingOrder(orderId, accountId, symbol);
+
+    // Add to open trades monitoring
+    await redis.setOpenTrade(orderId, {
+      _id: orderId,
+      accountId: accountId,
+      userId: updatedTrade.userId.toString(),
+      symbol: symbol,
+      side: side,
+      tradeSize: units * executionPrice * leverage,
+      entryPrice: executionPrice,
+      stopLoss: stopLoss,
+      takeProfit: takeProfit,
+      market: updatedTrade.market,
+    });
+
+    // Add symbol to active symbols
+    await redis.addAccountSymbol(accountId, symbol);
+
+    console.log(
+      `[TradeMonitor] Order ${orderId} executed successfully at ${executionPrice}`
+    );
+  } catch (err) {
+    console.error(
+      `[executePendingOrder] Error executing order ${orderId}:`,
+      err
+    );
+  }
+}
+
+async function cancelPendingOrder(orderId, accountId, symbol, reason) {
+  // Update in MongoDB
+  await Trade.findByIdAndUpdate(orderId, {
+    status: "cancelled",
+    tradeClosureReason: reason,
+    closedAt: new Date(),
+  });
+
+  // Get order details to release margin
+  const order = await redis.getPendingOrder(orderId);
+  if (order) {
+    const account = await Account.findById(accountId);
+    if (account) {
+      account.pendingMargin = Math.max(
+        0,
+        account.pendingMargin - order.marginUsed
+      );
+
+      // Move from pending to cancelled
+      account.pendingOrders = account.pendingOrders.filter(
+        (id) => id.toString() !== orderId.toString()
+      );
+      account.cancelledOrders.push(orderId);
+
+      await account.save();
+    }
+  }
+
+  // Remove from Redis
+  await redis.deletePendingOrder(orderId, accountId, symbol);
+
+  console.log(`[TradeMonitor] Order ${orderId} cancelled. Reason: ${reason}`);
+}
+
 module.exports = {
   addTradeForMonitoring,
+  addPendingOrderForMonitoring, // NEW
   removeTradeFromMonitoring,
   processPriceUpdate,
   closeTrade,
+  cancelPendingOrder, // NEW
+  executePendingOrder, // NEW
 };

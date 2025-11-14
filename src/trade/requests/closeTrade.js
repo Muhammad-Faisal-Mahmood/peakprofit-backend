@@ -39,12 +39,20 @@ const closeTrade = async (req, res) => {
     }
 
     // Call the closeTrade method in TradeMonitor
-    await TradeMonitor.closeTrade(trade, price, "userClosed");
+    const closeResult = await TradeMonitor.closeTrade(
+      trade,
+      price,
+      "userClosed"
+    );
 
     // Remove it from monitoring
     TradeMonitor.removeTradeFromMonitoring(tradeId, trade.accountId.toString());
 
-    return sendSuccessResponse(res, "Trade closed successfully by user.");
+    return sendSuccessResponse(
+      res,
+      "Trade closed successfully by user.",
+      closeResult
+    );
   } catch (err) {
     console.error("[closeTrade] Error closing trade:", err);
     return sendErrorResponse(res, "Failed to close trade.", err.message);

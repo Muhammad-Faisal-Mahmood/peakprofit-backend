@@ -53,7 +53,6 @@ const tradeSchema = new Schema(
     // Entry and Exit
     entryPrice: {
       type: Number,
-      required: true,
     },
     exitPrice: {
       type: Number,
@@ -94,11 +93,35 @@ const tradeSchema = new Schema(
       default: 50, // same as Account default
     },
 
-    // Status
+    orderType: {
+      type: String,
+      enum: ["market", "limit", "stop"],
+      required: true,
+      default: "market",
+    },
+
+    // For limit/stop orders - the trigger price
+    triggerPrice: {
+      type: Number,
+      // Required only for limit/stop orders
+    },
+
+    // Status now includes pending
     status: {
       type: String,
-      enum: ["open", "closed"],
-      default: "open",
+      enum: ["pending", "open", "closed", "cancelled"],
+      default: "pending", // Changed default
+    },
+
+    // Track when order was placed vs when it executed
+    placedAt: {
+      type: Date,
+      default: Date.now,
+    },
+
+    executedAt: {
+      type: Date,
+      // Set when pending order triggers
     },
 
     // Rule tracking (for compliance)

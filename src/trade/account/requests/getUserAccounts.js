@@ -17,6 +17,8 @@ async function getUserAccounts(req, res) {
     const accounts = await Account.find({ userId })
       .populate("openPositions")
       .populate("closedPositions")
+      .populate("pendingOrders")
+      .populate("cancelledOrders")
       .populate({
         path: "challengeId",
         select: "name cost accountSize",

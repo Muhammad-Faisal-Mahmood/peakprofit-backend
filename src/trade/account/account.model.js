@@ -43,9 +43,16 @@ const AccountSchema = new mongoose.Schema(
 
     openPositions: [{ type: mongoose.Schema.Types.ObjectId, ref: "Trade" }],
     closedPositions: [{ type: mongoose.Schema.Types.ObjectId, ref: "Trade" }],
+    pendingOrders: [{ type: mongoose.Schema.Types.ObjectId, ref: "Trade" }],
+    cancelledOrders: [{ type: mongoose.Schema.Types.ObjectId, ref: "Trade" }],
 
     currentDayEquity: {
       type: Number,
+    },
+
+    pendingMargin: {
+      type: Number,
+      default: 0,
     },
   },
   { timestamps: true }
