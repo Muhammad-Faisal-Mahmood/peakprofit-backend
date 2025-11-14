@@ -242,6 +242,7 @@ class PolygonWebSocketManager {
    */
   subscribe(clientId, market, symbol, channel = "AM") {
     // Initialize market if needed
+    console.log("channel in subscribe:", channel);
     if (!this.connectionPools.has(market)) {
       this.initializeMarket(market);
     }

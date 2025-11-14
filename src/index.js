@@ -21,10 +21,14 @@ const withdraw = require("./withdraw/withdraw.controller");
 const kyc = require("./kyc/kyc.controller");
 const ticket = require("./ticket/ticket.controller");
 const tradeJournal = require("./trade/journal/journal.controller");
-const { polygon } = require("./polygon/polygon.controller");
+const polygon = require("./polygon/polygon.controller");
 const watchlist = require("./trade/watchlist/watchlist.controller");
 const Account = require("./trade/account/account.controller");
 const Trade = require("./trade/trade.controller");
+
+// Import for startup initialization
+const { polygonManager } = require("./polygon/polygonManager");
+const redis = require("./utils/redis.helper");
 
 const app = express();
 expressWs(app); // Enable WebSocket support
@@ -94,8 +98,162 @@ const connectToMongoDB = async () => {
   }
 };
 
-connectToMongoDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-  });
-});
+/**
+ * 🎯 Initialize Polygon WebSocket and restore active subscriptions
+ */
+const initializePolygonConnections = async () => {
+  console.log("\n========================================");
+  console.log("🚀 Initializing Polygon WebSocket...");
+  console.log("========================================\n");
+
+  try {
+    // Step 1: Initialize all market connections
+    console.log("[Startup] Initializing market connections...");
+    const markets = ["crypto", "forex"];
+
+    for (const market of markets) {
+      polygonManager.initializeMarket(market);
+    }
+
+    // Step 2: Wait for connections to authenticate (give it a few seconds)
+    console.log("[Startup] Waiting for authentication...");
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+
+    // Step 3: Fetch all open trades from Redis
+    console.log("[Startup] Fetching open trades from Redis...");
+    const openTradesKeys = await redis.getOpenTradesBySymbol("*"); // Get all
+
+    // Since getOpenTradesBySymbol takes a specific symbol, we need to get all keys
+    // Let's create a helper to get all open trades
+    const allOpenTrades = [];
+    const tradeKeys = await getAllRedisKeys("trade:open:*");
+
+    for (const key of tradeKeys) {
+      const tradeData = await redis.getOpenTrade(key.split(":")[2]); // Extract tradeId
+      if (tradeData) {
+        allOpenTrades.push(tradeData);
+      }
+    }
+
+    // Step 4: Fetch all pending orders from Redis
+    console.log("[Startup] Fetching pending orders from Redis...");
+    const allPendingOrders = [];
+    const orderKeys = await getAllRedisKeys("order:pending:*");
+
+    for (const key of orderKeys) {
+      const orderData = await redis.getPendingOrder(key.split(":")[2]); // Extract orderId
+      if (orderData) {
+        allPendingOrders.push(orderData);
+      }
+    }
+
+    // Step 5: Extract unique symbols and their markets
+    const symbolsToSubscribe = new Map(); // Map<symbol, market>
+
+    // From open trades
+    for (const trade of allOpenTrades) {
+      if (trade.symbol && trade.market) {
+        symbolsToSubscribe.set(trade.symbol, trade.market);
+      }
+    }
+
+    // From pending orders
+    for (const order of allPendingOrders) {
+      if (order.symbol && order.market) {
+        symbolsToSubscribe.set(order.symbol, order.market);
+      }
+    }
+
+    // Step 6: Subscribe to all symbols
+    console.log(
+      `[Startup] Found ${symbolsToSubscribe.size} unique symbols to subscribe`
+    );
+
+    if (symbolsToSubscribe.size > 0) {
+      const systemClientId = "system_startup";
+
+      for (const [symbol, market] of symbolsToSubscribe.entries()) {
+        try {
+          console.log(`[Startup] Subscribing to ${market}:${symbol}`);
+          polygonManager.subscribe(systemClientId, market, symbol, "XT");
+        } catch (error) {
+          console.error(
+            `[Startup] Failed to subscribe to ${symbol}:`,
+            error.message
+          );
+        }
+      }
+
+      console.log(
+        `\n✅ Successfully subscribed to ${symbolsToSubscribe.size} symbols`
+      );
+    } else {
+      console.log(
+        "\n✅ No active trades or pending orders found. Ready to start server."
+      );
+    }
+
+    console.log("\n========================================");
+    console.log("✅ Polygon initialization complete!");
+    console.log("========================================\n");
+
+    return {
+      openTrades: allOpenTrades.length,
+      pendingOrders: allPendingOrders.length,
+      subscribedSymbols: symbolsToSubscribe.size,
+    };
+  } catch (error) {
+    console.error("\n❌ Error initializing Polygon connections:", error);
+    throw error;
+  }
+};
+
+/**
+ * Helper function to get all Redis keys matching a pattern
+ * Note: Using KEYS in production is not recommended for large datasets
+ * Consider using SCAN for production environments
+ */
+const getAllRedisKeys = async (pattern) => {
+  const redis = require("./config/redis.config");
+  try {
+    const keys = await redis.keys(pattern);
+    return keys || [];
+  } catch (error) {
+    console.error(
+      `[Startup] Error fetching Redis keys for pattern ${pattern}:`,
+      error
+    );
+    return [];
+  }
+};
+
+/**
+ * 🚀 Main startup sequence
+ */
+const startServer = async () => {
+  try {
+    // Step 1: Connect to MongoDB
+    await connectToMongoDB();
+
+    // Step 2: Initialize Polygon and restore subscriptions
+    const stats = await initializePolygonConnections();
+
+    // Step 3: Start the Express server
+    app.listen(PORT, () => {
+      console.log(`\n========================================`);
+      console.log(`🎉 Server is running on http://localhost:${PORT}`);
+      console.log(`========================================`);
+      console.log(`📊 Startup Summary:`);
+      console.log(`   - Open Trades: ${stats.openTrades}`);
+      console.log(`   - Pending Orders: ${stats.pendingOrders}`);
+      console.log(`   - Active Subscriptions: ${stats.subscribedSymbols}`);
+      console.log(`========================================\n`);
+    });
+  } catch (error) {
+    console.error("\n❌ Failed to start server:", error);
+    process.exit(1);
+  }
+};
+
+// Start the application
+startServer();

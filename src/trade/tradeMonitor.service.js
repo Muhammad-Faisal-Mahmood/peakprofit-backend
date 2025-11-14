@@ -52,7 +52,7 @@ async function addPendingOrderForMonitoring(accountDoc, orderDoc) {
     `server_${accountId}`,
     orderDoc.market,
     orderDoc.symbol,
-    "AM"
+    "XT"
   );
 }
 
@@ -101,7 +101,7 @@ async function addTradeForMonitoring(accountDoc, tradeDoc) {
     `server_${accountId}`,
     tradeDoc.market,
     tradeDoc.symbol,
-    "AM"
+    "XT"
   );
 
   console.log(
