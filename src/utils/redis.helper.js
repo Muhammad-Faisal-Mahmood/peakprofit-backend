@@ -220,6 +220,15 @@ async function getPendingOrdersByAccount(accountId) {
   return orders;
 }
 
+async function clearAll() {
+  try {
+    await client.flushDb();
+    console.log("[Redis] All keys cleared from DB");
+  } catch (error) {
+    console.error("[Redis] Failed to clear DB:", error);
+  }
+}
+
 module.exports = {
   // Trade operations
   setOpenTrade,
@@ -255,4 +264,7 @@ module.exports = {
   deletePendingOrder,
   getPendingOrdersBySymbol,
   getPendingOrdersByAccount,
+
+  //flush db
+  clearAll,
 };

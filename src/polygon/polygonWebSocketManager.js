@@ -2,7 +2,7 @@
  * PolygonWebSocketManager.js
  * Backend WebSocket manager for Polygon.io with load balancing
  */
-
+const redis = require("../utils/redis.helper");
 const WebSocket = require("ws");
 
 const SOCKET_URLS = {
@@ -23,6 +23,36 @@ class PolygonWebSocketManager {
     this.subscriptions = new Map();
     // Map of client ID -> set of subscriptionKeys
     this.clientSubscriptions = new Map();
+  }
+
+  async checkSymbolInUse(symbol) {
+    try {
+      const openTrades = await redis.getOpenTradesBySymbol(symbol);
+      if (openTrades.length > 0) {
+        console.log(
+          `[PolygonWS] Symbol ${symbol} has ${openTrades.length} open trades`
+        );
+        return true;
+      }
+
+      // Check pending orders
+      const pendingOrders = await redis.getPendingOrdersBySymbol(symbol);
+      if (pendingOrders.length > 0) {
+        console.log(
+          `[PolygonWS] Symbol ${symbol} has ${pendingOrders.length} pending orders`
+        );
+        return true;
+      }
+
+      return false;
+    } catch (err) {
+      console.error(
+        `[PolygonWS] Error checking symbol usage for ${symbol}:`,
+        err
+      );
+      // On error, be conservative and keep subscription
+      return true;
+    }
   }
 
   /**
@@ -304,12 +334,23 @@ class PolygonWebSocketManager {
   /**
    * Unsubscribe from Polygon WebSocket
    */
-  unsubscribeFromPolygon(market, symbol, channel) {
+  async unsubscribeFromPolygon(market, symbol, channel) {
     const pool = this.connectionPools.get(market);
     if (!pool) return;
 
     const subscribeParam = this.buildSubscribeParam(symbol, market, channel);
 
+    // ✅ NEW: Check Redis for active trades/orders before unsubscribing
+    const hasActiveTrades = await this.checkSymbolInUse(symbol);
+
+    if (hasActiveTrades) {
+      console.log(
+        `[PolygonWS] Keeping subscription for ${symbol} - active trades/orders exist`
+      );
+      return; // Don't unsubscribe from Polygon
+    }
+
+    // No trades/orders, safe to unsubscribe
     for (const connection of pool) {
       if (connection.subscriptions.has(subscribeParam)) {
         if (connection.ws && connection.authenticated) {
@@ -319,7 +360,10 @@ class PolygonWebSocketManager {
         connection.subscriberCount--;
       }
     }
+
+    console.log(`[PolygonWS] Unsubscribed from Polygon: ${symbol}`);
   }
+  t;
 
   /**
    * Get least loaded connection for a market

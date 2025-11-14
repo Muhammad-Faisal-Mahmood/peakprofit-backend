@@ -7,6 +7,7 @@ const express = require("express");
 const expressWs = require("express-ws");
 const PolygonWebSocketManager = require("./polygonWebSocketManager");
 const tradeMonitorService = require("../trade/tradeMonitor.service");
+const { polygonManager } = require("./polygonManager");
 
 const router = express.Router();
 expressWs(router);
@@ -114,7 +115,7 @@ router.get("/prev/:ticker", async (req, res) => {
 });
 
 // Initialize Polygon WebSocket Manager
-const polygonManager = new PolygonWebSocketManager(process.env.POLYGON_API_KEY);
+// const polygonManager = new PolygonWebSocketManager(process.env.POLYGON_API_KEY);
 
 // Map to store client WebSocket connections
 const clients = new Map();
@@ -298,4 +299,7 @@ process.on("SIGINT", () => {
   process.exit(0);
 });
 
-module.exports = router;
+module.exports = {
+  polygon: router,
+  polygonManager,
+};

@@ -1,6 +1,7 @@
 const Account = require("../trade/account/account.model");
 const Trade = require("../trade/trade.model");
 const redis = require("../utils/redis.helper");
+const { polygonManager } = require("../polygon/polygonManager");
 
 async function addPendingOrderForMonitoring(accountDoc, orderDoc) {
   const accountId = accountDoc._id.toString();
@@ -46,9 +47,17 @@ async function addPendingOrderForMonitoring(accountDoc, orderDoc) {
   console.log(
     `[TradeMonitor] Pending ${orderDoc.orderType} order ${orderId} added for monitoring.`
   );
+
+  polygonManager.subscribe(
+    `server_${accountId}`,
+    orderDoc.market,
+    orderDoc.symbol,
+    "AM"
+  );
 }
 
 async function addTradeForMonitoring(accountDoc, tradeDoc) {
+  console.log(polygonManager, "polygonManager in addPendingOrderForMonitoring");
   const accountId = accountDoc._id.toString();
   const tradeId = tradeDoc._id.toString();
 
@@ -88,6 +97,12 @@ async function addTradeForMonitoring(accountDoc, tradeDoc) {
     takeProfit: tradeDoc.takeProfit,
     market: tradeDoc.market,
   });
+  polygonManager.subscribe(
+    `server_${accountId}`,
+    tradeDoc.market,
+    tradeDoc.symbol,
+    "AM"
+  );
 
   console.log(
     `[TradeMonitor] Trade ${tradeId} added for real-time monitoring.`
@@ -113,6 +128,8 @@ async function removeTradeFromMonitoring(tradeId, accountId) {
   if (!symbolStillInUse) {
     await redis.removeAccountSymbol(accountId, trade.symbol);
   }
+
+  await triggerUnsubscribeCheck(trade?.market, trade?.symbol);
 
   console.log(`[TradeMonitor] Trade ${tradeId} removed from monitoring.`);
 }
@@ -146,7 +163,7 @@ async function checkAccountRules(accountId, newEquity) {
 
 async function processPriceUpdate(priceData) {
   const { symbol, price } = priceData;
-  console.log(`\n[TradeMonitor] >>> Processing tick for ${symbol} at ${price}`);
+  // console.log(`\n[TradeMonitor] >>> Processing tick for ${symbol} at ${price}`);
 
   try {
     await checkPendingOrders(symbol, price);
@@ -154,7 +171,7 @@ async function processPriceUpdate(priceData) {
     const trades = await redis.getOpenTradesBySymbol(symbol);
 
     if (!trades.length) {
-      console.log(`[TradeMonitor] No open trades for ${symbol}.`);
+      // console.log(`[TradeMonitor] No open trades for ${symbol}.`);
       return;
     }
 
@@ -215,7 +232,7 @@ async function processPriceUpdate(priceData) {
       // Compute in-memory equity
       const newEquity =
         (riskData.currentBalance || riskData.initialBalance) + totalOpenPnl;
-      console.log("New Equity for Account", accountId, "is", newEquity);
+      // console.log("New Equity for Account", accountId, "is", newEquity);
 
       // Update current equity in Redis
       await redis.updateAccountRisk(accountId, { currentEquity: newEquity });
@@ -525,8 +542,34 @@ async function cancelPendingOrder(orderId, accountId, symbol, reason) {
 
   // Remove from Redis
   await redis.deletePendingOrder(orderId, accountId, symbol);
-
+  await triggerUnsubscribeCheck(order?.market, order?.symbol);
   console.log(`[TradeMonitor] Order ${orderId} cancelled. Reason: ${reason}`);
+}
+
+async function triggerUnsubscribeCheck(market, symbol, channel = "AM") {
+  try {
+    const subscriptionKey = `${market}:${symbol}:${channel}`;
+
+    // Check if any clients are still subscribed
+    const subscribers = polygonManager.subscriptions.get(subscriptionKey);
+    const hasClientSubscribers = subscribers && subscribers.size > 0;
+
+    if (hasClientSubscribers) {
+      console.log(
+        `[TradeMonitor] Keeping ${symbol} subscription - ${subscribers.size} client(s) still connected`
+      );
+      return;
+    }
+
+    // No clients subscribed, check if we should unsubscribe from Polygon
+    // The unsubscribeFromPolygon method will check Redis
+    await polygonManager.unsubscribeFromPolygon(market, symbol, channel);
+  } catch (err) {
+    console.error(
+      `[TradeMonitor] Error triggering unsubscribe check for ${symbol}:`,
+      err
+    );
+  }
 }
 
 module.exports = {
@@ -537,4 +580,5 @@ module.exports = {
   closeTrade,
   cancelPendingOrder, // NEW
   executePendingOrder, // NEW
+  triggerUnsubscribeCheck, // NEW
 };
