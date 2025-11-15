@@ -280,7 +280,7 @@ async function processPriceUpdate(priceData) {
           );
 
           await closeTrade(trade, price, closureReason);
-          await removeTradeFromMonitoring(trade._id, accountId);
+          // await removeTradeFromMonitoring(trade._id, accountId);
         }
       }
     }
@@ -292,6 +292,37 @@ async function processPriceUpdate(priceData) {
 async function closeTrade(trade, currentPrice, reason) {
   const { side, entryPrice, tradeSize, leverage = 50, _id, accountId } = trade;
 
+  // FIRST: Remove from monitoring to prevent race conditions
+  const redisTrade = await redis.getOpenTrade(_id);
+  if (!redisTrade) {
+    console.warn(
+      `[closeTrade] Trade ${_id} not found in Redis (already closed or liquidated). Skipping.`
+    );
+    return null;
+  }
+
+  // Remove from Redis monitoring IMMEDIATELY
+  await redis.deleteOpenTrade(_id);
+  await redis.deleteTradePnL(accountId, _id);
+
+  // Check if other open trades use this symbol before removing it
+  const allAccountTrades = await redis.getOpenTradesByAccount(accountId);
+  const symbolStillInUse = allAccountTrades.some(
+    (t) => t.symbol === trade.symbol && t._id !== _id
+  );
+
+  if (!symbolStillInUse) {
+    await redis.removeAccountSymbol(accountId, trade.symbol);
+  }
+
+  // Trigger unsubscribe check (but don't await it - let it happen in background)
+  triggerUnsubscribeCheck(trade?.market, trade?.symbol).catch(console.error);
+
+  console.log(
+    `[closeTrade] Trade ${_id} removed from monitoring before closure`
+  );
+
+  // NOW proceed with closing the trade in database
   const direction = side === "buy" ? 1 : -1;
   const symbolAmount = tradeSize / entryPrice;
   const pnl = (currentPrice - entryPrice) * symbolAmount * direction;
@@ -327,11 +358,11 @@ async function closeTrade(trade, currentPrice, reason) {
   }
 
   const updatedTrade = await Trade.findByIdAndUpdate(_id, updateData, {
-    new: true, // Return the updated document
+    new: true,
   });
 
   console.log(
-    `[TradeMonitor] Trade ${_id} closed at ${currentPrice}. Reason: ${reason}, PnL: ${pnl.toFixed(
+    `[closeTrade] Trade ${_id} closed at ${currentPrice}. Reason: ${reason}, PnL: ${pnl.toFixed(
       2
     )}`
   );
@@ -372,7 +403,7 @@ async function handleAccountLiquidation(
     const currentPrice = priceData.price;
 
     await closeTrade(trade, currentPrice, closureReason);
-    await removeTradeFromMonitoring(trade._id, accountId);
+    // await removeTradeFromMonitoring(trade._id, accountId);
   }
 
   // Clean up all Redis data for this account
