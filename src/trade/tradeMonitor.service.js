@@ -303,7 +303,7 @@ async function closeTrade(trade, currentPrice, reason) {
 
   // Remove from Redis monitoring IMMEDIATELY
   await redis.deleteOpenTrade(_id);
-  await redis.deleteTradePnL(accountId, _id);
+  await redis.deleteTradePnL(accountId.toString(), _id.toString());
 
   // Check if other open trades use this symbol before removing it
   const allAccountTrades = await redis.getOpenTradesByAccount(accountId);

@@ -46,7 +46,7 @@ const closeTrade = async (req, res) => {
     );
 
     // Remove it from monitoring
-    TradeMonitor.removeTradeFromMonitoring(tradeId, trade.accountId.toString());
+    //  TradeMonitor.removeTradeFromMonitoring(tradeId, trade.accountId.toString());
 
     return sendSuccessResponse(
       res,

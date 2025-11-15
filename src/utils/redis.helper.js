@@ -68,7 +68,7 @@ async function getOpenTradesByAccount(accountId) {
 async function setAccountRisk(accountId, riskData) {
   const key = KEYS.ACCOUNT_RISK(accountId);
   await client.set(key, JSON.stringify(riskData));
-  console.log(`[Redis] Stored account risk data: ${accountId}`);
+  // console.log(`[Redis] Stored account risk data: ${accountId}`);
 }
 
 async function getAccountRisk(accountId) {
