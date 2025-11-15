@@ -4,6 +4,7 @@ const {
   sendSuccessResponse,
   sendErrorResponse,
 } = require("../../shared/response.service");
+const TradeMonitor = require("../tradeMonitor.service");
 
 const cancelPendingOrder = async (req, res) => {
   try {

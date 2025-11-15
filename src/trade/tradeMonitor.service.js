@@ -48,11 +48,13 @@ async function addPendingOrderForMonitoring(accountDoc, orderDoc) {
     `[TradeMonitor] Pending ${orderDoc.orderType} order ${orderId} added for monitoring.`
   );
 
+  const channel = orderDoc.market === "crypto" ? "XT" : "C";
+  console.log("channel in add pending order monitoring", channel);
   polygonManager.subscribe(
     `server_${accountId}`,
     orderDoc.market,
     orderDoc.symbol,
-    "XT"
+    channel
   );
 }
 
@@ -97,11 +99,13 @@ async function addTradeForMonitoring(accountDoc, tradeDoc) {
     takeProfit: tradeDoc.takeProfit,
     market: tradeDoc.market,
   });
+  const channel = tradeDoc.market === "crypto" ? "XT" : "C";
+  console.log("channel in add trade monitoring", channel);
   polygonManager.subscribe(
     `server_${accountId}`,
     tradeDoc.market,
     tradeDoc.symbol,
-    "XT"
+    channel
   );
 
   console.log(
@@ -438,6 +442,14 @@ async function executePendingOrder(order, executionPrice) {
 
   try {
     // Fetch account
+
+    const existingOrder = await redis.getPendingOrder(orderId);
+    if (!existingOrder) {
+      console.log(
+        `[executePendingOrder] Order ${orderId} already executed or cancelled. Skipping.`
+      );
+      return;
+    }
     const account = await Account.findById(accountId);
     if (!account) {
       console.error(`[executePendingOrder] Account ${accountId} not found`);

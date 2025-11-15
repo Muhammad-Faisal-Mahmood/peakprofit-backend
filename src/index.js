@@ -87,6 +87,13 @@ app.use("/api/trade/watchlist", watchlist);
 app.use("/api/trade/account", Account);
 app.use("/api/trade", Trade);
 
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
+    status: "UP",
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // MongoDB Connection
 const connectToMongoDB = async () => {
   try {
@@ -214,15 +221,14 @@ const initializePolygonConnections = async () => {
  * Consider using SCAN for production environments
  */
 const getAllRedisKeys = async (pattern) => {
-  const redis = require("./config/redis.config");
+  const client = require("./config/redis.config");
+
   try {
-    const keys = await redis.keys(pattern);
-    return keys || [];
-  } catch (error) {
-    console.error(
-      `[Startup] Error fetching Redis keys for pattern ${pattern}:`,
-      error
-    );
+    const keys = await client.sendCommand(["KEYS", pattern]);
+    console.log("keys", keys);
+    return keys;
+  } catch (err) {
+    console.error(`[Redis] KEYS failed for pattern ${pattern}:`, err);
     return [];
   }
 };
