@@ -229,6 +229,41 @@ async function clearAll() {
   }
 }
 
+async function atomicDeletePendingOrder(orderId, accountId, symbol) {
+  const key = KEYS.PENDING_ORDER(orderId);
+
+  // Use Lua script for atomic get-and-delete
+  const luaScript = `
+    local key = KEYS[1]
+    local data = redis.call('GET', key)
+    if data then
+      redis.call('DEL', key)
+      return data
+    else
+      return nil
+    end
+  `;
+
+  const result = await client.eval(luaScript, {
+    keys: [key],
+  });
+
+  if (result) {
+    // Remove from account's pending orders
+    const accountKey = KEYS.ACCOUNT_PENDING_ORDERS(accountId);
+    await client.sRem(accountKey, orderId);
+
+    // Remove from symbol's pending orders
+    const symbolKey = KEYS.SYMBOL_PENDING_ORDERS(symbol);
+    await client.sRem(symbolKey, orderId);
+
+    console.log(`[Redis] Atomically deleted pending order: ${orderId}`);
+    return JSON.parse(result);
+  }
+
+  return null;
+}
+
 module.exports = {
   // Trade operations
   setOpenTrade,
@@ -265,6 +300,7 @@ module.exports = {
   getPendingOrdersBySymbol,
   getPendingOrdersByAccount,
 
+  atomicDeletePendingOrder,
   //flush db
   clearAll,
 };

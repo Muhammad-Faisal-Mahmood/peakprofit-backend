@@ -474,7 +474,12 @@ async function executePendingOrder(order, executionPrice) {
   try {
     // Fetch account
 
-    const existingOrder = await redis.getPendingOrder(orderId);
+    const existingOrder = await redis.atomicDeletePendingOrder(
+      orderId,
+      accountId,
+      symbol
+    );
+    console.log("existing order:", existingOrder);
     if (!existingOrder) {
       console.log(
         `[executePendingOrder] Order ${orderId} already executed or cancelled. Skipping.`
