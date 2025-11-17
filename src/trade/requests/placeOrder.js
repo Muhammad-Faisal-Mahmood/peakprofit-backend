@@ -150,10 +150,7 @@ const placeOrder = async (req, res) => {
     }
   } catch (err) {
     console.error("Error placing order:", err);
-    return sendErrorResponse(
-      res,
-      "Failed to place order. REASON: " + err.message
-    );
+    return sendErrorResponse(res, "Failed to place order.");
   }
 };
 
