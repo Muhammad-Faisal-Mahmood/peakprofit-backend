@@ -23,6 +23,11 @@ class PolygonWebSocketManager {
     this.subscriptions = new Map();
     // Map of client ID -> set of subscriptionKeys
     this.clientSubscriptions = new Map();
+
+    // Throttling maps
+    this.latestTicks = new Map(); // symbol -> last received normalized tick
+    this.lastEmitTime = new Map(); // symbol -> last sent timestamp
+    this.throttleMs = 100; // 100 ms = 10 updates/sec
   }
 
   async checkSymbolInUse(symbol) {
@@ -133,6 +138,28 @@ class PolygonWebSocketManager {
     connectionState.ws.send(JSON.stringify(authMessage));
   }
 
+  handleThrottledTick(data) {
+    const symbol = data.symbol;
+    const now = Date.now();
+
+    const lastEmit = this.lastEmitTime.get(symbol) || 0;
+
+    // Store latest tick for symbol
+    this.latestTicks.set(symbol, data);
+
+    // If not enough time has passed, skip emitting
+    if (now - lastEmit < this.throttleMs) {
+      return;
+    }
+
+    // Emit latest data
+    const latest = this.latestTicks.get(symbol);
+    if (latest) {
+      this.lastEmitTime.set(symbol, now);
+      this.broadcastToClients(latest);
+    }
+  }
+
   /**
    * Handle incoming WebSocket messages
    */
@@ -163,7 +190,7 @@ class PolygonWebSocketManager {
         // Normalize and broadcast to clients
         const normalized = this.normalizeMessage(msg, connectionState.market);
         if (normalized) {
-          this.broadcastToClients(normalized);
+          this.handleThrottledTick(normalized);
         }
       }
     } catch (error) {
