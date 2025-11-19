@@ -27,7 +27,7 @@ class PolygonWebSocketManager {
     // Throttling maps
     this.latestTicks = new Map(); // symbol -> last received normalized tick
     this.lastEmitTime = new Map(); // symbol -> last sent timestamp
-    this.throttleMs = 100; // 100 ms = 10 updates/sec
+    this.throttleMs = 700; // 100 ms = 10 updates/sec
   }
 
   async checkSymbolInUse(symbol) {
