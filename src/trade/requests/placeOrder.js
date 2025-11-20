@@ -62,7 +62,7 @@ const placeOrder = async (req, res) => {
 
     // Calculate margin based on order type
     const priceForMargin = orderType === "market" ? entryPrice : triggerPrice;
-    const marginUsed = (units * priceForMargin) / leverage;
+    const marginUsed = units * priceForMargin;
 
     // Check free margin
     const freeMargin = account.balance - account.marginUsed;
