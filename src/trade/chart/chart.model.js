@@ -4,7 +4,8 @@ const ChartSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", unique: true },
   interval: {
     type: String,
-    enum: ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w", "1mo"],
+    enum: ["1", "5", "15", "30", "60", "240", "1D", "1W", "1M"],
+    default: "1",
   },
 });
 

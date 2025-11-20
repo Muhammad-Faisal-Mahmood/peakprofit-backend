@@ -7,14 +7,16 @@ const Chart = require("../chart.model");
 async function getInterval(req, res) {
   try {
     const userId = req.user.userId;
+    if (!userId) return sendErrorResponse(res, "User not authenticated.");
 
-    if (!userId) {
-      return sendErrorResponse(res, "User not authenticated.");
-    }
-    const chartSettings = await Chart.findOne({ userId });
+    let chartSettings = await Chart.findOne({ userId });
+
     if (!chartSettings) {
-      return sendErrorResponse(res, "Interval not found for user.");
+      return sendSuccessResponse(res, "Default chart interval returned.", {
+        interval: "1",
+      });
     }
+
     return sendSuccessResponse(res, "Chart interval fetched successfully.", {
       interval: chartSettings.interval,
     });
