@@ -2,6 +2,7 @@ const Account = require("../trade/account/account.model");
 const Trade = require("../trade/trade.model");
 const redis = require("../utils/redis.helper");
 const { polygonManager } = require("../polygon/polygonManager");
+const closeTradeService = require("../utils/closeTrade.service");
 
 async function addPendingOrderForMonitoring(accountDoc, orderDoc) {
   const accountId = accountDoc._id.toString();
@@ -315,59 +316,11 @@ async function closeTrade(trade, currentPrice, reason) {
     await redis.removeAccountSymbol(accountId, trade.symbol);
   }
 
+  const result = await closeTradeService(trade, currentPrice, reason);
   // Trigger unsubscribe check (but don't await it - let it happen in background)
   triggerUnsubscribeCheck(trade?.market, trade?.symbol).catch(console.error);
 
-  console.log(
-    `[closeTrade] Trade ${_id} removed from monitoring before closure`
-  );
-
-  // NOW proceed with closing the trade in database
-  const direction = side === "buy" ? 1 : -1;
-  const symbolAmount = tradeSize / entryPrice;
-  const pnl = (currentPrice - entryPrice) * symbolAmount * direction;
-
-  const account = await Account.findById(accountId);
-  if (!account) {
-    console.error(`[closeTrade] Account ${accountId} not found`);
-    return;
-  }
-
-  const marginToRelease = (tradeSize * entryPrice) / leverage;
-  account.marginUsed = Math.max(0, account.marginUsed - marginToRelease);
-  account.balance += pnl;
-  account.equity = account.balance;
-
-  account.openPositions = account.openPositions.filter(
-    (posId) => posId.toString() !== _id.toString()
-  );
-  account.closedPositions.push(_id);
-
-  await account.save();
-
-  const updateData = {
-    status: "closed",
-    exitPrice: currentPrice,
-    closedAt: new Date(),
-    profit: pnl,
-    tradeClosureReason: reason,
-  };
-
-  if (["dailyDrawdown", "maxDrawdown"].includes(reason)) {
-    updateData.$push = { violatedRules: reason };
-  }
-
-  const updatedTrade = await Trade.findByIdAndUpdate(_id, updateData, {
-    new: true,
-  });
-
-  console.log(
-    `[closeTrade] Trade ${_id} closed at ${currentPrice}. Reason: ${reason}, PnL: ${pnl.toFixed(
-      2
-    )}`
-  );
-
-  return updatedTrade;
+  return result;
 }
 
 async function handleAccountLiquidation(

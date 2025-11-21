@@ -6,6 +6,7 @@ const {
   sendSuccessResponse,
   sendErrorResponse,
 } = require("../../shared/response.service");
+const closeTradeService = require("../../utils/closeTrade.service");
 
 const closeTrade = async (req, res) => {
   try {
@@ -39,20 +40,20 @@ const closeTrade = async (req, res) => {
     }
 
     // Call the closeTrade method in TradeMonitor
-    const closeResult = await TradeMonitor.closeTrade(
-      trade,
-      price,
-      "userClosed"
-    );
+    const result = await closeTradeService(trade, price, "userClosed");
 
     // Remove it from monitoring
     //  TradeMonitor.removeTradeFromMonitoring(tradeId, trade.accountId.toString());
 
-    return sendSuccessResponse(
-      res,
-      "Trade closed successfully by user.",
-      closeResult
-    );
+    if (result) {
+      return sendSuccessResponse(
+        res,
+        "Trade closed successfully by user.",
+        result
+      );
+    } else {
+      throw new Error("trade received: ", result);
+    }
   } catch (err) {
     console.error("[closeTrade] Error closing trade:", err);
     return sendErrorResponse(res, "Failed to close trade.", err.message);
