@@ -8,6 +8,7 @@ const expressWs = require("express-ws");
 const PolygonWebSocketManager = require("./polygonWebSocketManager");
 const tradeMonitorService = require("../trade/tradeMonitor.service");
 const { polygonManager } = require("./polygonManager");
+const normalizeAggregates = require("../utils/normalizingHistoricalData");
 
 const router = express.Router();
 expressWs(router);
@@ -66,7 +67,22 @@ router.get(
       }
 
       const data = await response.json();
-      res.json(data);
+
+      // ✅ Check if crypto BEFORE sending any response
+      const isCrypto = ticker.startsWith("X:");
+      if (isCrypto && data.results) {
+        const normalized = normalizeAggregates(data, {
+          removeOutliers: true,
+          limitWicks: true,
+          smooth: false,
+          removeFlashCrashes: true,
+          outlierThreshold: 1.5,
+          maxWickPercentage: 0.15,
+        });
+        res.json(normalized); // ✅ Send normalized data
+      } else {
+        res.json(data); // ✅ Send original data
+      }
     } catch (error) {
       console.error(
         "[Polygon Proxy] Error fetching aggregates:",

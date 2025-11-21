@@ -4,6 +4,7 @@
  */
 const redis = require("../utils/redis.helper");
 const WebSocket = require("ws");
+const RealtimeDataNormalizer = require("../utils/realtimeDataNormalizer");
 
 const SOCKET_URLS = {
   crypto: "wss://socket.polygon.io/crypto",
@@ -28,6 +29,14 @@ class PolygonWebSocketManager {
     this.latestTicks = new Map(); // symbol -> last received normalized tick
     this.lastEmitTime = new Map(); // symbol -> last sent timestamp
     this.throttleMs = 700; // 100 ms = 10 updates/sec
+
+    this.normalizer = new RealtimeDataNormalizer({
+      historySize: 20, // Keep last 20 ticks for validation
+      aggregationWindow: 700, // Match your throttle window
+      maxDeviationPercent: 0.03, // 3% max price deviation
+      minTicksForValidation: 5, // Need 5 ticks before filtering
+      enableVWAP: true, // Use VWAP for aggregated price
+    });
   }
 
   async checkSymbolInUse(symbol) {
@@ -138,27 +147,27 @@ class PolygonWebSocketManager {
     connectionState.ws.send(JSON.stringify(authMessage));
   }
 
-  handleThrottledTick(data) {
-    const symbol = data.symbol;
-    const now = Date.now();
+  // handleThrottledTick(data) {
+  //   const symbol = data.symbol;
+  //   const now = Date.now();
 
-    const lastEmit = this.lastEmitTime.get(symbol) || 0;
+  //   const lastEmit = this.lastEmitTime.get(symbol) || 0;
 
-    // Store latest tick for symbol
-    this.latestTicks.set(symbol, data);
+  //   // Store latest tick for symbol
+  //   this.latestTicks.set(symbol, data);
 
-    // If not enough time has passed, skip emitting
-    if (now - lastEmit < this.throttleMs) {
-      return;
-    }
+  //   // If not enough time has passed, skip emitting
+  //   if (now - lastEmit < this.throttleMs) {
+  //     return;
+  //   }
 
-    // Emit latest data
-    const latest = this.latestTicks.get(symbol);
-    if (latest) {
-      this.lastEmitTime.set(symbol, now);
-      this.broadcastToClients(latest);
-    }
-  }
+  //   // Emit latest data
+  //   const latest = this.latestTicks.get(symbol);
+  //   if (latest) {
+  //     this.lastEmitTime.set(symbol, now);
+  //     this.broadcastToClients(latest);
+  //   }
+  // }
 
   /**
    * Handle incoming WebSocket messages
@@ -187,10 +196,32 @@ class PolygonWebSocketManager {
           continue;
         }
 
-        // Normalize and broadcast to clients
+        // Normalize message format
         const normalized = this.normalizeMessage(msg, connectionState.market);
         if (normalized) {
-          this.handleThrottledTick(normalized);
+          // ✅ NEW: Process through normalizer instead of simple throttle
+          const processedTick = this.normalizer.processTick(normalized);
+
+          if (processedTick) {
+            // Only emit if normalizer approves (after aggregation window)
+            this.broadcastToClients(processedTick);
+
+            // Log if price was capped
+            if (processedTick.capped) {
+              console.log(
+                `[PolygonWS] Capped ${processedTick.symbol}: ${processedTick.originalPrice} → ${processedTick.price}`
+              );
+            }
+
+            // Log aggregation info
+            if (processedTick.aggregated) {
+              console.log(
+                `[PolygonWS] Aggregated ${processedTick.symbol}: ${
+                  processedTick.tickCount
+                } ticks, VWAP: ${processedTick.price.toFixed(2)}`
+              );
+            }
+          }
         }
       }
     } catch (error) {
@@ -389,9 +420,11 @@ class PolygonWebSocketManager {
       }
     }
 
+    const finalTick = this.normalizer.flush(symbol);
+    this.normalizer.clearSymbol(symbol);
+
     console.log(`[PolygonWS] Unsubscribed from Polygon: ${symbol}`);
   }
-  t;
 
   /**
    * Get least loaded connection for a market
