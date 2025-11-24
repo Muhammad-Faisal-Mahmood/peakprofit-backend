@@ -77,7 +77,7 @@ router.get(
           smooth: false,
           removeFlashCrashes: true,
           outlierThreshold: 1.5,
-          maxWickPercentage: 0.15,
+          maxWickPercentage: 0.45,
         });
         res.json(normalized); // ✅ Send normalized data
       } else {
