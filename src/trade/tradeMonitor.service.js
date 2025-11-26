@@ -172,6 +172,8 @@ async function processPriceUpdate(priceData) {
   const { symbol, price } = priceData;
   // console.log(`\n[TradeMonitor] >>> Processing tick for ${symbol} at ${price}`);
 
+  await redis.setSymbolPrice(symbol, price);
+
   try {
     await checkPendingOrders(symbol, price);
     // Get all open trades for this symbol from Redis
@@ -309,45 +311,85 @@ async function handleAccountLiquidation(
   accountId,
   violationRule,
   finalEquity,
-  priceData
+  priceData // { symbol, price }
 ) {
   console.warn(
-    `[LIQUIDATION] Account ${accountId} failed due to ${violationRule}.`
+    `[LIQUIDATION] Account ${accountId} failed due to ${violationRule}. Triggered by ${priceData.symbol} at ${priceData.price}`
   );
 
-  // Update the Account status to 'failed'
+  // Get ALL open trades from MongoDB (source of truth)
+  const tradesToClose = await Trade.find({
+    accountId: accountId,
+    status: "open",
+  });
+
+  console.log(
+    `[LIQUIDATION] Found ${tradesToClose.length} open trades in MongoDB for account ${accountId}`
+  );
+
+  // Update the Account status to 'failed' atomically
   await Account.findByIdAndUpdate(accountId, {
     status: "failed",
     equity: finalEquity,
   });
-
-  // Close ALL open positions at the current price
-  const tradesToClose = await redis.getOpenTradesByAccount(accountId);
-
-  console.log(
-    `[LIQUIDATION] Closing ${tradesToClose.length} trades for account ${accountId}`
-  );
 
   const closureReason =
     violationRule === "dailyDrawdown"
       ? "dailyDrawdownViolated"
       : "maxDrawdownViolated";
 
-  // Close all trades
+  await cancelAllPendingOrders(accountId, closureReason);
+
+  // Close each trade using the correct price
   for (const trade of tradesToClose) {
-    const currentPrice = priceData.price;
+    let currentPrice;
+
+    // If this trade's symbol matches the triggering symbol, use the exact price we received
+    if (trade.symbol === priceData.symbol) {
+      currentPrice = priceData.price;
+      console.log(
+        `[LIQUIDATION] Closing ${trade.symbol} trade ${trade._id} at trigger price ${currentPrice}`
+      );
+    } else {
+      // For other symbols, get the latest price from Redis
+      const symbolPriceData = await redis.getSymbolPrice(trade.symbol);
+
+      if (!symbolPriceData) {
+        console.error(
+          `[LIQUIDATION] No price data found for ${trade.symbol}, using entry price as fallback`
+        );
+        currentPrice = trade.entryPrice;
+      } else {
+        currentPrice = symbolPriceData.price;
+        console.log(
+          `[LIQUIDATION] Closing ${trade.symbol} trade ${
+            trade._id
+          } at Redis price ${currentPrice} (age: ${
+            Date.now() - symbolPriceData.timestamp
+          }ms)`
+        );
+      }
+    }
 
     await closeTrade(trade, currentPrice, closureReason);
-    // await removeTradeFromMonitoring(trade._id, accountId);
   }
 
-  // Clean up all Redis data for this account
+  // Clean up all Redis data for this account (this is now cleanup, not source of truth)
   await redis.deleteAccountRisk(accountId);
   await redis.deleteAllTradePnLs(accountId);
   await redis.deleteAccountSymbols(accountId);
 
+  // Also cleanup any remaining Redis trade entries
+  const redisTradeIds = await redis.getOpenTradesByAccount(accountId);
+  for (const redisTrade of redisTradeIds) {
+    await redis.deleteOpenTrade(redisTrade._id);
+    console.log(
+      `[LIQUIDATION] Cleaned up orphaned Redis trade: ${redisTrade._id}`
+    );
+  }
+
   console.log(
-    `[LIQUIDATION] Account ${accountId} fully liquidated and cleaned up from Redis.`
+    `[LIQUIDATION] Account ${accountId} fully liquidated and cleaned up.`
   );
 }
 
@@ -552,6 +594,30 @@ async function triggerUnsubscribeCheck(market, symbol, channel = "AM") {
       `[TradeMonitor] Error triggering unsubscribe check for ${symbol}:`,
       err
     );
+  }
+}
+
+// In tradeMonitor.service.js
+async function cancelAllPendingOrders(accountId, reason) {
+  const account = await Account.findById(accountId);
+  if (!account || account.pendingOrders.length === 0) {
+    return;
+  }
+
+  const pendingOrderIds = account.pendingOrders.map((id) => id.toString());
+  console.log(
+    `[LIQUIDATION] Cancelling ${pendingOrderIds.length} pending orders for account ${accountId}`
+  );
+
+  for (const orderId of pendingOrderIds) {
+    // Fetch order details needed for cancellation (like symbol/market/marginUsed)
+    const orderDoc = await Trade.findById(orderId);
+    if (!orderDoc) continue; // Skip if order is somehow missing // Use the existing cancelPendingOrder service, which handles:
+
+    // - Updating Trade status to cancelled in Mongo
+    // - Releasing margin in Mongo Account
+    // - Deleting from Redis
+    await cancelPendingOrder(orderId, accountId, orderDoc.symbol, reason);
   }
 }
 

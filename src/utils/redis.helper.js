@@ -11,6 +11,7 @@ const KEYS = {
   PENDING_ORDER: (orderId) => `order:pending:${orderId}`,
   ACCOUNT_PENDING_ORDERS: (accountId) => `account:pending:${accountId}`,
   SYMBOL_PENDING_ORDERS: (symbol) => `symbol:pending:${symbol}`,
+  SYMBOL_PRICE: (symbol) => `symbol:price:${symbol}`,
 };
 
 async function setOpenTrade(tradeId, tradeData) {
@@ -264,6 +265,17 @@ async function atomicDeletePendingOrder(orderId, accountId, symbol) {
   return null;
 }
 
+async function setSymbolPrice(symbol, price, timestamp = Date.now()) {
+  const key = KEYS.SYMBOL_PRICE(symbol);
+  await client.set(key, JSON.stringify({ price, timestamp }), { EX: 300 }); // 5min TTL
+}
+
+async function getSymbolPrice(symbol) {
+  const key = KEYS.SYMBOL_PRICE(symbol);
+  const data = await client.get(key);
+  return data ? JSON.parse(data) : null;
+}
+
 module.exports = {
   // Trade operations
   setOpenTrade,
@@ -301,6 +313,9 @@ module.exports = {
   getPendingOrdersByAccount,
 
   atomicDeletePendingOrder,
+
+  setSymbolPrice,
+  getSymbolPrice,
   //flush db
   clearAll,
 };
