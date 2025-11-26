@@ -1,7 +1,7 @@
 const redis = require("./redis.helper");
-const { triggerUnsubscribeCheck } = require("../trade/tradeMonitor.service");
 
 async function redisTradeCleanup({ tradeId, accountId, symbol, market }) {
+  const { triggerUnsubscribeCheck } = require("../trade/tradeMonitor.service");
   // 1. Check if trade exists
   const redisTrade = await redis.getOpenTrade(tradeId);
   if (!redisTrade) {

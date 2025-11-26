@@ -28,11 +28,11 @@ class PolygonWebSocketManager {
     // Throttling maps
     this.latestTicks = new Map(); // symbol -> last received normalized tick
     this.lastEmitTime = new Map(); // symbol -> last sent timestamp
-    this.throttleMs = 700; // 100 ms = 10 updates/sec
+    this.throttleMs = 2000; // 100 ms = 10 updates/sec
 
     this.normalizer = new RealtimeDataNormalizer({
       historySize: 20, // Keep last 20 ticks for validation
-      aggregationWindow: 700, // Match your throttle window
+      aggregationWindow: 2000, // Match your throttle window
       maxDeviationPercent: 0.03, // 3% max price deviation
       minTicksForValidation: 5, // Need 5 ticks before filtering
       enableVWAP: true, // Use VWAP for aggregated price
