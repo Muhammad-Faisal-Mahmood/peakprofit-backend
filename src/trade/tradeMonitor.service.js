@@ -3,6 +3,7 @@ const Trade = require("../trade/trade.model");
 const redis = require("../utils/redis.helper");
 const { polygonManager } = require("../polygon/polygonManager");
 const closeTradeService = require("../utils/closeTrade.service");
+const redisTradeCleanup = require("../utils/redisTradeCleanup");
 
 async function addPendingOrderForMonitoring(accountDoc, orderDoc) {
   const accountId = accountDoc._id.toString();
@@ -148,6 +149,7 @@ async function checkAccountRules(accountId, newEquity) {
   // Max Drawdown (Trailing 7%)
   if (newEquity < riskData.maxDrawdownThreshold) {
     violation = "maxDrawdown";
+    return violation;
   }
 
   const dailyLoss = riskData.currentDayEquity - newEquity;
@@ -291,36 +293,16 @@ async function processPriceUpdate(priceData) {
 }
 
 async function closeTrade(trade, currentPrice, reason) {
-  const { side, entryPrice, tradeSize, leverage = 50, _id, accountId } = trade;
+  const { _id, accountId, symbol, market } = trade;
 
-  // FIRST: Remove from monitoring to prevent race conditions
-  const redisTrade = await redis.getOpenTrade(_id);
-  if (!redisTrade) {
-    console.warn(
-      `[closeTrade] Trade ${_id} not found in Redis (already closed or liquidated). Skipping.`
-    );
-    return null;
-  }
+  await redisTradeCleanup({
+    tradeId: _id.toString(),
+    accountId: accountId.toString(),
+    symbol,
+    market,
+  });
 
-  // Remove from Redis monitoring IMMEDIATELY
-  await redis.deleteOpenTrade(_id);
-  await redis.deleteTradePnL(accountId.toString(), _id.toString());
-
-  // Check if other open trades use this symbol before removing it
-  const allAccountTrades = await redis.getOpenTradesByAccount(accountId);
-  const symbolStillInUse = allAccountTrades.some(
-    (t) => t.symbol === trade.symbol && t._id !== _id
-  );
-
-  if (!symbolStillInUse) {
-    await redis.removeAccountSymbol(accountId, trade.symbol);
-  }
-
-  const result = await closeTradeService(trade, currentPrice, reason);
-  // Trigger unsubscribe check (but don't await it - let it happen in background)
-  triggerUnsubscribeCheck(trade?.market, trade?.symbol).catch(console.error);
-
-  return result;
+  return await closeTradeService(trade, currentPrice, reason);
 }
 
 async function handleAccountLiquidation(

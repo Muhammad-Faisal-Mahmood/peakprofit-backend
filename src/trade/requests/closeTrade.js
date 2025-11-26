@@ -7,6 +7,7 @@ const {
   sendErrorResponse,
 } = require("../../shared/response.service");
 const closeTradeService = require("../../utils/closeTrade.service");
+const redisTradeCleanup = require("../../utils/redisTradeCleanup");
 
 const closeTrade = async (req, res) => {
   try {
@@ -42,8 +43,12 @@ const closeTrade = async (req, res) => {
     // Call the closeTrade method in TradeMonitor
     const result = await closeTradeService(trade, price, "userClosed");
 
-    // Remove it from monitoring
-    //  TradeMonitor.removeTradeFromMonitoring(tradeId, trade.accountId.toString());
+    await redisTradeCleanup({
+      tradeId: trade._id.toString(),
+      accountId: trade.accountId.toString(),
+      symbol: trade.symbol,
+      market: trade.market,
+    });
 
     if (result) {
       return sendSuccessResponse(
