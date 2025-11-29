@@ -1,10 +1,13 @@
 // utils/defaultInstruments.js
 module.exports = [
+  // -------------------------
+  //        FOREX (4)
+  // -------------------------
   {
     symbol: "EUR-USD",
     name: "Euro / US Dollar",
     type: "forex",
-    channel: "C", // e.g. "C" for forex trades, adjust as needed
+    channel: "C",
     market: "forex",
     polygonSymbol: "C:EURUSD",
   },
@@ -25,6 +28,18 @@ module.exports = [
     polygonSymbol: "C:USDJPY",
   },
   {
+    symbol: "AUD-USD",
+    name: "Australian Dollar / US Dollar",
+    type: "forex",
+    channel: "C",
+    market: "forex",
+    polygonSymbol: "C:AUDUSD",
+  },
+
+  // -------------------------
+  //        CRYPTO (11)
+  // -------------------------
+  {
     symbol: "BTC-USD",
     name: "Bitcoin / US Dollar",
     type: "crypto",
@@ -41,11 +56,75 @@ module.exports = [
     polygonSymbol: "XT:ETHUSD",
   },
   {
+    symbol: "SOL-USD",
+    name: "Solana / US Dollar",
+    type: "crypto",
+    channel: "XT",
+    market: "crypto",
+    polygonSymbol: "XT:SOLUSD",
+  },
+  {
     symbol: "XRP-USD",
-    name: "Ripple / US Dollar",
+    name: "XRP / US Dollar",
     type: "crypto",
     channel: "XT",
     market: "crypto",
     polygonSymbol: "XT:XRPUSD",
+  },
+  {
+    symbol: "ADA-USD",
+    name: "Cardano / US Dollar",
+    type: "crypto",
+    channel: "XT",
+    market: "crypto",
+    polygonSymbol: "XT:ADAUSD",
+  },
+  {
+    symbol: "AVAX-USD",
+    name: "Avalanche / US Dollar",
+    type: "crypto",
+    channel: "XT",
+    market: "crypto",
+    polygonSymbol: "XT:AVAXUSD",
+  },
+  {
+    symbol: "DOGE-USD",
+    name: "Dogecoin / US Dollar",
+    type: "crypto",
+    channel: "XT",
+    market: "crypto",
+    polygonSymbol: "XT:DOGEUSD",
+  },
+  {
+    symbol: "LINK-USD",
+    name: "Chainlink / US Dollar",
+    type: "crypto",
+    channel: "XT",
+    market: "crypto",
+    polygonSymbol: "XT:LINKUSD",
+  },
+  {
+    symbol: "LTC-USD",
+    name: "Litecoin / US Dollar",
+    type: "crypto",
+    channel: "XT",
+    market: "crypto",
+    polygonSymbol: "XT:LTCUSD",
+  },
+  {
+    symbol: "UNI-USD",
+    name: "Uniswap / US Dollar",
+    type: "crypto",
+    channel: "XT",
+    market: "crypto",
+    polygonSymbol: "XT:UNIUSD",
+  },
+  {
+    symbol: "XLM-USD",
+    name: "Stellar / US Dollar",
+    type: "crypto",
+    channel: "XT",
+    market: "crypto",
+    polygonSymbol: "XT:XLMUSD",
   },
 ];
