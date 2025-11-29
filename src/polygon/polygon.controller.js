@@ -9,34 +9,53 @@ const PolygonWebSocketManager = require("./polygonWebSocketManager");
 const tradeMonitorService = require("../trade/tradeMonitor.service");
 const { polygonManager } = require("./polygonManager");
 const normalizeAggregates = require("../utils/normalizingHistoricalData");
+const allowedSymbols = require("../utils/allowedSymbols.json").symbols;
 
 const router = express.Router();
 expressWs(router);
 const POLYGON_BASE_URL = "https://api.polygon.io";
 router.get("/reference/tickers", async (req, res) => {
   try {
-    const { search, market, active, limit, type } = req.query;
+    const { search, market, active, limit } = req.query;
 
-    // Build query parameters
-    const params = new URLSearchParams();
-    if (search) params.append("search", search);
-    if (market) params.append("market", market);
-    if (active) params.append("active", active);
-    if (limit) params.append("limit", limit);
-    if (type) params.append("type", type);
-    params.append("apiKey", process.env.POLYGON_API_KEY);
+    let results = [...allowedSymbols]; // start with full list
 
-    const url = `${POLYGON_BASE_URL}/v3/reference/tickers?${params.toString()}`;
-
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Polygon API responded with status ${response.status}`);
+    // Filter by search (matches ticker OR name OR base)
+    if (search) {
+      const s = search.toLowerCase();
+      results = results.filter(
+        (t) =>
+          t.ticker.toLowerCase().includes(s) ||
+          t.base_currency_symbol.toLowerCase().includes(s) ||
+          t.base_currency_name.toLowerCase().includes(s) ||
+          t.name.toLowerCase().includes(s)
+      );
     }
 
-    const data = await response.json();
-    res.json(data);
+    // Filter by market (crypto / forex)
+    if (market) {
+      results = results.filter((t) => t.market === market);
+    }
+
+    // Filter by active
+    if (active !== undefined) {
+      const isActive = active === "true";
+      results = results.filter((t) => t.active === isActive);
+    }
+
+    // Limit results
+    if (limit) {
+      results = results.slice(0, Number(limit));
+    }
+
+    res.json({
+      status: "OK",
+      count: results.length,
+      results,
+    });
   } catch (error) {
-    console.error("[Polygon Proxy] Error fetching tickers:", error.message);
+    console.error("[Local Symbol Search] Error:", error.message);
+
     res.status(500).json({
       status: "ERROR",
       error: error.message,
