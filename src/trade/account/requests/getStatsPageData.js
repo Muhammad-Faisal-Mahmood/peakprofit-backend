@@ -1,6 +1,3 @@
-// Backend API Route
-// Place this in your routes file (e.g., routes/account.js)
-
 const Account = require("../account.model");
 const {
   sendSuccessResponse,
@@ -11,19 +8,50 @@ const Trade = require("../../trade.model");
 const getStatsPageData = async (req, res) => {
   try {
     const { accountId } = req.params;
+    const userId = req.user.userId;
 
-    // Verify account exists
-    const account = await Account.findById(accountId);
-    if (!account) {
-      return sendErrorResponse(res, "Account not found");
+    let accounts = [];
+    let closedTrades = [];
+
+    if (accountId === "all") {
+      // All user accounts scenario
+      accounts = await Account.find({ userId });
+
+      if (accounts.length === 0) {
+        return sendSuccessResponse(res, "No accounts found for user", {
+          calendarData: [],
+          pieChartData: processPieChartData([]),
+          statistics: getEmptyStats(),
+        });
+      }
+
+      // Get closed trades for all user accounts
+      const accountIds = accounts.map((acc) => acc._id);
+      closedTrades = await Trade.find({
+        accountId: { $in: accountIds },
+        status: "closed",
+        closedAt: { $exists: true },
+      }).sort({ closedAt: 1 });
+    } else {
+      // Single account scenario
+      const account = await Account.findById(accountId);
+      if (!account) {
+        return sendErrorResponse(res, "Account not found");
+      }
+
+      if (userId !== account.userId.toString()) {
+        return sendErrorResponse(res, "User not authorized to access account");
+      }
+
+      accounts = [account];
+
+      // Get closed trades for this specific account
+      closedTrades = await Trade.find({
+        accountId,
+        status: "closed",
+        closedAt: { $exists: true },
+      }).sort({ closedAt: 1 });
     }
-
-    // Get all closed trades for this account
-    const closedTrades = await Trade.find({
-      accountId,
-      status: "closed",
-      closedAt: { $exists: true },
-    }).sort({ closedAt: 1 });
 
     // Process calendar data (daily P&L aggregation)
     const calendarData = processCalendarData(closedTrades);
@@ -32,7 +60,7 @@ const getStatsPageData = async (req, res) => {
     const pieChartData = processPieChartData(calendarData);
 
     // Calculate overall statistics
-    const statistics = calculateOverallStats(account, closedTrades);
+    const statistics = calculateOverallStats(accounts, closedTrades);
 
     return sendSuccessResponse(
       res,
@@ -41,6 +69,7 @@ const getStatsPageData = async (req, res) => {
         calendarData,
         pieChartData,
         statistics,
+        accountCount: accounts.length,
       }
     );
   } catch (error) {
@@ -107,28 +136,30 @@ function processPieChartData(calendarData) {
   return [
     {
       profitableDays: parseFloat(profitablePercentage.toFixed(1)),
-
       losingDays: parseFloat(losingPercentage.toFixed(1)),
-
       breakevenDays: parseFloat(breakevenPercentage.toFixed(1)),
     },
   ];
 }
 
-function calculateOverallStats(account, closedTrades) {
+function getEmptyStats() {
+  return {
+    totalPnL: 0,
+    winRate: 0,
+    avgWin: 0,
+    avgLoss: 0,
+    totalTrades: 0,
+    winningTrades: 0,
+    losingTrades: 0,
+    bestTrade: null,
+    worstTrade: null,
+    profitFactor: 0,
+  };
+}
+
+function calculateOverallStats(accounts, closedTrades) {
   if (closedTrades.length === 0) {
-    return {
-      totalPnL: 0,
-      winRate: 0,
-      avgWin: 0,
-      avgLoss: 0,
-      totalTrades: 0,
-      winningTrades: 0,
-      losingTrades: 0,
-      bestTrade: null,
-      worstTrade: null,
-      profitFactor: 0,
-    };
+    return getEmptyStats();
   }
 
   let winningTrades = 0;
@@ -164,7 +195,12 @@ function calculateOverallStats(account, closedTrades) {
   const avgLoss = losingTrades > 0 ? totalGrossLoss / losingTrades : 0;
   const profitFactor =
     totalGrossLoss > 0 ? totalGrossProfit / totalGrossLoss : 0;
-  const totalPnL = account.balance - account.initialBalance;
+
+  // Calculate total P&L across all accounts
+  let totalPnL = 0;
+  accounts.forEach((account) => {
+    totalPnL += account.balance - account.initialBalance;
+  });
 
   return {
     totalPnL: Math.round(totalPnL),

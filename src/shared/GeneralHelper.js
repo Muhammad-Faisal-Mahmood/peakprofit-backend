@@ -151,7 +151,7 @@ function getDateRange(filter, startDate, endDate) {
 }
 function getOtp() {
   const code = Math.floor(1000 + Math.random() * 9000); // Generate 4-digit OTP
-  const expiration = 30; // OTP expiration time in minutes
+  const expiration = 60 * 24; // OTP expiration time in minutes
   const expirationTime = new Date(Date.now() + expiration * 60000); // Current time + expiration time
   return { code: code, expiration: expirationTime };
 }
