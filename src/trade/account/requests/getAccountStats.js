@@ -43,6 +43,10 @@ function calculateStatistics(account, closedTrades) {
   let dailyPnL = 0;
   let highestDayProfit = { profit: 0, date: null };
 
+  // Best/Worst trade tracking
+  let bestTrade = { profit: -Infinity, trade: null };
+  let worstTrade = { profit: Infinity, trade: null };
+
   // Group by day for daily stats
   const dailyStats = {};
 
@@ -56,6 +60,43 @@ function calculateStatistics(account, closedTrades) {
     } else if (trade.profit < 0) {
       losingTrades++;
       totalGrossLoss += Math.abs(trade.profit);
+    }
+
+    // Track best and worst trades
+    if (trade.profit > bestTrade.profit) {
+      bestTrade = {
+        profit: trade.profit,
+        trade: {
+          id: trade._id,
+          symbol: trade.symbol,
+          side: trade.side,
+          profit: trade.profit,
+          profitPercent: (
+            (trade.profit / account.initialBalance) *
+            100
+          ).toFixed(2),
+          openedAt: trade.openedAt,
+          closedAt: trade.closedAt,
+        },
+      };
+    }
+
+    if (trade.profit < worstTrade.profit) {
+      worstTrade = {
+        profit: trade.profit,
+        trade: {
+          id: trade._id,
+          symbol: trade.symbol,
+          side: trade.side,
+          profit: trade.profit,
+          profitPercent: (
+            (trade.profit / account.initialBalance) *
+            100
+          ).toFixed(2),
+          openedAt: trade.openedAt,
+          closedAt: trade.closedAt,
+        },
+      };
     }
 
     // Volume
@@ -96,6 +137,10 @@ function calculateStatistics(account, closedTrades) {
     (overallPnL / account.initialBalance) *
     100
   ).toFixed(2);
+
+  // Calculate average win and average loss
+  const averageWin = winningTrades > 0 ? totalGrossProfit / winningTrades : 0;
+  const averageLoss = losingTrades > 0 ? totalGrossLoss / losingTrades : 0;
 
   // Consistency Rule
   const suggestedDailyProfit = account.profitTarget / account.minTradingDays;
@@ -141,6 +186,10 @@ function calculateStatistics(account, closedTrades) {
       date: highestDayProfit.date,
     },
 
+    // Best and Worst trades
+    bestTrade: bestTrade.profit !== -Infinity ? bestTrade.trade : null,
+    worstTrade: worstTrade.profit !== Infinity ? worstTrade.trade : null,
+
     // Trading statistics
     statistics: {
       totalTrades,
@@ -148,6 +197,16 @@ function calculateStatistics(account, closedTrades) {
       losingTrades,
       winRate: winRate.toFixed(2),
       profitFactor: profitFactor.toFixed(2),
+      averageWin: averageWin.toFixed(2),
+      averageLoss: averageLoss.toFixed(2),
+      averageWinPercent:
+        winningTrades > 0
+          ? ((averageWin / account.initialBalance) * 100).toFixed(2)
+          : "0.00",
+      averageLossPercent:
+        losingTrades > 0
+          ? ((averageLoss / account.initialBalance) * 100).toFixed(2)
+          : "0.00",
       totalVolume: totalVolume.toFixed(2),
       averageTradeDuration: Math.round(avgTradeDuration), // minutes
     },
