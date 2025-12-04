@@ -2,8 +2,30 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Evaluation Account Closed – Rule Violation</title>
+    <title>You've Passed – Your Funded Account Is Ready</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- VARIABLE NOTES:
+    {{first_name}}
+    {{email}}
+
+    {{funded_account_size}}
+    {{funded_account_currency}}
+    {{funded_account_type}}
+    {{server_name}}
+    {{funded_start_date}}
+    {{leverage}}
+    {{payout_split}}
+    {{payout_cycle}}
+    {{first_payout_date}}
+
+    {{daily_dd}}
+    {{max_dd}}
+
+    {{year}}
+    {{unsubscribe_url}}
+  -->
+
     <style type="text/css">
       body,
       table,
@@ -30,6 +52,14 @@
         width: 100% !important;
         height: 100% !important;
       }
+      0 {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      100 {
+        opacity: 1;
+        transform: translateY(0);
+      }
       .hero-title {
         animation: fadeInUp 0.7s ease-out 0.1s both;
       }
@@ -46,10 +76,14 @@
           max-width: 100% !important;
           border-radius: 0 !important;
         }
+      }
+      @media only screen and (max-width: 600px) {
         .px-24 {
           padding-left: 16px !important;
           padding-right: 16px !important;
         }
+      }
+      @media only screen and (max-width: 600px) {
         .py-24 {
           padding-top: 18px !important;
           padding-bottom: 18px !important;
@@ -83,7 +117,7 @@
             "
           >
             <!-- Header -->
-              <tr>
+            <tr>
               <td align="center">
                 <a
                   href="https://peakprofitfunding.com"
@@ -144,7 +178,7 @@
               </td>
             </tr>
 
-            <!-- Title / Intro -->
+            <!-- Title -->
             <tr>
               <td
                 class="px-24 py-24"
@@ -155,11 +189,11 @@
                   style="
                     margin: 0 0 8px;
                     font-size: 22px;
-                    color: #f97373;
+                    color: #ffffff;
                     font-weight: bold;
                   "
                 >
-                  Evaluation Account Closed – Rule Violation ⚠
+                  You Passed – Your Funded Account Is Live 🎉
                 </h1>
                 <p
                   style="
@@ -169,106 +203,17 @@
                     color: #d1d5e9;
                   "
                 >
-                  Hey {{first_name}}, your current
-                  <strong>Evaluation Account</strong> on
-                  <strong>PeakMarkets</strong> has been
-                  <strong>closed</strong> due to a rule violation. Below is a
-                  clear breakdown of what happened and what you can do next.
+                  Amazing work, {{first_name}} — you
+                  <strong
+                    >successfully passed your PeakProfit evaluation</strong
+                  >
+                  and earned your spot as a verified
+                  <strong>Funded Trader</strong>.
                 </p>
               </td>
             </tr>
 
-            <!-- Violation Summary -->
-            <tr>
-              <td class="px-24" style="padding: 0 24px 18px">
-                <table
-                  width="100%"
-                  cellpadding="0"
-                  cellspacing="0"
-                  style="
-                    background: linear-gradient(135deg, #1f2933, #0a0a12);
-                    border-radius: 10px;
-                    border: 1px solid #b91c1c;
-                  "
-                >
-                  <tr>
-                    <td
-                      style="
-                        padding: 16px 18px;
-                        font-family: Arial, Helvetica, sans-serif;
-                      "
-                    >
-                      <p
-                        style="
-                          margin: 0 0 8px;
-                          font-size: 12px;
-                          text-transform: uppercase;
-                          letter-spacing: 0.14em;
-                          color: #fca5a5;
-                        "
-                      >
-                        Violation summary
-                      </p>
-
-                      <table
-                        width="100%"
-                        cellpadding="0"
-                        cellspacing="0"
-                        style="font-size: 13px; color: #fee2e2"
-                      >
-                        <tr>
-                          <td
-                            style="padding: 3px 0; width: 45%; color: #fecaca"
-                          >
-                            Breach Type
-                          </td>
-                          <td style="padding: 3px 0; text-align: right">
-                            <strong>{{breach_type}}</strong>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td style="padding: 3px 0; color: #fecaca">
-                            Time of Breach
-                          </td>
-                          <td style="padding: 3px 0; text-align: right">
-                            {{breach_time}}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td style="padding: 3px 0; color: #fecaca">
-                            Account Size
-                          </td>
-                          <td style="padding: 3px 0; text-align: right">
-                            {{account_size}}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td style="padding: 3px 0; color: #fecaca">
-                            Current Balance
-                          </td>
-                          <td style="padding: 3px 0; text-align: right">
-                            {{current_balance}}
-                          </td>
-                        </tr>
-                      </table>
-
-                      <p
-                        style="
-                          margin: 10px 0 0;
-                          font-size: 13px;
-                          line-height: 1.6;
-                          color: #fee2e2;
-                        "
-                      >
-                        <strong>Details:</strong> {{violation_reason}}
-                      </p>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-
-            <!-- Account Overview -->
+            <!-- Funded Account Details -->
             <tr>
               <td class="px-24" style="padding: 0 24px 18px">
                 <table
@@ -297,7 +242,7 @@
                           color: #9ca3c7;
                         "
                       >
-                        Evaluation account overview
+                        Funded account details
                       </p>
 
                       <table
@@ -308,12 +253,31 @@
                       >
                         <tr>
                           <td style="padding: 3px 0; color: #9ca3c7">
+                            Account Size
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            <strong>{{funded_account_size}}</strong>
+                          </td>
+                        </tr>
+
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Currency
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            <strong>{{funded_account_currency}}</strong>
+                          </td>
+                        </tr>
+
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
                             Account Type
                           </td>
                           <td style="padding: 3px 0; text-align: right">
-                            <strong>{{account_type}}</strong>
+                            <strong>{{funded_account_type}}</strong>
                           </td>
                         </tr>
+
                         <tr>
                           <td style="padding: 3px 0; color: #9ca3c7">
                             Platform
@@ -322,6 +286,7 @@
                             PeakMarkets
                           </td>
                         </tr>
+
                         <tr>
                           <td style="padding: 3px 0; color: #9ca3c7">
                             Username
@@ -330,12 +295,29 @@
                             <strong>{{email}}</strong>
                           </td>
                         </tr>
+
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">Server</td>
+                          <td style="padding: 3px 0; text-align: right">
+                            {{server_name}}
+                          </td>
+                        </tr>
+
                         <tr>
                           <td style="padding: 3px 0; color: #9ca3c7">
                             Leverage
                           </td>
                           <td style="padding: 3px 0; text-align: right">
-                            <strong>1:50</strong>
+                            <strong>{{leverage}}</strong>
+                          </td>
+                        </tr>
+
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Funded Start Date
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            {{funded_start_date}}
                           </td>
                         </tr>
                       </table>
@@ -347,13 +329,11 @@
                           color: #9ca3c7;
                         "
                       >
-                        This evaluation account can no longer be traded, but you
-                        can still view its history and details from your
+                        Your secure credentials and setups are available in your
                         <a
                           href="https://dashboard.peakprofitfunding.com/login"
                           style="color: #7c3aed; text-decoration: none"
-                        >
-                          Client Area </a
+                          >Client Area</a
                         >.
                       </p>
                     </td>
@@ -362,7 +342,7 @@
               </td>
             </tr>
 
-            <!-- Rules Recap -->
+            <!-- Funded Trader Certificate (INSERTED) -->
             <tr>
               <td class="px-24" style="padding: 0 24px 18px">
                 <table
@@ -391,7 +371,171 @@
                           color: #a5a7d4;
                         "
                       >
-                        Key rules (for reference)
+                        Funded Trader Certificate
+                      </p>
+
+                      <p
+                        style="
+                          margin: 0 0 14px;
+                          font-size: 13px;
+                          line-height: 1.6;
+                          color: #d1d5e9;
+                        "
+                      >
+                        You’ve officially joined the PeakProfit Funded Trader
+                        Network. Below is your certificate of completion —
+                        download and share it proudly.
+                      </p>
+
+                      <!-- Certificate Image Preview -->
+                      <img
+                        src="{{certificate_image_url}}"
+                        alt="Funded Trader Certificate"
+                        style="
+                          width: 100%;
+                          max-width: 100%;
+                          border-radius: 8px;
+                          border: 1px solid #2a2f50;
+                          margin-bottom: 12px;
+                        "
+                      />
+
+                      <!-- Download Button -->
+                      <a
+                        href="{{certificate_download_url}}"
+                        download=""
+                        style="
+                          padding: 12px 26px;
+                          background: linear-gradient(135deg, #4f46e5, #7c3aed);
+                          border-radius: 999px;
+                          font-size: 14px;
+                          font-weight: bold;
+                          color: #ffffff;
+                          text-decoration: none;
+                          font-family: Arial, Helvetica, sans-serif;
+                          display: inline-block;
+                        "
+                      >
+                        Download Certificate
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Payout Structure -->
+            <tr>
+              <td class="px-24" style="padding: 0 24px 18px">
+                <table
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="
+                    background: linear-gradient(135deg, #1a1f3c, #0a0a12);
+                    border-radius: 10px;
+                    border: 1px solid #2a2f50;
+                  "
+                >
+                  <tr>
+                    <td
+                      style="
+                        padding: 16px 18px;
+                        font-family: Arial, Helvetica, sans-serif;
+                      "
+                    >
+                      <p
+                        style="
+                          margin: 0 0 8px;
+                          font-size: 12px;
+                          text-transform: uppercase;
+                          letter-spacing: 0.14em;
+                          color: #a5a7d4;
+                        "
+                      >
+                        Payout structure
+                      </p>
+
+                      <table
+                        width="100%"
+                        cellpadding="0"
+                        cellspacing="0"
+                        style="font-size: 13px; color: #e3e4fa"
+                      >
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Payout Split
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            <strong>{{payout_split}}</strong>
+                          </td>
+                        </tr>
+
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Payout Cycle
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            <strong>{{payout_cycle}}</strong>
+                          </td>
+                        </tr>
+
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            First Eligible Payout
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            {{first_payout_date}}
+                          </td>
+                        </tr>
+                      </table>
+
+                      <p
+                        style="
+                          margin: 10px 0 0;
+                          font-size: 12px;
+                          color: #9ca3c7;
+                        "
+                      >
+                        Request payouts inside your Funded Dashboard. Keep your
+                        account in good standing to remain eligible.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Funded Rules -->
+            <tr>
+              <td class="px-24" style="padding: 0 24px 18px">
+                <table
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="
+                    background-color: #020617;
+                    border-radius: 10px;
+                    border: 1px solid #2a2f50;
+                  "
+                >
+                  <tr>
+                    <td
+                      style="
+                        padding: 16px 18px;
+                        font-family: Arial, Helvetica, sans-serif;
+                      "
+                    >
+                      <p
+                        style="
+                          margin: 0 0 8px;
+                          font-size: 12px;
+                          text-transform: uppercase;
+                          letter-spacing: 0.14em;
+                          color: #9ca3c7;
+                        "
+                      >
+                        Key funded rules (summary)
                       </p>
 
                       <ul
@@ -400,7 +544,7 @@
                           padding: 0;
                           font-size: 13px;
                           line-height: 1.6;
-                          color: #e3e4fa;
+                          color: #e5e7eb;
                         "
                       >
                         <li>
@@ -410,23 +554,24 @@
                           Overall Max Drawdown: <strong>{{max_dd}}%</strong>
                         </li>
                         <li>
-                          Profit Target: <strong>{{profit_target}}%</strong>
+                          Allowed instruments:
+                          <strong>Crypto pairs</strong> &amp;
+                          <strong>FX pairs</strong> only.
                         </li>
                         <li>
-                          Minimum Trading Days:
-                          <strong>{{min_trading_days}}</strong>
+                          No abusive EAs, arbitrage, HFT, or rule violations of
+                          any kind.
                         </li>
                       </ul>
 
                       <p style="margin: 0; font-size: 12px; color: #9ca3c7">
-                        These values are provided for clarity. The official
+                        For full details, see the
                         <a
                           href="https://peakprofitfunding.com/rules"
                           style="color: #7c3aed; text-decoration: none"
                         >
-                          PeakProfit Rulebook
-                        </a>
-                        always has the final say on what counts as a violation.
+                          PeakProfit Rulebook </a
+                        >.
                       </p>
                     </td>
                   </tr>
@@ -434,7 +579,7 @@
               </td>
             </tr>
 
-            <!-- Trading Conditions & Next Steps -->
+            <!-- Mindset -->
             <tr>
               <td
                 class="px-24"
@@ -452,7 +597,7 @@
                     color: #9ca3c7;
                   "
                 >
-                  Trading conditions & next steps
+                  How to approach your funded account
                 </p>
 
                 <p
@@ -463,27 +608,10 @@
                     color: #d1d5e9;
                   "
                 >
-                  Our evaluations currently support
-                  <strong>Crypto pairs</strong> and
-                  <strong>FX pairs</strong> only. To pass a future evaluation,
-                  focus on protecting capital first and respecting drawdown
-                  limits at all times. Avoid trading aggressively around major
-                  news, use consistent risk per position, and make sure any
-                  EAs/algos you use fully comply with our Rulebook (no
-                  grid/martingale, no arbitrage, no latency or HFT exploits).
-                </p>
-
-                <p
-                  style="
-                    margin: 10px 0 0;
-                    font-size: 13px;
-                    line-height: 1.6;
-                    color: #d1d5e9;
-                  "
-                >
-                  You're always welcome to start a new evaluation once you've
-                  reviewed your trades, refined your strategy, and feel ready to
-                  run a more disciplined plan.
+                  You've proven your discipline — now consistency is everything.
+                  Focus on steady risk, protecting capital, and letting your
+                  edge play out. Long-term payouts come from patience,
+                  structure, and repeatable execution.
                 </p>
               </td>
             </tr>
@@ -506,7 +634,7 @@
                     display: inline-block;
                   "
                 >
-                  Review Your Evaluation in the Client Area
+                  Open Your Funded Dashboard
                 </a>
               </td>
             </tr>
@@ -522,14 +650,13 @@
                 "
               >
                 <p style="margin: 0 0 6px; font-size: 11px; color: #7d82a8">
-                  If you believe this was flagged in error, contact
+                  Questions about payouts or funding? Contact
                   <a
                     href="mailto:support@peakprofitfunding.com"
                     style="color: #a5a7d4; text-decoration: none"
                   >
-                    support@peakprofitfunding.com
-                  </a>
-                  with your account ID and a brief explanation.
+                    support@peakprofitfunding.com </a
+                  >.
                 </p>
                 <p style="margin: 0; font-size: 10px; color: #5f6285">
                   © {{year}} PeakProfit Funding. All rights reserved.
@@ -538,9 +665,8 @@
                   <a
                     href="{{unsubscribe_url}}"
                     style="color: #7c3aed; text-decoration: none"
+                    >Unsubscribe</a
                   >
-                    Unsubscribe
-                  </a>
                 </p>
               </td>
             </tr>

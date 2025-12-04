@@ -1,13 +1,11 @@
-// controllers/trade/requests/closeTrade.js
 const Trade = require("../trade.model");
-const Account = require("../account/account.model");
-const TradeMonitor = require("../tradeMonitor.service");
 const {
   sendSuccessResponse,
   sendErrorResponse,
 } = require("../../shared/response.service");
 const closeTradeService = require("../../utils/closeTrade.service");
 const redisTradeCleanup = require("../../utils/redisTradeCleanup");
+const { handleEvaluationPass } = require("../../utils/sendLiveAccountEmail");
 
 const closeTrade = async (req, res) => {
   try {
@@ -40,9 +38,24 @@ const closeTrade = async (req, res) => {
       return sendErrorResponse(res, "Trade is already closed.");
     }
 
-    // Call the closeTrade method in TradeMonitor
+    // Call the closeTrade service
     const result = await closeTradeService(trade, price, "userClosed");
 
+    // ✅ Check if account was promoted
+    if (result && result.promoted) {
+      console.log(
+        ` [closeTrade Controller] Account promoted! Skipping Redis cleanup.`
+      );
+
+      await handleEvaluationPass(result.accountId);
+      return sendSuccessResponse(
+        res,
+        "🎉 Congratulations! You passed the challenge. Your account has been promoted to LIVE trading with a fresh start!",
+        result
+      );
+    }
+
+    // Normal trade closure - cleanup Redis
     await redisTradeCleanup({
       tradeId: trade._id.toString(),
       accountId: trade.accountId.toString(),

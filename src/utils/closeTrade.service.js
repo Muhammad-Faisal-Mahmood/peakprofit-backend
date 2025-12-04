@@ -1,6 +1,10 @@
 const Account = require("../trade/account/account.model");
 const Trade = require("../trade/trade.model");
 const redis = require("./redis.helper");
+const {
+  promoteAccountToLive,
+  shouldPromoteAccount,
+} = require("./accountPromotion.service");
 
 async function closeTradeService(trade, currentPrice, reason) {
   const { side, entryPrice, tradeSize, leverage = 50, _id, accountId } = trade;
@@ -15,7 +19,7 @@ async function closeTradeService(trade, currentPrice, reason) {
 
   if (existingTrade.status === "closed") {
     console.warn(
-      `[closeTrade] Trade ${_id} already closed at ${existingTrade.exitPrice}. Skipping duplicate close.`
+      `    [closeTrade] Trade ${_id} already closed at ${existingTrade.exitPrice}. Skipping duplicate close.`
     );
     return existingTrade;
   }
@@ -32,7 +36,7 @@ async function closeTradeService(trade, currentPrice, reason) {
 
   if (!isInOpenPositions) {
     console.warn(
-      `[closeTrade] Trade ${_id} not in account's open positions. Already processed. Skipping.`
+      `  [closeTrade] Trade ${_id} not in account's open positions. Already processed. Skipping.`
     );
     return existingTrade;
   }
@@ -42,8 +46,6 @@ async function closeTradeService(trade, currentPrice, reason) {
   const direction = side === "buy" ? 1 : -1;
   const symbolAmount = tradeSize / entryPrice;
   const pnl = (currentPrice - entryPrice) * symbolAmount * direction;
-
-  if (!account) throw new Error("Account not found");
 
   const marginToRelease = (tradeSize * entryPrice) / leverage;
   account.marginUsed = Math.max(0, account.marginUsed - marginToRelease);
@@ -57,6 +59,7 @@ async function closeTradeService(trade, currentPrice, reason) {
 
   await account.save();
 
+  // Update the trade document
   const updateData = {
     status: "closed",
     exitPrice: currentPrice,
@@ -65,16 +68,9 @@ async function closeTradeService(trade, currentPrice, reason) {
     tradeClosureReason: reason,
   };
 
-  const riskData = await redis.getAccountRisk(accountId.toString());
-  if (riskData) {
-    await redis.updateAccountRisk(accountId.toString(), {
-      currentBalance: account.balance,
-      currentEquity: account.equity,
-    });
-    console.log(
-      `[closeTrade] Updated Redis balance for account ${accountId}: ${account.balance}`
-    );
-  }
+  const updatedTrade = await Trade.findByIdAndUpdate(_id, updateData, {
+    new: true,
+  });
 
   console.log(
     `[closeTrade] Trade ${_id} closed at ${currentPrice}. Reason: ${reason}, PnL: ${pnl.toFixed(
@@ -82,7 +78,35 @@ async function closeTradeService(trade, currentPrice, reason) {
     )}`
   );
 
-  return await Trade.findByIdAndUpdate(_id, updateData, { new: true });
+  // ✅ Check if account should be promoted (AFTER saving everything)
+  const freshAccount = await Account.findById(accountId); // Get fresh account data
+  if (shouldPromoteAccount(freshAccount)) {
+    console.log(
+      ` [closeTrade] Account ${accountId} qualifies for promotion. Initiating promotion process...`
+    );
+
+    const promotionResult = await promoteAccountToLive(accountId.toString());
+
+    // Return promotion result instead of trade
+    return {
+      ...promotionResult,
+      closedTrade: updatedTrade, // Include the closed trade info
+    };
+  }
+
+  // Normal flow: Update Redis with new balance/equity
+  const riskData = await redis.getAccountRisk(accountId.toString());
+  if (riskData) {
+    await redis.updateAccountRisk(accountId.toString(), {
+      currentBalance: account.balance,
+      currentEquity: account.equity,
+    });
+    console.log(
+      `  [closeTrade] Updated Redis balance for account ${accountId}: ${account.balance}`
+    );
+  }
+
+  return updatedTrade;
 }
 
 module.exports = closeTradeService;

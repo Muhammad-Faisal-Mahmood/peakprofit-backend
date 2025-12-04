@@ -278,7 +278,6 @@ router.post("/resend-verification-link", async (req, res, next) => {
       expiration: otp.expiration,
     });
     await authData.save();
-    ``;
     sendVerificationLink(userExist, otp);
 
     // Return success response with user data and JWT token
@@ -407,11 +406,14 @@ async function sendVerificationLink(user, otp) {
 
   const link = `${process.env.BACKEND_URL}/api/auth/verify-account?token=${encrypted}`;
   const replacements = {
-    expiration: otp.expiration,
-    name: user.name,
-    link: link,
+    expiry_time: otp.expiration,
+    first_name: user.name,
+    email: user.email,
+    year: new Date(Date.now()).getFullYear(),
+    verification_link: link,
+    unsubscribe_url: "#",
   };
-  const template = path.join(__dirname, "mails", "verification.html");
+  const template = path.join(__dirname, "mails", "verifyEmail.html");
   sendEmail("Verification Link", template, user.email, replacements);
 }
 

@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>You’re Subscribed to PeakProfit Updates</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- VARIABLES:
+    {{first_name}}
+    {{email}}
+    {{year}}
+    {{unsubscribe_url}}
+  -->
+
+    <style type="text/css">
+      body,
+      table,
+      td,
+      a {
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+      }
+      table,
+      td {
+        mso-table-lspace: 0pt;
+        mso-table-rspace: 0pt;
+      }
+      img {
+        -ms-interpolation-mode: bicubic;
+        border: 0;
+        outline: none;
+        text-decoration: none;
+        display: block;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        background: #020617;
+      }
+      0 {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      100 {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .hero-title {
+        animation: fadeInUp 0.6s ease-out both;
+      }
+      .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        background: rgba(34, 197, 94, 0.14);
+        color: #6ee7b7;
+        border: 1px solid rgba(34, 197, 94, 0.5);
+        font-family: Arial, Helvetica, sans-serif;
+      }
+      .btn-primary {
+        transition: all 0.18s ease;
+      }
+      .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 22px rgba(129, 140, 248, 0.45);
+      }
+      .container {
+        width: 100% !important;
+        max-width: 100% !important;
+        border-radius: 0 !important;
+      }
+      .px-24 {
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+      }
+      .py-24 {
+        padding-top: 18px !important;
+        padding-bottom: 18px !important;
+      }
+    </style>
+  </head>
+
+  <body style="margin: 0; padding: 0; background: #020617">
+    <table width="100%" cellpadding="0" cellspacing="0" style="padding: 20px 0">
+      <tr>
+        <td align="center">
+          <!-- MAIN CARD -->
+          <table
+            cellpadding="0"
+            cellspacing="0"
+            width="100%"
+            class="container"
+            style="
+              max-width: 600px;
+              background: radial-gradient(
+                circle at top,
+                #111827 0,
+                #020617 70%
+              );
+              border-radius: 18px;
+              border: 1px solid #111827;
+              overflow: hidden;
+              box-shadow: 0 18px 45px rgba(15, 23, 42, 0.85);
+            "
+          >
+            <!-- TOP BAR -->
+            <tr>
+              <td
+                style="
+                  height: 3px;
+                  background: linear-gradient(90deg, #4f46e5, #7c3aed, #38bdf8);
+                  font-size: 0;
+                  line-height: 0;
+                "
+              >
+                &nbsp;
+              </td>
+            </tr>
+
+            <!-- HEADER -->
+            <tr>
+              <td align="center">
+                <a
+                  href="https://peakprofitfunding.com"
+                  style="text-decoration: none"
+                >
+                  <img
+                    src="https://api.peakprofitfunding.com/images/logo.jpg"
+                    width="170"
+                    style="display: block; margin: 0 auto; padding-top: 20px"
+                    alt="logo"
+                  />
+                </a>
+              </td>
+            </tr>
+
+            <tr>
+              <td align="center" style="padding-top: 8px">
+                <div
+                  style="
+                    font-size: 18px;
+                    line-height: 1.3;
+                    color: #000;
+                    background: #fff;
+                    padding: 4px 12px;
+                    border-radius: 999px;
+                    letter-spacing: 0.16em;
+                    font-weight: bold;
+                    text-transform: uppercase;
+                    display: inline-block;
+                  "
+                >
+                  PEAKPROFITFUNDING
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                align="center"
+                style="
+                  padding-top: 8px;
+                  font-size: 10px;
+                  text-transform: uppercase;
+                  color: #9ca3c7;
+                  letter-spacing: 0.24em;
+                "
+              >
+                Email Subscription
+              </td>
+            </tr>
+
+            <!-- DIVIDER -->
+            <tr>
+              <td class="px-24">
+                <hr
+                  style="
+                    border: none;
+                    border-top: 1px solid #111827;
+                    margin: 0 24px;
+                  "
+                />
+              </td>
+            </tr>
+
+            <!-- HERO -->
+            <tr>
+              <td
+                class="px-24 py-24"
+                style="padding: 24px; font-family: Arial, Helvetica, sans-serif"
+              >
+                <span class="badge">Subscription confirmed</span>
+                <h1
+                  class="hero-title"
+                  style="
+                    margin: 10px 0 8px;
+                    font-size: 22px;
+                    font-weight: bold;
+                    color: #f9fafb;
+                  "
+                >
+                  You’re now subscribed to PeakProfit Updates 🎉
+                </h1>
+                <p
+                  style="
+                    margin: 0;
+                    font-size: 14px;
+                    line-height: 1.7;
+                    color: #d1d5e9;
+                  "
+                >
+                  Thanks {{first_name}} — you’re all set! You’ll now receive
+                  exclusive updates, announcements, trading insights, and
+                  PeakProfit news directly to
+                  <strong style="color: #fff">{{email}}</strong>.
+                </p>
+              </td>
+            </tr>
+
+            <!-- WHAT YOU GET -->
+            <tr>
+              <td
+                class="px-24"
+                style="
+                  padding: 0 24px 22px;
+                  font-family: Arial, Helvetica, sans-serif;
+                "
+              >
+                <table
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="
+                    background: rgba(15, 23, 42, 0.85);
+                    border-radius: 14px;
+                    border: 1px solid #1e293b;
+                  "
+                >
+                  <tr>
+                    <td
+                      style="
+                        padding: 18px 20px;
+                        color: #e5e7eb;
+                        font-size: 13px;
+                        font-family: Arial, Helvetica, sans-serif;
+                      "
+                    >
+                      <p
+                        style="
+                          margin: 0 0 8px;
+                          font-size: 12px;
+                          text-transform: uppercase;
+                          letter-spacing: 0.16em;
+                          color: #cbd5e1;
+                        "
+                      >
+                        What you can expect:
+                      </p>
+                      <ul
+                        style="
+                          margin: 0;
+                          padding: 0 0 0 18px;
+                          line-height: 1.65;
+                          font-size: 13px;
+                          color: #ffffff;
+                        "
+                      >
+                        <li>Important PeakProfit product announcements</li>
+                        <li>Funded program updates & rule changes</li>
+                        <li>New features, payouts, and scaling insights</li>
+                        <li>
+                          Exclusive email-only trading education & insights
+                        </li>
+                        <li>Early access events + discount opportunities</li>
+                      </ul>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- MANAGE PREFERENCES -->
+            <!-- <tr>
+              <td align="center" class="px-24" style="padding: 0 24px 30px">
+                <a
+                  href="{{manage_prefs_link}}"
+                  style="
+                    padding: 12px 32px;
+                    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+                    border-radius: 999px;
+                    font-size: 14px;
+                    font-weight: bold;
+                    color: #ffffff;
+                    text-decoration: none;
+                    font-family: Arial, Helvetica, sans-serif;
+                    display: inline-block;
+                    transition: all 0.18s ease;
+                  "
+                >
+                  Manage Email Preferences
+                </a>
+              </td>
+            </tr> -->
+
+            <!-- SECURITY NOTICE -->
+            <tr>
+              <td
+                class="px-24"
+                style="
+                  padding: 0 24px 25px;
+                  font-family: Arial, Helvetica, sans-serif;
+                "
+              >
+                <p
+                  style="
+                    margin: 0 0 6px;
+                    font-size: 12px;
+                    color: #9ca3c7;
+                    text-transform: uppercase;
+                    letter-spacing: 0.14em;
+                  "
+                >
+                  Security Reminder
+                </p>
+                <p
+                  style="
+                    margin: 0;
+                    font-size: 12px;
+                    line-height: 1.6;
+                    color: #d1d5e9;
+                  "
+                >
+                  PeakProfit will
+                  <strong style="color: #ffffff">never</strong> ask for:
+                </p>
+                <ul
+                  style="
+                    margin: 6px 0 0 18px;
+                    padding: 0;
+                    font-size: 12px;
+                    line-height: 1.6;
+                    color: #ffffff;
+                  "
+                >
+                  <li>Your wallet private keys</li>
+                  <li>Your banking or exchange passwords</li>
+                  <li>Your 2FA codes</li>
+                </ul>
+              </td>
+            </tr>
+
+            <!-- FOOTER -->
+            <tr>
+              <td
+                class="px-24"
+                style="
+                  padding: 16px 24px 24px;
+                  text-align: center;
+                  font-family: Arial, Helvetica, sans-serif;
+                "
+              >
+                <p style="margin: 0 0 6px; font-size: 11px; color: #9ca3c7">
+                  Questions? Email:
+                  <a
+                    href="mailto:support@peakprofitfunding.com"
+                    style="color: #7c3aed; text-decoration: none"
+                  >
+                    support@peakprofitfunding.com
+                  </a>
+                </p>
+                <p style="margin: 0; font-size: 10px; color: #6b7280">
+                  © {{year}} PeakProfit Funding. All rights reserved.
+                </p>
+                <p style="margin: 6px 0 0; font-size: 10px; color: #6b7280">
+                  <a
+                    href="{{unsubscribe_url}}"
+                    style="color: #7c3aed; text-decoration: none"
+                  >
+                    Unsubscribe
+                  </a>
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

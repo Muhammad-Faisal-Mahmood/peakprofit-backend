@@ -46,16 +46,13 @@ router.post("/subscribe", async (req, res) => {
 async function sendWelcomeEmail(email) {
   try {
     const replacements = {
-      name: email.split("@")[0], // Extract name from email
-      supportEmail:
-        process.env.SUPPORT_EMAIL || "support@peakprofitfunding.com",
-      websiteUrl: process.env.WEBSITE_URL || "https://peakprofitfunding.com",
-      dashboardUrl:
-        process.env.DASHBOARD_URL || "https://dashboard.peakprofitfunding.com",
-      EMAIL: email,
+      first_name: email.split("@")[0], // Extract name from email
+      year: new Date(Date.now()).getFullYear(),
+      email: email,
+      unsubscribe_url: "#",
     };
 
-    const template = path.join(__dirname, "mails", "welcome-subscriber-2.html");
+    const template = path.join(__dirname, "mails", "welcomeSubscriber.html");
 
     await sendEmail("Welcome to Peak Profit!", template, email, replacements);
 
