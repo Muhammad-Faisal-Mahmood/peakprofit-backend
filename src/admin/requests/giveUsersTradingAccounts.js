@@ -3,13 +3,13 @@ const {
   sendErrorResponse,
 } = require("../../shared/response.service");
 const createAccount = require("../../utils/createAccount");
+const sendAccountActivationEmail = require("../../utils/sendAccountActivationEmail");
 const giveUserTradingAccounts = async (req, res) => {
   try {
     if (!req.user || req.user.role !== "Admin") {
       return sendErrorResponse(res, "Unauthorized: Admins only.");
     }
     const { userId, accountSize, accountType } = req.body;
-    console.log("user id in give trading accs", userId);
 
     if (!userId || !accountSize) {
       return sendErrorResponse(res, "missing parameters in the body");
@@ -21,6 +21,9 @@ const giveUserTradingAccounts = async (req, res) => {
       accountType,
       accountSize,
     });
+
+    await sendAccountActivationEmail(createdAccount, userId);
+
     return sendSuccessResponse(
       res,
       "Account given successfully",

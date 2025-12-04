@@ -4,6 +4,7 @@ const redis = require("../utils/redis.helper");
 const { polygonManager } = require("../polygon/polygonManager");
 const closeTradeService = require("../utils/closeTrade.service");
 const redisTradeCleanup = require("../utils/redisTradeCleanup");
+const sendAccountClosureEmail = require("../utils/sendAccountClosureEmail");
 
 async function addPendingOrderForMonitoring(accountDoc, orderDoc) {
   const accountId = accountDoc._id.toString();
@@ -328,10 +329,14 @@ async function handleAccountLiquidation(
   );
 
   // Update the Account status to 'failed' atomically
-  await Account.findByIdAndUpdate(accountId, {
-    status: "failed",
-    equity: finalEquity,
-  });
+  const updatedAccount = await Account.findByIdAndUpdate(
+    accountId,
+    {
+      status: "failed",
+      equity: finalEquity,
+    },
+    { new: true }
+  ).populate("userId", "name email");
 
   const closureReason =
     violationRule === "dailyDrawdown"
@@ -391,6 +396,13 @@ async function handleAccountLiquidation(
   console.log(
     `[LIQUIDATION] Account ${accountId} fully liquidated and cleaned up.`
   );
+
+  try {
+    await sendAccountClosureEmail(updatedAccount, violationRule);
+  } catch (emailError) {
+    console.error("[LIQUIDATION] Error sending closure email:", emailError);
+    // Don't fail the liquidation if email fails
+  }
 }
 
 async function checkPendingOrders(symbol, currentPrice) {

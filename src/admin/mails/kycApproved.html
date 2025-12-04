@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Your KYC Has Been Approved</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style type="text/css">
+      body,
+      table,
+      td,
+      a {
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+      }
+      table,
+      td {
+        mso-table-lspace: 0pt;
+        mso-table-rspace: 0pt;
+      }
+      img {
+        -ms-interpolation-mode: bicubic;
+        border: 0;
+        outline: none;
+        text-decoration: none;
+        display: block;
+      }
+
+      .logo-image {
+        width: 400px;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      }
+
+      @media all and (max-width: 600px) {
+        .logo-image {
+          max-width: 250px;
+        }
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        background: #0a0a12;
+      }
+      0 {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      100 {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .hero-title {
+        animation: fadeInUp 0.7s ease-out both;
+      }
+      .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        background: rgba(34, 197, 94, 0.12);
+        color: #6ee7b7;
+        border: 1px solid rgba(34, 197, 94, 0.4);
+      }
+      .btn-primary {
+        transition: all 0.18s ease;
+      }
+      .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(124, 58, 237, 0.35);
+      }
+      .container {
+        width: 100% !important;
+        max-width: 100% !important;
+        border-radius: 0 !important;
+      }
+      .px-24 {
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+      }
+      .py-24 {
+        padding-top: 18px !important;
+        padding-bottom: 18px !important;
+      }
+    </style>
+  </head>
+
+  <body style="margin: 0; padding: 0; background-color: #0a0a12">
+    <table width="100%" cellpadding="0" cellspacing="0" style="padding: 20px 0">
+      <tr>
+        <td align="center">
+          <table
+            cellpadding="0"
+            cellspacing="0"
+            width="100%"
+            class="container"
+            style="
+              max-width: 600px;
+              background: #1a1f3c;
+              border-radius: 14px;
+              overflow: hidden;
+              border: 1px solid #2a2f50;
+            "
+          >
+            <!-- Header -->
+            <tr>
+              <td
+                align="center"
+                class="px-24 py-24"
+                style="padding: 24px; font-family: Arial, Helvetica, sans-serif"
+              >
+                <a
+                  href="https://peakprofitfunding.com"
+                  style="text-decoration: none"
+                >
+                  <!-- Logo image -->
+                  <img
+                    src="https://api.peakprofitfunding.com/images/logo.jpg"
+                    width="170"
+                    style="margin: 0 auto 8px"
+                    alt="logo"
+                  />
+                  <!-- Black text fallback -->
+                  <div
+                    style="
+                      font-size: 18px;
+                      line-height: 1.3;
+                      color: #000;
+                      background: #fff;
+                      padding: 4px 10px;
+                      border-radius: 999px;
+                      display: inline-block;
+                      mso-hide: all;
+                      letter-spacing: 0.12em;
+                      text-transform: uppercase;
+                    "
+                  >
+                    PEAKPROFITFUNDING
+                  </div>
+                </a>
+                <div
+                  style="
+                    margin-top: 6px;
+                    font-size: 11px;
+                    text-transform: uppercase;
+                    color: #a5a7d4;
+                    letter-spacing: 0.18em;
+                  "
+                >
+                  Compliance Verification
+                </div>
+              </td>
+            </tr>
+
+            <!-- Divider -->
+            <tr>
+              <td class="px-24">
+                <hr
+                  style="border: none; border-top: 1px solid #2a2f50; margin: 0"
+                />
+              </td>
+            </tr>
+
+            <!-- Hero Text -->
+            <tr>
+              <td
+                class="px-24 py-24"
+                style="padding: 24px; font-family: Arial, Helvetica, sans-serif"
+              >
+                <span class="badge">KYC approved</span>
+                <h1
+                  class="hero-title"
+                  style="
+                    margin: 10px 0 10px;
+                    font-size: 22px;
+                    color: #ffffff;
+                    font-weight: bold;
+                  "
+                >
+                  Your Identity Has Been Verified ✔
+                </h1>
+                <p
+                  style="
+                    margin: 0;
+                    font-size: 14px;
+                    line-height: 1.65;
+                    color: #d1d5e9;
+                  "
+                >
+                  Great news, {{first_name}} — your identity verification (KYC)
+                  has been
+                  <strong>successfully approved</strong>. Your account is now
+                  fully compliant and ready for withdrawals and continued
+                  trading activity.
+                </p>
+              </td>
+            </tr>
+
+            <!-- Section: Verification Details -->
+            <tr>
+              <td class="px-24" style="padding: 0 24px 20px">
+                <table
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="
+                    background: #020617;
+                    border-radius: 10px;
+                    border: 1px solid #2a2f50;
+                  "
+                >
+                  <tr>
+                    <td
+                      style="
+                        padding: 18px;
+                        font-family: Arial, Helvetica, sans-serif;
+                      "
+                    >
+                      <p
+                        style="
+                          margin: 0 0 8px;
+                          font-size: 12px;
+                          text-transform: uppercase;
+                          letter-spacing: 0.12em;
+                          color: #9ca3c7;
+                        "
+                      >
+                        Verification summary
+                      </p>
+
+                      <table
+                        width="100%"
+                        style="font-size: 13px; color: #e5e7eb"
+                      >
+                        <tr>
+                          <td style="padding: 4px 0; color: #9ca3c7">
+                            Approval Date
+                          </td>
+                          <td style="padding: 4px 0; text-align: right">
+                            {{kyc_approval_date}}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 4px 0; color: #9ca3c7">
+                            Reference ID
+                          </td>
+                          <td style="padding: 4px 0; text-align: right">
+                            <strong>{{kyc_reference_id}}</strong>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Section: What This Means -->
+            <tr>
+              <td
+                class="px-24"
+                style="
+                  padding: 0 24px 20px;
+                  font-family: Arial, Helvetica, sans-serif;
+                "
+              >
+                <p
+                  style="
+                    margin: 0 0 8px;
+                    font-size: 12px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.12em;
+                    color: #9ca3c7;
+                  "
+                >
+                  What this means for your account
+                </p>
+
+                <p
+                  style="
+                    margin: 0;
+                    font-size: 13px;
+                    line-height: 1.7;
+                    color: #d1d5e9;
+                  "
+                >
+                  Your identity verification is now complete, granting you:
+                </p>
+
+                <ul
+                  style="
+                    margin: 8px 0 0 20px;
+                    padding: 0;
+                    font-size: 13px;
+                    line-height: 1.7;
+                    color: #e5e7eb;
+                  "
+                >
+                  <li>Full trading access with no compliance restrictions.</li>
+                  <li>
+                    The ability to request and receive payouts with no delays.
+                  </li>
+                  <li>
+                    Eligibility for funded account upgrades and scaling (if
+                    applicable).
+                  </li>
+                  <li>
+                    Higher account trust score and reduced manual reviews.
+                  </li>
+                </ul>
+              </td>
+            </tr>
+
+            <!-- Section: Next Steps -->
+            <tr>
+              <td
+                class="px-24"
+                style="
+                  padding: 0 24px 20px;
+                  font-family: Arial, Helvetica, sans-serif;
+                "
+              >
+                <p
+                  style="
+                    margin: 0 0 8px;
+                    font-size: 12px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.12em;
+                    color: #9ca3c7;
+                  "
+                >
+                  Next steps
+                </p>
+
+                <p
+                  style="
+                    margin: 10px 0 0;
+                    font-size: 13px;
+                    line-height: 1.6;
+                    color: #d1d5e9;
+                  "
+                >
+                  If you are a funded trader, you may now submit payout requests
+                  directly through your dashboard.
+                </p>
+              </td>
+            </tr>
+
+            <!-- Section: Compliance Reminder -->
+            <tr>
+              <td
+                class="px-24"
+                style="
+                  padding: 0 24px 20px;
+                  font-family: Arial, Helvetica, sans-serif;
+                "
+              >
+                <p
+                  style="
+                    margin: 0 0 6px;
+                    font-size: 12px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.14em;
+                    color: #9ca3c7;
+                  "
+                >
+                  Compliance reminder
+                </p>
+
+                <p
+                  style="
+                    margin: 0;
+                    font-size: 13px;
+                    line-height: 1.65;
+                    color: #d1d5e9;
+                  "
+                >
+                  PeakProfit will <strong>never</strong> ask for your private
+                  keys, passwords, or wallet access under any circumstances. KYC
+                  information is used solely for identity verification and
+                  compliance obligations.
+                </p>
+
+                <p style="margin: 10px 0 0; font-size: 13px; color: #d1d5e9">
+                  If you received any suspicious messages or verification
+                  requests outside your dashboard, contact our support team
+                  immediately.
+                </p>
+              </td>
+            </tr>
+
+            <!-- CTA -->
+            <tr>
+              <td align="center" class="px-24" style="padding: 0 24px 22px">
+                <a
+                  href="https://dashboard.peakprofitfunding.com/login"
+                  class="btn-primary"
+                  style="
+                    padding: 12px 28px;
+                    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+                    border-radius: 999px;
+                    font-size: 14px;
+                    font-weight: bold;
+                    color: #fff;
+                    text-decoration: none;
+                    font-family: Arial, Helvetica, sans-serif;
+                    display: inline-block;
+                  "
+                >
+                  Access your dashboard
+                </a>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td
+                class="px-24"
+                style="
+                  padding: 16px 24px 24px;
+                  font-family: Arial, Helvetica, sans-serif;
+                  text-align: center;
+                "
+              >
+                <p style="margin: 0 0 6px; font-size: 11px; color: #7d82a8">
+                  Need help or have questions? Contact
+                  <a
+                    href="mailto:support@peakprofitfunding.com"
+                    style="color: #a5a7d4; text-decoration: none"
+                  >
+                    support@peakprofitfunding.com </a
+                  >.
+                </p>
+                <p style="margin: 0; font-size: 10px; color: #6b7280">
+                  © {{year}} PeakProfit Funding. All rights reserved.
+                </p>
+                <p style="margin: 6px 0 0; font-size: 10px; color: #5f6285">
+                  <a
+                    href="{{unsubscribe_url}}"
+                    style="color: #7c3aed; text-decoration: none"
+                    >Unsubscribe</a
+                  >
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
