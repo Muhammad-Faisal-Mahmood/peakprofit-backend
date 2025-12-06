@@ -140,6 +140,7 @@ const tradeSchema = new Schema(
         "takeProfitHit",
         "dailyDrawdownViolated",
         "maxDrawdownViolated",
+        "maxSplitTaken",
       ],
     },
   },

@@ -315,7 +315,7 @@ async function handleAccountLiquidation(
   priceData // { symbol, price }
 ) {
   console.warn(
-    `[LIQUIDATION] Account ${accountId} failed due to ${violationRule}. Triggered by ${priceData.symbol} at ${priceData.price}`
+    `[LIQUIDATION] Account ${accountId} failed due to ${violationRule}. Triggered by ${priceData?.symbol} at ${priceData?.price}`
   );
 
   // Get ALL open trades from MongoDB (source of truth)
@@ -332,7 +332,7 @@ async function handleAccountLiquidation(
   const updatedAccount = await Account.findByIdAndUpdate(
     accountId,
     {
-      status: "failed",
+      status: violationRule === "maxSplit" ? "closed" : "failed",
       equity: finalEquity,
     },
     { new: true }
@@ -341,6 +341,8 @@ async function handleAccountLiquidation(
   const closureReason =
     violationRule === "dailyDrawdown"
       ? "dailyDrawdownViolated"
+      : violationRule === "maxSplit"
+      ? "maxSplitTaken"
       : "maxDrawdownViolated";
 
   await cancelAllPendingOrders(accountId, closureReason);
@@ -350,8 +352,8 @@ async function handleAccountLiquidation(
     let currentPrice;
 
     // If this trade's symbol matches the triggering symbol, use the exact price we received
-    if (trade.symbol === priceData.symbol) {
-      currentPrice = priceData.price;
+    if (trade.symbol === priceData?.symbol) {
+      currentPrice = priceData?.price;
       console.log(
         `[LIQUIDATION] Closing ${trade.symbol} trade ${trade._id} at trigger price ${currentPrice}`
       );
@@ -642,4 +644,5 @@ module.exports = {
   cancelPendingOrder, // NEW
   executePendingOrder, // NEW
   triggerUnsubscribeCheck, // NEW
+  handleAccountLiquidation,
 };

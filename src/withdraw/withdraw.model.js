@@ -65,7 +65,7 @@ const withdrawSchema = new Schema(
     affiliateId: {
       type: Schema.Types.ObjectId,
       ref: "Affiliate",
-      required: true,
+      default: null,
     },
     amount: {
       type: Number,
@@ -83,10 +83,10 @@ const withdrawSchema = new Schema(
       type: paymentMethodSchema,
       required: true,
     },
-    // Challenge-related withdrawal (null if general affiliate withdrawal)
-    challengeId: {
+    // For account withdrawals (trading account payouts)
+    accountId: {
       type: Schema.Types.ObjectId,
-      ref: "Challenge",
+      ref: "Account",
       default: null,
     },
     // Dates

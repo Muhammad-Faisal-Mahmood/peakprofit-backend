@@ -56,7 +56,7 @@ const placeOrder = async (req, res) => {
       return sendErrorResponse(res, "Trade exceeds the 10% per-order limit.");
     }
 
-    if (account.status === "failed" || account.status === "suspended") {
+    if (account.status != "active" && account.status != "passed") {
       return sendErrorResponse(
         res,
         `Account is ${account.status}. No new orders allowed.`
@@ -89,6 +89,19 @@ const placeOrder = async (req, res) => {
       console.log(
         `[Account] New trading day for account ${account._id}. Baseline: ${account.currentDayEquity}`
       );
+
+      const startingBalance = account.balance;
+      const profitAmount = account.balance - startingBalance;
+      const profitPercentage = (profitAmount / startingBalance) * 100;
+
+      account.dailyProfits.push({
+        date: new Date(),
+        startingBalance: startingBalance,
+        endingBalance: account.balance,
+        profitAmount: profitAmount,
+        profitPercentage: profitPercentage,
+        meetsMinimum: profitPercentage >= 0.5,
+      });
     }
 
     account.lastTradeTimestamp = now;

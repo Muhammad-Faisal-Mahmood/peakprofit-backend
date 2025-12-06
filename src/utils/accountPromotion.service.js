@@ -70,10 +70,12 @@ async function promoteAccountToLive(accountId) {
     account.closedPositions = [];
     account.pendingOrders = [];
     account.cancelledOrders = [];
+    account.dailyProfits = [];
 
     // Reset margins
     account.marginUsed = 0;
     account.pendingMargin = 0;
+    account.lastTradeTimestamp = null;
 
     await account.save();
     console.log(`[AccountPromotion] Account updated to LIVE status`);

@@ -56,6 +56,7 @@ async function closeTradeService(trade, currentPrice, reason) {
     (posId) => posId.toString() !== _id.toString()
   );
   account.closedPositions.push(_id);
+  await updateDailyProfit(account);
 
   await account.save();
 
@@ -107,6 +108,31 @@ async function closeTradeService(trade, currentPrice, reason) {
   }
 
   return updatedTrade;
+}
+
+async function updateDailyProfit(account) {
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10); // YYYY-MM-DD
+
+  // Check if we already have an entry for today
+  const todayEntry = account.dailyProfits.find(
+    (entry) => entry.date.toISOString().slice(0, 10) === today
+  );
+
+  // Update existing entry
+  if (todayEntry) {
+    todayEntry.endingBalance = account.balance;
+    todayEntry.profitAmount = account.balance - todayEntry.startingBalance;
+    todayEntry.profitPercentage =
+      (todayEntry.profitAmount / todayEntry.startingBalance) * 100;
+    todayEntry.meetsMinimum = todayEntry.profitPercentage >= 0.5;
+
+    console.log(
+      `[updateDailyProfit] Updated day ${today}: ${todayEntry.profitPercentage.toFixed(
+        2
+      )}% profit (meets 0.5% minimum: ${todayEntry.meetsMinimum})`
+    );
+  }
 }
 
 module.exports = closeTradeService;

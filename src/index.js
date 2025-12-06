@@ -30,6 +30,7 @@ const Chart = require("./trade/chart/chart.controller");
 // Import for startup initialization
 const { polygonManager } = require("./polygon/polygonManager");
 const redis = require("./utils/redis.helper");
+const { generateCertificate } = require("./utils/certificateGenerator.service");
 
 const app = express();
 expressWs(app); // Enable WebSocket support
@@ -117,6 +118,7 @@ const initializePolygonConnections = async () => {
 
   try {
     // Step 1: Initialize all market connections
+    await redis.clearAll();
     console.log("[Startup] Initializing market connections...");
     const markets = ["crypto", "forex"];
 

@@ -3,6 +3,52 @@ const { createCanvas, loadImage, registerFont } = require("canvas");
 const fs = require("fs");
 const path = require("path");
 
+// --- Font Registration ---
+
+const fontDir = path.join(__dirname, "..", "utils", "certificateFonts");
+
+try {
+  // Garamond 8pt (Closest match for body/standard text)
+  registerFont(path.join(fontDir, "garamond8-regular.ttf"), {
+    family: "Garamond-Display",
+  });
+  registerFont(path.join(fontDir, "garamond8-italic.ttf"), {
+    family: "Garamond-Standard",
+  });
+
+  registerFont(path.join(fontDir, "garamond12-italic.ttf"), {
+    family: "Garamond-Standard",
+  });
+
+  // Garamond 12pt (Used for bolder titles/names)
+  registerFont(path.join(fontDir, "garamond12-regular.ttf"), {
+    family: "Garamond-Display",
+  });
+
+  // Great Vibes (Used for the signature/date script look)
+  registerFont(path.join(fontDir, "greatVibes-regular.ttf"), {
+    family: "GreatVibes",
+  });
+
+  // --- NEW: TrajanPro Registration ---
+  registerFont(path.join(fontDir, "TrajanPro-Regular.ttf"), {
+    family: "TrajanPro",
+  });
+  registerFont(path.join(fontDir, "TrajanPro-Bold.otf"), {
+    family: "TrajanPro",
+    weight: "bold", // Explicitly define weight
+  });
+
+  registerFont(path.join(fontDir, "hvm-regular.ttf"), {
+    family: "HVM-Script", // Use a distinct family name for the script font
+  });
+
+  console.log("Custom fonts successfully registered.");
+} catch (error) {
+  console.error("Error registering custom fonts. Check font paths:", error);
+  // Fallback will use system fonts like Times New Roman/Arial
+}
+
 /**
  * Generate a personalized funding certificate
  * @param {Object} data - Certificate data
@@ -53,28 +99,29 @@ async function generateCertificate(data) {
     ctx.fillStyle = "#000000";
     ctx.textAlign = "center";
 
-    // Title - "CERTIFICATE OF FUNDING" (Strong, uppercase, serif-like)
-    ctx.font = "bold 64px 'Times New Roman', serif"; // Approximating the font
+    // Title - "CERTIFICATE OF FUNDING" (Using bold TrajanPro for the classic look)
+    ctx.font = "bold 64px 'TrajanPro', serif";
     ctx.fillText("CERTIFICATE OF FUNDING", width / 2, 150);
 
-    // Subtitle - "Is hereby awarded to" (Italic, standard font)
-    ctx.font = "italic 32px Arial, sans-serif";
+    // Subtitle - "Is hereby awarded to" (Italic - Using Garamond Standard Italic)
+    // NOTE: For 'node-canvas', combining style and family often needs explicit registration, but 'italic' may work with Garamond-Standard
+    ctx.font = "italic 32px 'Garamond-Standard', serif";
     ctx.fillText("Is hereby awarded to", width / 2, 220);
 
-    // Trader Name (main focus, larger, serif-like)
-    ctx.font = "bold 72px 'Georgia', serif"; // Stronger serif font
+    // Trader Name (main focus - Using Garamond Display for bold appearance)
+    ctx.font = "72px 'Garamond-Display', serif";
     ctx.fillText(formattedTraderName, width / 2, 340);
 
-    // Underline for name (Made slightly shorter to match image style)
+    // Underline for name
     ctx.beginPath();
-    ctx.moveTo(350, 360); // Start further in
-    ctx.lineTo(width - 350, 360); // End further in
+    ctx.moveTo(350, 360);
+    ctx.lineTo(width - 350, 360);
     ctx.strokeStyle = "#000000";
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Description text (Closer spacing, standard font)
-    ctx.font = "28px Arial, sans-serif";
+    // Description text (standard font - Using Garamond Standard)
+    ctx.font = "28px 'TrajanPro', serif";
     const descLine1 = `This trader has successfully been funded with ${accountSize} after passing`;
     const descLine2 = `a ${accountSize} evaluation challenge, and we are happy for his`;
     const descLine3 = "discipline as a trader and grit";
@@ -85,26 +132,25 @@ async function generateCertificate(data) {
 
     // --- Footer Elements (Logo/Company Name and Date/Signature) ---
 
-    // Adjusted Y-position for the footer elements to be lower
     const footerY = 600;
 
     // ---- LOGO and COMPANY NAME ----
     const logoX = 150;
     const logoSize = 150;
-    const companyNameX = logoX + logoSize + 10; // Closer spacing
+    const companyNameX = logoX + logoSize + 20;
 
     try {
-      // NOTE: The logo URL is hardcoded in the original and may require network access.
+      // NOTE: Using the hardcoded URL for the logo
       const logoPath = "https://api.peakprofitfunding.com/images/logo.jpg";
       const logo = await loadImage(logoPath);
       ctx.drawImage(logo, logoX, footerY, logoSize, logoSize);
-      //  - *Self-Correction: Cannot insert a logo image if the user's code relies on an external URL for a specific logo.*
     } catch (logoError) {
       console.log(
         "Logo not found or failed to load. Drawing placeholder text."
       );
       // Placeholder for logo if loading fails
       ctx.font = "bold 150px Arial";
+      ctx.textAlign = "center";
       ctx.fillText("P", logoX + logoSize / 2, footerY + logoSize / 2 + 55);
       ctx.font = "16px Arial";
       ctx.fillText(
@@ -117,14 +163,13 @@ async function generateCertificate(data) {
     // Company Name Text (PEAKPROFIT FUNDING)
     ctx.textAlign = "left";
     ctx.fillStyle = "#000";
-    // PEAKPROFIT
-    ctx.font = "bold 48px 'Times New Roman', serif";
+    // PEAKPROFIT (Using TrajanPro Regular - sans-serif approximation)
+    ctx.font = "48px 'TrajanPro', serif";
     ctx.fillText("PEAKPROFIT", companyNameX, footerY + 80);
 
-    // FUNDING (Smaller and centered below PEAKPROFIT)
-    ctx.font = "32px 'Times New Roman', serif";
-    // Calculate an X-offset to visually center "FUNDING" under "PEAKPROFIT"
+    ctx.font = "48px 'TrajanPro', serif";
     const peakprofitWidth = ctx.measureText("PEAKPROFIT").width;
+    ctx.font = "36px 'TrajanPro', serif";
     const fundingWidth = ctx.measureText("FUNDING").width;
     const fundingOffsetX = (peakprofitWidth - fundingWidth) / 2;
 
@@ -133,23 +178,23 @@ async function generateCertificate(data) {
     // ---- SIGNATURE DATE and LINE ----
     ctx.textAlign = "right";
     const dateX = width - 250;
-    const dateY = footerY + 50; // Aligned with the bottom of the logo/text block
+    const dateY = footerY + 50;
 
-    // Signature Date (italic, script-like font approximation for the signature look)
+    // Signature Date (Using Great Vibes for script text)
     ctx.font = "italic bold 50px 'Brush Script MT', cursive, sans-serif";
     ctx.fillText("PeakProfit", dateX, dateY);
 
     // Signature Line
     ctx.beginPath();
-    const lineLength = 250; // Match line length in original code
+    const lineLength = 300;
     ctx.moveTo(dateX - lineLength, dateY + 20);
     ctx.lineTo(dateX, dateY + 20);
     ctx.lineWidth = 1;
     ctx.strokeStyle = "#000";
     ctx.stroke();
 
-    // Small Print Date (Below the line)
-    ctx.font = "32px 'Times New Roman', serif"; // Slightly larger to match image
+    // Small Print Date (Below the line - Using Garamond Standard)
+    ctx.font = "32px 'Garamond-Standard', serif";
     ctx.fillText(date, dateX, dateY + 70);
 
     // --- Save Certificate ---
@@ -202,6 +247,21 @@ async function generateCertificatePDF(data) {
         margin: 0,
       });
 
+      // --- Register Fonts for PDFKit ---
+      const fontDir = path.join(__dirname, "..", "utils", "certificateFonts");
+      const garamond8RegularPath = path.join(fontDir, "garamond8-regular.ttf");
+      const garamond8ItalicPath = path.join(fontDir, "garamond8-italic.ttf");
+      const garamond12RegularPath = path.join(
+        fontDir,
+        "garamond12-regular.ttf"
+      );
+      const greatVibesRegularPath = path.join(
+        fontDir,
+        "greatVibes-regular.ttf"
+      );
+      const trajanProRegularPath = path.join(fontDir, "TrajanPro-Regular.ttf");
+      const trajanProBoldPath = path.join(fontDir, "TrajanPro-Bold.otf");
+
       const stream = fs.createWriteStream(filepath);
       doc.pipe(stream);
 
@@ -211,26 +271,26 @@ async function generateCertificatePDF(data) {
       // Inner border
       doc.rect(40, 40, 1120, 820).lineWidth(3).stroke();
 
-      // Title
+      // Title - Use TrajanPro Bold
       doc
         .fontSize(64)
-        .font("Helvetica-Bold")
+        .font(trajanProBoldPath)
         .text("CERTIFICATE OF FUNDING", 0, 130, {
           align: "center",
           width: 1200,
         });
 
-      // Subtitle
+      // Subtitle - Use Garamond 8 Italic
       doc
         .fontSize(32)
-        .font("Helvetica-Oblique")
+        .font(garamond8ItalicPath)
         .text("Is hereby awarded to", 0, 200, {
           align: "center",
           width: 1200,
         });
 
-      // Trader name
-      doc.fontSize(72).font("Helvetica-Bold").text(traderName, 0, 300, {
+      // Trader name - Use Garamond 12 Regular
+      doc.fontSize(72).font(garamond12RegularPath).text(traderName, 0, 300, {
         align: "center",
         width: 1200,
       });
@@ -238,10 +298,10 @@ async function generateCertificatePDF(data) {
       // Underline
       doc.moveTo(200, 370).lineTo(1000, 370).lineWidth(2).stroke();
 
-      // Description
+      // Description - Use Garamond 8 Regular
       doc
         .fontSize(28)
-        .font("Helvetica")
+        .font(garamond8RegularPath)
         .text(
           `This trader has successfully been funded with ${accountSize} after passing`,
           0,
@@ -262,22 +322,46 @@ async function generateCertificatePDF(data) {
           width: 1200,
         });
 
-      // Company name
-      doc.fontSize(48).font("Helvetica-Bold").text("PEAKPROFIT", 0, 660, {
-        align: "center",
-        width: 1200,
-      });
+      // Footer Position
+      const footerY = 660;
 
-      doc.fontSize(32).font("Helvetica").text("FUNDING", 0, 710, {
-        align: "center",
-        width: 1200,
-      });
+      // Company name - PEAKPROFIT (Using TrajanPro Regular)
+      doc
+        .fontSize(48)
+        .font(trajanProRegularPath)
+        .text("PEAKPROFIT", 170, footerY);
 
-      // Date
-      doc.fontSize(28).font("Helvetica").text(date, 800, 720, {
-        align: "right",
-        width: 350,
-      });
+      // FUNDING (Using Garamond 8 Regular, centered under PEAKPROFIT)
+      // NOTE: PDFKit requires manual X-offset calculation to center 'FUNDING' under 'PEAKPROFIT'
+      doc
+        .fontSize(32)
+        .font(garamond8RegularPath)
+        .text("FUNDING", 220, footerY + 50);
+
+      // Date (Signature Look) - Use Great Vibes
+      doc
+        .fontSize(50)
+        .font(greatVibesRegularPath)
+        .text(date, 800, footerY + 20, {
+          align: "right",
+          width: 350,
+        });
+
+      // Date (Small Print) - Use Garamond 8 Regular
+      doc
+        .fontSize(32)
+        .font(garamond8RegularPath)
+        .text(date, 800, footerY + 130, {
+          align: "right",
+          width: 350,
+        });
+
+      // Signature Line
+      doc
+        .moveTo(800 - 300, footerY + 90)
+        .lineTo(800, footerY + 90)
+        .lineWidth(1)
+        .stroke();
 
       doc.end();
 
