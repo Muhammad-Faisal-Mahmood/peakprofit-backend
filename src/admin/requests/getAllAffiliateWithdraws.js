@@ -37,6 +37,9 @@ const getAllAffiliateWithdraws = async (req, res) => {
     // Get counts for all status types
     const statusCounts = await Withdraw.aggregate([
       {
+        $match: { affiliateId: { $ne: null } }, // Add this filter
+      },
+      {
         $group: {
           _id: "$status",
           count: { $sum: 1 },
@@ -63,6 +66,7 @@ const getAllAffiliateWithdraws = async (req, res) => {
 
     // First, populate the affiliateId and userId
     pipeline.push(
+      { $match: { affiliateId: { $ne: null } } },
       {
         $lookup: {
           from: "affiliates", // Make sure this matches your actual collection name
@@ -100,6 +104,8 @@ const getAllAffiliateWithdraws = async (req, res) => {
     // Apply status filter if provided
     if (status) {
       pipeline.push({
+        $match: { affiliateId: { $ne: null } }, // Add this filter
+
         $match: { status: status },
       });
     }
@@ -133,6 +139,7 @@ const getAllAffiliateWithdraws = async (req, res) => {
 
     // Same lookups for counting
     countPipeline.push(
+      { $match: { affiliateId: { $ne: null } } },
       {
         $lookup: {
           from: "affiliates",

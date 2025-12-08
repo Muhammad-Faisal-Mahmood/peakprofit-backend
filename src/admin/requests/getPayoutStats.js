@@ -21,6 +21,9 @@ const getPayoutStats = async (req, res) => {
         // PENDING requests stats
         Withdraw.aggregate([
           {
+            $match: { affiliateId: { $ne: null } }, // Add this filter
+          },
+          {
             $match: { status: "PENDING" },
           },
           {
