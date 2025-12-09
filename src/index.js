@@ -26,6 +26,7 @@ const watchlist = require("./trade/watchlist/watchlist.controller");
 const Account = require("./trade/account/account.controller");
 const Trade = require("./trade/trade.controller");
 const Chart = require("./trade/chart/chart.controller");
+const Payment = require("./payment/payment.controller");
 
 // Import for startup initialization
 const { polygonManager } = require("./polygon/polygonManager");
@@ -91,6 +92,7 @@ app.use("/api/trade/watchlist", watchlist);
 app.use("/api/trade/account", Account);
 app.use("/api/trade", Trade);
 app.use("/api/trade/chart", Chart);
+app.use("/api/payment", Payment);
 
 app.get("/api/health", (req, res) => {
   res.status(200).json({

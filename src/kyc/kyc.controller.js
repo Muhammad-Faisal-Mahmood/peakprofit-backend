@@ -1,7 +1,7 @@
 const express = require("express");
+const router = express.Router();
 const multer = require("multer");
 const path = require("path");
-const router = express.Router();
 const fs = require("fs");
 // Import controllers
 const submitKYCApplication = require("./requests/submitKYCApplication");
