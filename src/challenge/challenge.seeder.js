@@ -8,35 +8,47 @@ const Challenge = require("./challenge.model"); // adjust path if needed
 
 // 🧱 Challenge tiers (realistic PeakProfit-style)
 const challenges = [
+  { name: "0.2USD Challenge", cost: 0.2, accountSize: 400000 },
+  { name: "1USD Challenge", cost: 1, accountSize: 400000 },
   {
-    name: "Starter Challenge",
-    cost: 49,
+    name: "5k Challenge",
+    cost: 25,
+    accountSize: 5000,
+  },
+  {
+    name: "10k Challenge",
+    cost: 60,
     accountSize: 10000,
   },
   {
-    name: "Intermediate Challenge",
-    cost: 99,
+    name: "25k Challenge",
+    cost: 100,
     accountSize: 25000,
   },
   {
-    name: "Pro Challenge",
-    cost: 199,
+    name: "50k Challenge",
+    cost: 150,
     accountSize: 50000,
   },
   {
-    name: "Elite Challenge",
-    cost: 399,
-    accountSize: 100000,
+    name: "100k Challenge",
+    cost: 350,
+    accountSize: 150000,
   },
   {
-    name: "Master Challenge",
-    cost: 599,
+    name: "200k Challenge",
+    cost: 600,
     accountSize: 200000,
   },
   {
-    name: "Ultimate Challenge",
-    cost: 999,
-    accountSize: 400000,
+    name: "300k Challenge",
+    cost: 750,
+    accountSize: 300000,
+  },
+  {
+    name: "500k Challenge",
+    cost: 1200,
+    accountSize: 500000,
   },
 ];
 

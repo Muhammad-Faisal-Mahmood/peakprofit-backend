@@ -30,7 +30,7 @@ const Chart = require("./trade/chart/chart.controller");
 // Import for startup initialization
 const { polygonManager } = require("./polygon/polygonManager");
 const redis = require("./utils/redis.helper");
-const { generateCertificate } = require("./utils/certificateGenerator.service");
+const jwt = require("./middleware/jwt");
 
 const app = express();
 expressWs(app); // Enable WebSocket support
@@ -40,6 +40,8 @@ const allowedOrigins = [
   process.env.MARKETING_SITE_URL,
   process.env.FRONT_APP_URL_DEV,
 ];
+
+app.use("/api/whop", require("./whop/whop.webhook"));
 
 app.use(express.json());
 
@@ -96,6 +98,7 @@ app.get("/api/health", (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+app.post("/api/whop/session", jwt, require("./whop/whop.sessionLink"));
 
 // MongoDB Connection
 const connectToMongoDB = async () => {
@@ -118,7 +121,7 @@ const initializePolygonConnections = async () => {
 
   try {
     // Step 1: Initialize all market connections
-    await redis.clearAll();
+    // await redis.clearAll();
     console.log("[Startup] Initializing market connections...");
     const markets = ["crypto", "forex"];
 
