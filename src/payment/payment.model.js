@@ -156,9 +156,17 @@ const paymentSchema = new mongoose.Schema(
       type: String,
     },
 
-    // Promo Code
+    // Promo Code (Whop sends this as an object)
     promoCode: {
-      type: String,
+      id: String,
+      code: String,
+      amountOff: Number,
+      baseCurrency: String,
+      promoType: {
+        type: String,
+        enum: ["percentage", "fixed", "free_trial"],
+      },
+      numberOfIntervals: Number,
     },
 
     // Timestamps from Whop

@@ -78,53 +78,6 @@ router.post(
 );
 
 // Handler functions
-async function handleMembershipActivated(data) {
-  console.log("📋 Processing membership activation...");
-
-  const userId = data.metadata?.userId;
-  const whopMembershipId = data.id;
-  const whopUserId = data.user.id;
-  const planId = data.plan.id;
-  const productId = data.product.id;
-  const challengeId = data.metadata?.challengeId;
-
-  console.log("👤 User ID (from metadata):", userId);
-  console.log("🆔 Whop Membership ID:", whopMembershipId);
-  console.log("👥 Whop User ID:", whopUserId);
-  console.log("📦 Plan ID:", planId);
-  console.log("🏷️ Product ID:", productId);
-
-  if (!userId) {
-    console.warn("⚠️ No userId in metadata - using Whop user ID instead");
-    // You might need to look up your user by whopUserId or email
-  }
-
-  try {
-    const account = await createAccount({
-      userId: userId,
-      challengeId: challengeId,
-      accountType: "demo",
-    });
-    console.log("account created");
-  } catch (error) {
-    console.log("error in creating account: ", error.message);
-    throw error;
-  }
-
-  // TODO: Update your database
-  // Example:
-  // await User.findByIdAndUpdate(userId, {
-  //   subscriptionStatus: "active",
-  //   whopMembershipId: whopMembershipId,
-  //   whopUserId: whopUserId,
-  //   subscriptionPlanId: planId,
-  //   subscriptionExpiresAt: new Date(expiresAt * 1000),
-  //   subscriptionCancelAtPeriodEnd: cancelAtPeriodEnd,
-  // });
-
-  console.log("✅ Membership activation processed");
-}
-
 async function handlePaymentSucceeded(data) {
   console.log("📋 Processing successful payment...");
 
@@ -202,7 +155,16 @@ async function handlePaymentSucceeded(data) {
 
         // Billing info
         billingReason: data.billing_reason,
-        promoCode: data.promo_code,
+        promoCode: data.promo_code
+          ? {
+              id: data.promo_code.id,
+              code: data.promo_code.code,
+              amountOff: data.promo_code.amount_off,
+              baseCurrency: data.promo_code.base_currency,
+              promoType: data.promo_code.promo_type,
+              numberOfIntervals: data.promo_code.number_of_intervals,
+            }
+          : undefined,
 
         // Timestamps
         createdAt: data.created_at ? new Date(data.created_at) : undefined,
@@ -223,14 +185,22 @@ async function handlePaymentSucceeded(data) {
 
     console.log("✅ Payment record saved:", payment._id);
 
-    // Create account for the user
+    // Create account for the user ONLY if payment succeeded
     if (userId && challengeId) {
-      await createAccount({
-        userId,
-        challengeId,
-        accountType: "demo",
-      });
-      console.log("✅ Account created for user");
+      try {
+        const account = await createAccount({
+          userId,
+          challengeId,
+          accountType: "demo",
+        });
+        console.log("✅ Account created for user:", account._id);
+      } catch (accountError) {
+        console.error("❌ Error creating account:", accountError.message);
+        // Don't throw - payment was successful even if account creation failed
+        // You can handle this separately (e.g., retry logic, alert admin)
+      }
+    } else {
+      console.warn("⚠️ Missing userId or challengeId - account not created");
     }
 
     console.log("✅ Payment processed successfully");
@@ -240,6 +210,7 @@ async function handlePaymentSucceeded(data) {
   }
 }
 
+// Handler for failed payments
 async function handlePaymentFailed(data) {
   console.log("📋 Processing failed payment...");
 
@@ -317,7 +288,16 @@ async function handlePaymentFailed(data) {
         // Billing info
         billingReason: data.billing_reason,
         failureMessage: data.failure_message,
-        promoCode: data.promo_code,
+        promoCode: data.promo_code
+          ? {
+              id: data.promo_code.id,
+              code: data.promo_code.code,
+              amountOff: data.promo_code.amount_off,
+              baseCurrency: data.promo_code.base_currency,
+              promoType: data.promo_code.promo_type,
+              numberOfIntervals: data.promo_code.number_of_intervals,
+            }
+          : undefined,
 
         // Timestamps
         createdAt: data.created_at ? new Date(data.created_at) : undefined,
@@ -351,6 +331,57 @@ async function handlePaymentFailed(data) {
     }
   } catch (error) {
     console.error("❌ Error saving failed payment:", error);
+    throw error;
+  }
+}
+
+// Handler for membership activation
+async function handleMembershipActivated(data) {
+  console.log("📋 Processing membership activation...");
+
+  const userId = data.metadata?.userId;
+  const challengeId = data.metadata?.challengeId;
+  const whopMembershipId = data.id;
+  const whopUserId = data.user.id;
+  const planId = data.plan.id;
+  const productId = data.product.id;
+
+  console.log("👤 User ID (from metadata):", userId);
+  console.log("🎯 Challenge ID (from metadata):", challengeId);
+  console.log("🆔 Whop Membership ID:", whopMembershipId);
+  console.log("👥 Whop User ID:", whopUserId);
+  console.log("📦 Plan ID:", planId);
+  console.log("🏷️ Product ID:", productId);
+  console.log("📊 Membership Status:", data.status);
+
+  if (!userId) {
+    console.warn("⚠️ No userId in metadata - cannot update user");
+    return;
+  }
+
+  try {
+    // DON'T create account here - that's done in payment.succeeded
+    // This event is just for tracking membership status
+
+    // TODO: Update your User model with membership info
+    // await User.findByIdAndUpdate(userId, {
+    //   membershipStatus: data.status, // "completed", "active", etc.
+    //   whopMembershipId: whopMembershipId,
+    //   whopUserId: whopUserId,
+    //   whopMemberId: data.member.id,
+    //   subscriptionPlanId: planId,
+    //   subscriptionProductId: productId,
+    //   cancelAtPeriodEnd: data.cancel_at_period_end,
+    //   renewalPeriodStart: data.renewal_period_start ? new Date(data.renewal_period_start) : null,
+    //   renewalPeriodEnd: data.renewal_period_end ? new Date(data.renewal_period_end) : null,
+    //   membershipManageUrl: data.manage_url,
+    //   promoCodeId: data.promo_code?.id,
+    //   lastMembershipUpdate: new Date(),
+    // });
+
+    console.log("✅ Membership activation processed - user record updated");
+  } catch (error) {
+    console.error("❌ Error processing membership activation:", error.message);
     throw error;
   }
 }

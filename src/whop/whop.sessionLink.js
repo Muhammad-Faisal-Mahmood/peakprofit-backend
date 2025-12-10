@@ -25,7 +25,7 @@ createWhopCheckoutSession = async (req, res) => {
     }
 
     // Step 1: Fetch the specific product with its plans
-    const PRODUCT_ID = "prod_RYde7evosHopQ";
+    const PRODUCT_ID = "prod_OIaMOZ82LkPjN";
     console.log(`🔍 Fetching product ${PRODUCT_ID} from Whop API...`);
 
     const productResponse = await fetch(
