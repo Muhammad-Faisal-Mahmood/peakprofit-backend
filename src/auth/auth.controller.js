@@ -45,7 +45,7 @@ const {
 
 //SignUp
 router.post("/sign-up", checkCreateParams, async (req, res, next) => {
-  const { name, email, password, inviteToken, refcode } = req.body;
+  const { name, email, password, inviteToken, refcode, challengeId } = req.body;
 
   try {
     let userModel = await UserService.findByEmail(email.toLowerCase());
@@ -112,7 +112,7 @@ router.post("/sign-up", checkCreateParams, async (req, res, next) => {
 
     await authData.save();
 
-    sendVerificationLink(user, otp);
+    sendVerificationLink(user, otp, challengeId);
 
     return sendSuccessResponse(res, "Verification sent to your email", {
       userId: user._id,
@@ -204,6 +204,7 @@ router.post("/login", async (req, res, next) => {
 router.get("/verify-account", async (req, res) => {
   try {
     const encryptedText = req.query.token.replace(/ /g, "+");
+    const challengeId = req.query?.challengeId;
     const bytes = CryptoJS.AES.decrypt(encryptedText, process.env.JWT_SECRET);
     const decrypted = bytes.toString(CryptoJS.enc.Utf8);
     const [email, code] = decrypted.split("/");
@@ -247,6 +248,10 @@ router.get("/verify-account", async (req, res) => {
         isVerified: true,
       }
     );
+    if (challengeId)
+      return res.redirect(
+        `${process.env.FRONT_APP_URL_DEV}/login?challengeId=${challengeId}`
+      );
     return res.redirect(`${process.env.FRONT_APP_URL_DEV}`);
   } catch (error) {
     console.error("Error verifying OTP:", error);
@@ -398,13 +403,16 @@ router.post("/change-password", jwt, checkPasswordParams, async (req, res) => {
   }
 });
 
-async function sendVerificationLink(user, otp) {
+async function sendVerificationLink(user, otp, challengeId) {
   const encrypted = CryptoJS.AES.encrypt(
     `${user.email}/${otp.code}`,
     process.env.JWT_SECRET
   ).toString();
 
-  const link = `${process.env.BACKEND_URL}/api/auth/verify-account?token=${encrypted}`;
+  let link = `${process.env.BACKEND_URL}/api/auth/verify-account?token=${encrypted}`;
+  if (challengeId) {
+    link += `&challengeId=${challengeId}`;
+  }
   const replacements = {
     expiry_time: otp.expiration,
     first_name: user.name,

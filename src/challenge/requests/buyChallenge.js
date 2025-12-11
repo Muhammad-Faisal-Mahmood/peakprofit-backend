@@ -5,34 +5,15 @@ const {
 } = require("../../shared/response.service");
 const affiliateService = require("../../affiliate/affiliate.service");
 const createAccount = require("../../utils/createAccount");
+const challengeBuyingService = require("../../utils/challengeBuying.service");
 const buyChallenge = async (req, res) => {
   const { challengeId } = req.params;
   const userId = req.user.userId;
 
   try {
-    // Get challenge details
-    const challenge = await Challenge.findById(challengeId);
-    if (!challenge) {
-      return sendErrorResponse(res, "Challenge not found");
-    }
+    const result = await challengeBuyingService(challengeId, userId);
 
-    // Process the purchase (your existing logic here)
-    // ... purchase processing logic ...
-
-    const newAccount = await createAccount({
-      userId,
-      challengeId: challenge._id,
-      accountType: "demo", // or "evaluation" depending on your flow
-    });
-
-    // Process affiliate commission if user was referred
-    await affiliateService.processPurchase(userId, challengeId, challenge.cost);
-
-    return sendSuccessResponse(res, "Challenge purchased successfully", {
-      account: newAccount,
-      challenge: challenge,
-      cost: challenge.cost,
-    });
+    return sendSuccessResponse(res, "Challenge purchased successfully", result);
   } catch (error) {
     console.error("Error processing challenge purchase:", error);
     return sendErrorResponse(
