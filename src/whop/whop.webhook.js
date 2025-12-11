@@ -3,6 +3,7 @@ const router = express.Router();
 const crypto = require("crypto");
 const createAccount = require("../utils/createAccount");
 const Payment = require("../payment/payment.model");
+const challengeBuyingService = require("../utils/challengeBuying.service");
 const WHOP_WEBHOOK_SECRET = process.env.WHOP_WEBHOOK_SECRET;
 
 router.post(
@@ -188,12 +189,16 @@ async function handlePaymentSucceeded(data) {
     // Create account for the user ONLY if payment succeeded
     if (userId && challengeId) {
       try {
-        const account = await createAccount({
-          userId,
+        const challengeBought = await challengeBuyingService(
           challengeId,
-          accountType: "demo",
-        });
-        console.log("✅ Account created for user:", account._id);
+          userId,
+          "demo"
+        );
+
+        console.log(
+          "✅ challenge bought and affiliate commission processed:",
+          challengeBought
+        );
       } catch (accountError) {
         console.error("❌ Error creating account:", accountError.message);
         // Don't throw - payment was successful even if account creation failed

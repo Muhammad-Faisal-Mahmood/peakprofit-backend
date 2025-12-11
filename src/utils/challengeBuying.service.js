@@ -1,7 +1,11 @@
 const Challenge = require("../challenge/challenge.model");
 const affiliateService = require("../affiliate/affiliate.service");
 const createAccount = require("./createAccount");
-const challengeBuyingService = async (challengeId, userId) => {
+const challengeBuyingService = async (
+  challengeId,
+  userId,
+  accountType = "demo"
+) => {
   try {
     // Get challenge details
     const challenge = await Challenge.findById(challengeId);
@@ -15,7 +19,7 @@ const challengeBuyingService = async (challengeId, userId) => {
     const newAccount = await createAccount({
       userId,
       challengeId: challenge._id,
-      accountType: "demo", // or "evaluation" depending on your flow
+      accountType: accountType, // or "evaluation" depending on your flow
     });
 
     // Process affiliate commission if user was referred
@@ -31,3 +35,5 @@ const challengeBuyingService = async (challengeId, userId) => {
     return error;
   }
 };
+
+module.exports = challengeBuyingService;

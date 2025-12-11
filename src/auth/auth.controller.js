@@ -55,20 +55,22 @@ router.post("/sign-up", checkCreateParams, async (req, res, next) => {
 
     let user = await UserService.create(name, email, password);
 
-    let referredByUserId = null;
+    let referralResult = null; // Define this outside the if block
+
     if (refcode) {
       try {
-        referredByUserId = await affiliateService.processReferralSignup(
+        referralResult = await affiliateService.processReferralSignup(
           refcode,
           user._id
         );
-        if (referredByUserId) {
-          // Update the user document with referral information
-          user.referredBy = referredByUserId;
+
+        if (referralResult) {
+          // Extract just the affiliateUserId (which is the referring user's ID)
+          user.referredBy = referralResult.affiliateUserId;
           user.referralCode = refcode;
           await user.save();
           console.log(
-            `User ${user._id} referred by ${referredByUserId} using code ${refcode}`
+            `User ${user._id} referred by ${referralResult.affiliateUserId} using code ${refcode}`
           );
         }
       } catch (referralError) {
@@ -118,7 +120,7 @@ router.post("/sign-up", checkCreateParams, async (req, res, next) => {
       userId: user._id,
       data: authData,
       // projectId: projectId,
-      referredBy: referredByUserId,
+      referredBy: referralResult?.affiliateUserId || null,
     });
   } catch (error) {
     console.error("Error while signing up:", error);

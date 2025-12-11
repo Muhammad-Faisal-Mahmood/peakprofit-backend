@@ -1,10 +1,7 @@
-const Challenge = require("../challenge.model");
 const {
   sendErrorResponse,
   sendSuccessResponse,
 } = require("../../shared/response.service");
-const affiliateService = require("../../affiliate/affiliate.service");
-const createAccount = require("../../utils/createAccount");
 const challengeBuyingService = require("../../utils/challengeBuying.service");
 const buyChallenge = async (req, res) => {
   const { challengeId } = req.params;

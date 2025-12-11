@@ -160,6 +160,7 @@ async function processReferralSignup(referralCode, newUserId) {
     affiliate.totalReferrals += 1;
     affiliate.totalEarnings += signupCommission;
     affiliate.balance += signupCommission;
+    await affiliate.addReferral(newUserId);
 
     // Create detailed commission entry
     await createCommissionEntry({

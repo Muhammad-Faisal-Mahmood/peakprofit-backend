@@ -21,7 +21,7 @@ const getAllChallenges = async (req, res) => {
     const skip = (pageNo - 1) * perPage;
 
     const [challenges, totalCount] = await Promise.all([
-      Challenge.find(query).sort({ createdAt: -1 }).skip(skip).limit(perPage),
+      Challenge.find(query).sort({ accountSize: 1 }).skip(skip).limit(perPage),
       Challenge.countDocuments(query),
     ]);
 
