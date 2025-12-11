@@ -8,8 +8,6 @@ const Challenge = require("./challenge.model"); // adjust path if needed
 
 // 🧱 Challenge tiers (realistic PeakProfit-style)
 const challenges = [
-  { name: "0.2USD Challenge", cost: 0.2, accountSize: 400000 },
-  { name: "1USD Challenge", cost: 1, accountSize: 400000 },
   {
     name: "5k Challenge",
     cost: 25,

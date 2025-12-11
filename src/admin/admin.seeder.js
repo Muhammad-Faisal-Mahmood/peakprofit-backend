@@ -16,7 +16,7 @@ async function createAdmin() {
     });
 
     const existingAdmin = await User.findOne({
-      email: "dawsonmarks@admin.com",
+      email: "git pu",
     });
 
     if (existingAdmin) {
