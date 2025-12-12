@@ -1,5 +1,6 @@
 const Account = require("../trade/account/account.model");
 const Challenge = require("../challenge/challenge.model");
+const User = require("../user/user.model");
 
 async function createAccount({
   userId,
@@ -53,6 +54,12 @@ async function createAccount({
     closedPositions: [],
     currentDayEquity: initialBalance,
   });
+
+  await User.findByIdAndUpdate(
+    userId,
+    { $push: { accounts: newAccount._id } },
+    { new: true }
+  );
 
   return newAccount;
 }

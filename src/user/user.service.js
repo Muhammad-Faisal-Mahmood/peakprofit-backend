@@ -23,6 +23,7 @@ exports.list = async (pageNo = 1, searchValue = null) => {
   }
   condition = { $and: condition };
   let result = await User.find(condition)
+    .populate("accounts")
     .sort({ _id: -1 })
     .skip(pg.skip)
     .limit(pg.pageSize)

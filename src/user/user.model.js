@@ -27,7 +27,15 @@ const userSchema = mongoose.Schema(
       ref: "KYC",
       default: null,
     },
-
+    accounts: {
+      type: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Account",
+          default: [],
+        },
+      ],
+    },
     kycHistory: {
       type: [
         {
