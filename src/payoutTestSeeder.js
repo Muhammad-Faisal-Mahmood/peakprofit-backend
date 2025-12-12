@@ -34,7 +34,7 @@ async function createPayoutReadyAccount() {
     // ===== 1. Find existing user =====
     console.log("\n👤 Finding user...");
 
-    const userId = "68b4dfdba553fb28cea2ad52";
+    const userId = "693c46dc3f6918aeb92c9927";
     const testUser = await User.findById(userId);
 
     if (!testUser) {

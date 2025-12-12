@@ -52,6 +52,9 @@ const getPayoutStats = async (req, res) => {
         // APPROVED (unpaid) requests stats
         Withdraw.aggregate([
           {
+            $match: baseFilter, // Add this filter
+          },
+          {
             $match: { status: "APPROVED" },
           },
           {
@@ -65,6 +68,9 @@ const getPayoutStats = async (req, res) => {
 
         // PAID this month stats
         Withdraw.aggregate([
+          {
+            $match: baseFilter, // Add this filter
+          },
           {
             $match: {
               status: "PAID",
@@ -81,6 +87,9 @@ const getPayoutStats = async (req, res) => {
 
         // LIFETIME paid stats
         Withdraw.aggregate([
+          {
+            $match: baseFilter, // Add this filter
+          },
           {
             $match: { status: "PAID" },
           },
@@ -135,7 +144,9 @@ const getPayoutStats = async (req, res) => {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
         })}`,
-        description: "Total paid to all affiliates",
+        description:
+          "Total paid to all " +
+          (type === "affiliate" ? "affiliates" : "traders"),
       },
     };
 
