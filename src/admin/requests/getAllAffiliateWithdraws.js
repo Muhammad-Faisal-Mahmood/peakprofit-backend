@@ -6,11 +6,25 @@ const {
 
 const getAllAffiliateWithdraws = async (req, res) => {
   const VALID_STATUSES = ["PENDING", "APPROVED", "DENIED", "PAID"];
+  const type = req.query.type || "affiliate";
 
   try {
     // Ensure user is admin
     if (!req.user || req.user.role !== "Admin") {
       return sendErrorResponse(res, "Unauthorized - Admin access required");
+    }
+
+    let baseFilter = {};
+
+    if (type === "affiliate") {
+      baseFilter = { affiliateId: { $ne: null } };
+    } else if (type === "trader") {
+      baseFilter = { affiliateId: null };
+    } else {
+      return sendErrorResponse(
+        res,
+        "Invalid type. Use 'affiliate' or 'trader'"
+      );
     }
 
     const pageNo = parseInt(req.query.pageNo) || 1;
@@ -37,7 +51,7 @@ const getAllAffiliateWithdraws = async (req, res) => {
     // Get counts for all status types
     const statusCounts = await Withdraw.aggregate([
       {
-        $match: { affiliateId: { $ne: null } }, // Add this filter
+        $match: baseFilter, // Add this filter
       },
       {
         $group: {
@@ -66,7 +80,7 @@ const getAllAffiliateWithdraws = async (req, res) => {
 
     // First, populate the affiliateId and userId
     pipeline.push(
-      { $match: { affiliateId: { $ne: null } } },
+      { $match: baseFilter },
       {
         $lookup: {
           from: "affiliates", // Make sure this matches your actual collection name
@@ -93,10 +107,10 @@ const getAllAffiliateWithdraws = async (req, res) => {
       },
       {
         $lookup: {
-          from: "challenges", // Make sure this matches your actual collection name
-          localField: "challengeId",
+          from: "accounts",
+          localField: "accountId",
           foreignField: "_id",
-          as: "challenge",
+          as: "account",
         },
       }
     );
@@ -104,7 +118,7 @@ const getAllAffiliateWithdraws = async (req, res) => {
     // Apply status filter if provided
     if (status) {
       pipeline.push({
-        $match: { affiliateId: { $ne: null } }, // Add this filter
+        $match: baseFilter, // Add this filter
 
         $match: { status: status },
       });
@@ -139,7 +153,7 @@ const getAllAffiliateWithdraws = async (req, res) => {
 
     // Same lookups for counting
     countPipeline.push(
-      { $match: { affiliateId: { $ne: null } } },
+      { $match: baseFilter },
       {
         $lookup: {
           from: "affiliates",
@@ -198,7 +212,7 @@ const getAllAffiliateWithdraws = async (req, res) => {
       const affiliate = withdraw.affiliate?.[0];
       const affiliateUser = withdraw.affiliateUser?.[0];
       const user = withdraw.user?.[0];
-      const challenge = withdraw.challenge?.[0];
+      const account = withdraw.account?.[0];
 
       return {
         id: withdraw._id,
@@ -224,11 +238,14 @@ const getAllAffiliateWithdraws = async (req, res) => {
         },
 
         // Challenge Details (if applicable)
-        challenge: challenge
+        account: account
           ? {
-              id: challenge._id,
-              name: challenge.name,
-              cost: challenge.cost,
+              id: account._id,
+              accountType: account.accountType,
+              initialBalance: account.initialBalance,
+              balance: account.balance,
+              equity: account.equity,
+              status: account.status,
             }
           : null,
 

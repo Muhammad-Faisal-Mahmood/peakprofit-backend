@@ -101,8 +101,8 @@ const updateWithdrawStatus = async (req, res) => {
         },
       })
       .populate({
-        path: "challengeId",
-        select: "name cost",
+        path: "accountId",
+        select: "accountType initialBalance balance equity status",
       })
       .lean();
 
@@ -131,13 +131,17 @@ const updateWithdrawStatus = async (req, res) => {
             email: updatedWithdraw.userId.email,
           }
         : null,
-      challenge: updatedWithdraw.challengeId
+      account: updatedWithdraw?.accountId
         ? {
-            id: updatedWithdraw.challengeId._id,
-            name: updatedWithdraw.challengeId.name,
-            cost: updatedWithdraw.challengeId.cost,
+            id: updatedWithdraw.accountId._id,
+            accountType: updatedWithdraw.accountId.accountType,
+            initialBalance: updatedWithdraw.accountId.initialBalance,
+            balance: updatedWithdraw.accountId.balance,
+            equity: updatedWithdraw.accountId.equity,
+            status: updatedWithdraw.accountId.status,
           }
         : null,
+
       paymentMethod: {
         type: updatedWithdraw.paymentMethod.type,
         accountNumber: updatedWithdraw.paymentMethod.accountNumber,

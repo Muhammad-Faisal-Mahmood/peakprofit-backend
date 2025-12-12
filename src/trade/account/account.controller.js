@@ -7,7 +7,9 @@ const setSelectedAccount = require("./requests/setSelectedAccount");
 const getAccountStats = require("./requests/getAccountStats");
 const getDashboardChartStats = require("./requests/getDashboardChartStats");
 const getStatsPageData = require("./requests/getStatsPageData");
+const getAccountsPayoutInfo = require("./requests/getAccountsPayoutInfo");
 
+router.get("/payout-info", jwt, getAccountsPayoutInfo);
 router.get("/", jwt, getUserAccounts);
 router.get("/:id", jwt, getAccountById);
 router.post("/select", jwt, setSelectedAccount);

@@ -5,10 +5,24 @@ const {
 } = require("../../shared/response.service");
 
 const getPayoutStats = async (req, res) => {
+  const type = req.query.type || "affiliate"; // default = affiliate
   try {
     // Ensure user is admin
     if (!req.user || req.user.role !== "Admin") {
       return sendErrorResponse(res, "Unauthorized - Admin access required");
+    }
+
+    let baseFilter = {};
+
+    if (type === "affiliate") {
+      baseFilter = { affiliateId: { $ne: null } };
+    } else if (type === "trader") {
+      baseFilter = { affiliateId: null };
+    } else {
+      return sendErrorResponse(
+        res,
+        "Invalid type. Use 'affiliate' or 'trader'"
+      );
     }
 
     // Get current date and first day of current month
@@ -21,7 +35,7 @@ const getPayoutStats = async (req, res) => {
         // PENDING requests stats
         Withdraw.aggregate([
           {
-            $match: { affiliateId: { $ne: null } }, // Add this filter
+            $match: baseFilter, // Add this filter
           },
           {
             $match: { status: "PENDING" },

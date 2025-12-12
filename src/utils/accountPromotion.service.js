@@ -76,13 +76,16 @@ async function promoteAccountToLive(accountId) {
     account.marginUsed = 0;
     account.pendingMargin = 0;
     account.lastTradeTimestamp = null;
+    account.dailyDrawdownLimit = account.initialBalance * 0.02; // 2%
+    account.maxDrawdownLimit = account.initialBalance * 0.06; // 6%
+    account.currentDayEquity = account.initialBalance;
 
     await account.save();
     console.log(`[AccountPromotion] Account updated to LIVE status`);
 
     // ✅ Step 6: Initialize fresh Redis data for live account
     const maxDrawdownThreshold =
-      account.initialBalance - account.initialBalance * 0.07;
+      account.initialBalance - account.initialBalance * 0.06;
     await redis.setAccountRisk(accountId.toString(), {
       initialBalance: account.initialBalance,
       dailyDrawdownLimit: account.dailyDrawdownLimit,

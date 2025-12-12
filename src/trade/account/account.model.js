@@ -200,6 +200,10 @@ AccountSchema.methods.getAvailablePayoutAmount = function () {
     return 0;
   }
 
+  if (!this.hasReceivedFirstPayout) {
+    return profit * 0.5;
+  }
+
   // Return 85% of the profit
   return profit * 0.85;
 };
@@ -269,7 +273,6 @@ AccountSchema.methods.processPayout = async function (withdrawId, amount) {
 
   if (availablePayout > 0 && amount === availablePayout) {
     this.status = "closed";
-
     accountLiquidatorWrapper(this._id.toString(), "maxSplit", this.equity);
   }
 
