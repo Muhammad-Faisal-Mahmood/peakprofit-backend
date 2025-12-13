@@ -60,7 +60,7 @@ async function promoteAccountToLive(accountId) {
 
     // ✅ Step 5: Update account to live with complete reset
     account.accountType = "live";
-    account.status = "passed";
+    account.status = "active";
     account.activelyTradedDays = 0;
     account.balance = account.initialBalance;
     account.equity = account.initialBalance;
@@ -110,7 +110,7 @@ async function promoteAccountToLive(accountId) {
       accountId: accountId,
       newBalance: account.initialBalance,
       accountType: "live",
-      status: "passed",
+      status: "active",
     };
   } catch (error) {
     console.error(

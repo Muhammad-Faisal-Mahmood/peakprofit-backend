@@ -130,10 +130,10 @@ AccountSchema.methods.canRequestPayout = function () {
     errors.push("Only live accounts can request payouts");
   }
 
-  // Check if account is passed
-  if (this.status !== "passed") {
+  // Check if account is active
+  if (this.status !== "active") {
     errors.push(
-      `Account status must be passed. Current status: ${this.status}`
+      `Account status must be active. Current status: ${this.status}`
     );
   }
 

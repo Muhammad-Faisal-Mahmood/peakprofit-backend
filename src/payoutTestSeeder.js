@@ -115,7 +115,7 @@ async function createPayoutReadyAccount() {
     const testAccount = new Account({
       userId: testUser._id,
       accountType: "live",
-      status: "passed",
+      status: "active",
 
       // Financials
       initialBalance: initialBalance,
