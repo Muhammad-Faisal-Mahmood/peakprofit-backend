@@ -62,6 +62,7 @@ async function promoteAccountToLive(accountId) {
     account.accountType = "live";
     account.status = "active";
     account.activelyTradedDays = 0;
+    account.minTradingDays = 5;
     account.balance = account.initialBalance;
     account.equity = account.initialBalance;
 
