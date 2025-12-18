@@ -4,6 +4,7 @@ const {
   sendSuccessResponse,
   sendErrorResponse,
 } = require("../../shared/response.service");
+const Account = require("../../trade/account/account.model");
 
 const updateWithdrawStatus = async (req, res) => {
   const VALID_STATUSES = ["APPROVED", "DENIED", "PAID"];
@@ -81,6 +82,12 @@ const updateWithdrawStatus = async (req, res) => {
       } catch (error) {
         return sendErrorResponse(res, error.message);
       }
+    } else if (withdraw.accountId && uppercaseStatus === "DENIED") {
+      const account = await Account.findById(withdraw.accountId);
+      if (!account) {
+        return sendErrorResponse(res, "Account not found for this withdraw");
+      }
+      await account.processRejectedPayout(withdraw.amount);
     }
 
     // Save the updated withdraw

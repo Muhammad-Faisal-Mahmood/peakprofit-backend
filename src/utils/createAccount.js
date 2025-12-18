@@ -33,12 +33,13 @@ async function createAccount({
   let dailyDrawdownLimit = initialBalance * 0.025; // 2.5%
   let maxDrawdownLimit = initialBalance * 0.07; // 7%
   const profitTarget = initialBalance * 0.08; // 8%
-  const minTradingDays = 3; // Required to pass challenge
+  let minTradingDays = 3; // Required to pass challenge
 
   if (accountType === "live") {
     // Live account drawdown rules
     dailyDrawdownLimit = initialBalance * 0.02;
     maxDrawdownLimit = initialBalance * 0.06;
+    minTradingDays = 5;
   }
 
   // Create the account

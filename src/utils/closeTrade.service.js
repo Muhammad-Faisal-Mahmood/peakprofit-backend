@@ -58,6 +58,17 @@ async function closeTradeService(trade, currentPrice, reason) {
   );
   account.closedPositions.push(_id);
   await updateDailyProfit(account);
+  if (account.accountType == "demo") {
+    let dailyProfitTarget =
+      account.currentDayEquity + account.profitTarget / account.minTradingDays;
+    if (account.balance >= dailyProfitTarget) {
+      account.profitTarget += account.balance - dailyProfitTarget;
+    }
+  }
+  if (account.accountType === "live") {
+    const { qualifiedDays } = account.hasConsistentProfitDays();
+    account.activelyTradedDays = qualifiedDays;
+  }
 
   await account.save();
 
