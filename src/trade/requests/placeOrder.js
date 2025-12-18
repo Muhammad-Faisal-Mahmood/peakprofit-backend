@@ -52,8 +52,8 @@ const placeOrder = async (req, res) => {
     // Fetch account
     const account = await Account.findById(accountId);
     if (!account) return sendErrorResponse(res, "Account not found.");
-    if (units * entryPrice > account.balance * 0.1) {
-      return sendErrorResponse(res, "Trade exceeds the 10% per-order limit.");
+    if (units * entryPrice > account.balance * 0.5) {
+      return sendErrorResponse(res, "Trade exceeds the 50% per-order limit.");
     }
 
     if (account.status != "active" && account.status != "passed") {
