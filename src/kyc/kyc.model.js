@@ -12,6 +12,10 @@ const kycSchema = mongoose.Schema(
       type: Date,
       required: true,
     },
+    legalName: {
+      type: String,
+      required: true,
+    },
     socials: {
       type: String,
       required: true,
@@ -36,8 +40,6 @@ const kycSchema = mongoose.Schema(
   },
   { timestamps: true }
 );
-
-// Index for better query performance
 
 kycSchema.index({ status: 1 });
 

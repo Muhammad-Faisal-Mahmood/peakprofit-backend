@@ -16,12 +16,12 @@ const getUserKYCStatus = async (req, res) => {
       .populate({
         path: "kycId",
         select:
-          "status dateOfBirth rejectionReason idFrontImage idBackImage createdAt updatedAt",
+          "status dateOfBirth rejectionReason idFrontImage idBackImage createdAt updatedAt legalName",
       })
       .populate({
         path: "kycHistory",
         select:
-          "status dateOfBirth rejectionReason idFrontImage idBackImage createdAt updatedAt",
+          "status dateOfBirth rejectionReason idFrontImage idBackImage createdAt updatedAt legalName",
         options: { sort: { createdAt: -1 } }, // Latest first
       })
       .select("kycId kycHistory");
@@ -38,6 +38,7 @@ const getUserKYCStatus = async (req, res) => {
         status: user.kycId.status,
         dateOfBirth: user.kycId.dateOfBirth,
         rejectionReason: user.kycId.rejectionReason,
+        legalName: user.kycId.legalName,
         idFrontImageUrl: `${process.env.BACKEND_URL}/uploads/kyc/${user.kycId.idFrontImage}`,
         idBackImageUrl: `${process.env.BACKEND_URL}/uploads/kyc/${user.kycId.idBackImage}`,
         createdAt: user.kycId.createdAt,
@@ -51,6 +52,7 @@ const getUserKYCStatus = async (req, res) => {
           _id: kyc._id,
           status: kyc.status,
           dateOfBirth: kyc.dateOfBirth,
+          legalName: kyc.legalName,
           rejectionReason: kyc.rejectionReason,
           idFrontImageUrl: `${process.env.BACKEND_URL}/uploads/kyc/${kyc.idFrontImage}`,
           idBackImageUrl: `${process.env.BACKEND_URL}/uploads/kyc/${kyc.idBackImage}`,

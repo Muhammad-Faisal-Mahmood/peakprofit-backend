@@ -68,6 +68,7 @@ const getAllKYCApplications = async (req, res) => {
           },
           dateOfBirth: 1,
           socials: 1,
+          legalName: 1,
           idFrontImage: 1,
           idBackImage: 1,
           status: 1,

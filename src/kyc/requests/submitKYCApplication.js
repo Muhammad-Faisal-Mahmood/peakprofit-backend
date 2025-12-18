@@ -13,11 +13,16 @@ const submitKYCApplication = async (req, res) => {
       return sendErrorResponse(res, "Authentication required");
     }
 
-    const { dateOfBirth, socials } = req.body;
+    const { dateOfBirth, socials, legalName } = req.body;
 
-    // Validate required fields
-    if (!dateOfBirth || !socials) {
-      return sendErrorResponse(res, "Date of birth and socials are required");
+    if (!dateOfBirth) {
+      return sendErrorResponse(res, "Date of birth is required");
+    }
+    if (!socials) {
+      return sendErrorResponse(res, "Social security digits are required");
+    }
+    if (!legalName) {
+      return sendErrorResponse(res, "Full Legal Name is required");
     }
 
     // Validate files are uploaded
@@ -77,6 +82,7 @@ const submitKYCApplication = async (req, res) => {
       user: req.user.userId,
       dateOfBirth: dob,
       socials,
+      legalName,
       idFrontImage: req.files.idFrontImage[0].filename,
       idBackImage: req.files.idBackImage[0].filename,
       status: "pending",
