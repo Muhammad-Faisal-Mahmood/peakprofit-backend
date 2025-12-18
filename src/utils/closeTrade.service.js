@@ -46,6 +46,7 @@ async function closeTradeService(trade, currentPrice, reason) {
   const direction = side === "buy" ? 1 : -1;
   const symbolAmount = tradeSize / entryPrice;
   const pnl = (currentPrice - entryPrice) * symbolAmount * direction;
+  const pnlPercent = (pnl / account.balance) * 100;
 
   const marginToRelease = (tradeSize * entryPrice) / leverage;
   account.marginUsed = Math.max(0, account.marginUsed - marginToRelease);
@@ -65,7 +66,8 @@ async function closeTradeService(trade, currentPrice, reason) {
     status: "closed",
     exitPrice: currentPrice,
     closedAt: new Date(),
-    profit: pnl,
+    pnl: pnl,
+    pnlPercent: pnlPercent,
     tradeClosureReason: reason,
   };
 

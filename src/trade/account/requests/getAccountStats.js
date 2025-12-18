@@ -54,45 +54,43 @@ function calculateStatistics(account, closedTrades) {
     const tradeDate = trade.closedAt.toISOString().slice(0, 10);
 
     // Win/Loss tracking
-    if (trade.profit > 0) {
+    if (trade.pnl > 0) {
       winningTrades++;
-      totalGrossProfit += trade.profit;
-    } else if (trade.profit < 0) {
+      totalGrossProfit += trade.pnl;
+    } else if (trade.pnl < 0) {
       losingTrades++;
-      totalGrossLoss += Math.abs(trade.profit);
+      totalGrossLoss += Math.abs(trade.pnl);
     }
 
     // Track best and worst trades
-    if (trade.profit > bestTrade.profit) {
+    if (trade.pnl > bestTrade.profit) {
       bestTrade = {
-        profit: trade.profit,
+        profit: trade.pnl,
         trade: {
           id: trade._id,
           symbol: trade.symbol,
           side: trade.side,
-          profit: trade.profit,
-          profitPercent: (
-            (trade.profit / account.initialBalance) *
-            100
-          ).toFixed(2),
+          profit: trade.pnl,
+          profitPercent: ((trade.pnl / account.initialBalance) * 100).toFixed(
+            2
+          ),
           openedAt: trade.openedAt,
           closedAt: trade.closedAt,
         },
       };
     }
 
-    if (trade.profit < worstTrade.profit) {
+    if (trade.pnl < worstTrade.profit) {
       worstTrade = {
-        profit: trade.profit,
+        profit: trade.pnl,
         trade: {
           id: trade._id,
           symbol: trade.symbol,
           side: trade.side,
-          profit: trade.profit,
-          profitPercent: (
-            (trade.profit / account.initialBalance) *
-            100
-          ).toFixed(2),
+          profit: trade.pnl,
+          profitPercent: ((trade.pnl / account.initialBalance) * 100).toFixed(
+            2
+          ),
           openedAt: trade.openedAt,
           closedAt: trade.closedAt,
         },
@@ -111,12 +109,12 @@ function calculateStatistics(account, closedTrades) {
     if (!dailyStats[tradeDate]) {
       dailyStats[tradeDate] = { profit: 0, trades: 0 };
     }
-    dailyStats[tradeDate].profit += trade.profit;
+    dailyStats[tradeDate].profit += trade.pnl;
     dailyStats[tradeDate].trades++;
 
     // Today's P&L
     if (tradeDate === today) {
-      dailyPnL += trade.profit;
+      dailyPnL += trade.pnl;
     }
   });
 

@@ -1,3 +1,4 @@
+//createAccount.js
 const Account = require("../trade/account/account.model");
 const Challenge = require("../challenge/challenge.model");
 const User = require("../user/user.model");
@@ -29,10 +30,16 @@ async function createAccount({
 
   // === PeakProfit Rules ===
   const leverage = 50;
-  const dailyDrawdownLimit = initialBalance * 0.025; // 2.5%
-  const maxDrawdownLimit = initialBalance * 0.07; // 7%
+  let dailyDrawdownLimit = initialBalance * 0.025; // 2.5%
+  let maxDrawdownLimit = initialBalance * 0.07; // 7%
   const profitTarget = initialBalance * 0.08; // 8%
-  const minTradingDays = 5; // Required to pass challenge
+  const minTradingDays = 3; // Required to pass challenge
+
+  if (accountType === "live") {
+    // Live account drawdown rules
+    dailyDrawdownLimit = initialBalance * 0.02;
+    maxDrawdownLimit = initialBalance * 0.06;
+  }
 
   // Create the account
   const newAccount = await Account.create({
@@ -49,7 +56,7 @@ async function createAccount({
     maxDrawdownLimit,
     profitTarget,
     minTradingDays,
-    status: "active",
+    status: accountType == "demo" ? "active" : "passed",
     openPositions: [],
     closedPositions: [],
     currentDayEquity: initialBalance,

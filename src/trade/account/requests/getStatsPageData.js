@@ -93,7 +93,7 @@ function processCalendarData(closedTrades) {
       };
     }
 
-    dailyStats[dateKey].pnl += trade.profit;
+    dailyStats[dateKey].pnl += trade.pnl;
     dailyStats[dateKey].tradeCount += 1;
   });
 
@@ -170,22 +170,22 @@ function calculateOverallStats(accounts, closedTrades) {
   let worstTrade = { profit: Infinity, trade: null };
 
   closedTrades.forEach((trade) => {
-    if (trade.profit > 0) {
+    if (trade.pnl > 0) {
       winningTrades++;
-      totalGrossProfit += trade.profit;
-    } else if (trade.profit < 0) {
+      totalGrossProfit += trade.pnl;
+    } else if (trade.pnl < 0) {
       losingTrades++;
-      totalGrossLoss += Math.abs(trade.profit);
+      totalGrossLoss += Math.abs(trade.pnl);
     }
 
     // Track best trade
-    if (trade.profit > bestTrade.profit) {
-      bestTrade = { profit: trade.profit, trade };
+    if (trade.pnl > bestTrade.profit) {
+      bestTrade = { profit: trade.pnl, trade };
     }
 
     // Track worst trade
-    if (trade.profit < worstTrade.profit) {
-      worstTrade = { profit: trade.profit, trade };
+    if (trade.pnl < worstTrade.profit) {
+      worstTrade = { profit: trade.pnl, trade };
     }
   });
 

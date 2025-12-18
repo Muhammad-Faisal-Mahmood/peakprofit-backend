@@ -39,7 +39,7 @@ const getDashboardChartStats = async (req, res) => {
 
     // Process each closed trade
     for (const trade of closedTrades) {
-      runningBalance += trade.profit;
+      runningBalance += trade.pnl;
 
       dataPoints.push({
         date: trade.closedAt,
