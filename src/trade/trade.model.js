@@ -65,10 +65,10 @@ const tradeSchema = new Schema(
     },
 
     // Timestamps
-    openedAt: {
-      type: Date,
-      default: Date.now,
-    },
+    // openedAt: {
+    //   type: Date,
+    //   default: Date.now,
+    // },
     closedAt: {
       type: Date,
     },

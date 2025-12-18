@@ -74,7 +74,7 @@ function calculateStatistics(account, closedTrades) {
           profitPercent: ((trade.pnl / account.initialBalance) * 100).toFixed(
             2
           ),
-          openedAt: trade.openedAt,
+          executedAt: trade.executedAt,
           closedAt: trade.closedAt,
         },
       };
@@ -91,7 +91,7 @@ function calculateStatistics(account, closedTrades) {
           profitPercent: ((trade.pnl / account.initialBalance) * 100).toFixed(
             2
           ),
-          openedAt: trade.openedAt,
+          executedAt: trade.executedAt,
           closedAt: trade.closedAt,
         },
       };
@@ -101,8 +101,8 @@ function calculateStatistics(account, closedTrades) {
     totalVolume += trade.units;
 
     // Duration (in minutes)
-    if (trade.closedAt && trade.openedAt) {
-      totalDuration += (trade.closedAt - trade.openedAt) / (1000 * 60);
+    if (trade.closedAt && trade.executedAt) {
+      totalDuration += (trade.closedAt - trade.executedAt) / (1000 * 60);
     }
 
     // Daily tracking
