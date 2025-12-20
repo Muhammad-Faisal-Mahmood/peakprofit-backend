@@ -6,12 +6,17 @@ const {
   getAffiliateDashboardStats,
   getAffiliateYearlyStats,
 } = require("../affiliate.service"); // Adjust path as needed
+const User = require("../../user/user.model");
 
 const stats = async (req, res) => {
   try {
     // Get affiliate ID from authenticated user
-    const affiliateId = req.user?.affiliateId;
-
+    const user = req.user?.userId;
+    const DBUser = await User.findById(user);
+    if (!DBUser) {
+      return sendErrorResponse(res, "User not found");
+    }
+    const affiliateId = DBUser.affiliateId;
     if (!affiliateId) {
       return sendErrorResponse(res, "Affiliate ID not found in user session");
     }

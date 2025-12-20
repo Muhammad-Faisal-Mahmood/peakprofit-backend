@@ -9,7 +9,7 @@ const {
 } = require("./requests/getAffiliateCommissionHistory");
 const { tierDetails } = require("./requests/tierDetails");
 
-router.post("/apply", apply);
+router.post("/apply", jwt, apply);
 router.get("/profile", jwt, getAffiliateProfile);
 router.get("/stats", jwt, stats);
 router.get("/commissionHistory", jwt, getAffiliateCommissionHistory);

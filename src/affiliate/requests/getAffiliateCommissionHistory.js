@@ -11,7 +11,7 @@ const ResponseCode = require("../../shared/ResponseCode");
 async function getAffiliateCommissionHistory(req, res) {
   try {
     // Check if user has affiliateId
-    if (!req.user || !req.user.affiliateId) {
+    if (!req.user) {
       return sendErrorResponse(res, "User is not registered as an affiliate");
     }
 
