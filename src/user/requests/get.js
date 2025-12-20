@@ -46,6 +46,7 @@ const getUser = async (req, res) => {
       affiliateStatus: affiliateStatus,
       kyc: kycInfo,
       kycApplicationsCount: user?.kycHistory ? user.kycHistory.length : 0,
+      status: user.status,
     };
 
     res.json(userData);

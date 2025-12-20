@@ -29,6 +29,7 @@ const getUserDetails = async (req, res) => {
       email: user.email,
       profilePicture: user.profilePicture || "",
       name: user.name,
+      status: user.status,
     };
 
     if (user?.affiliateId) {

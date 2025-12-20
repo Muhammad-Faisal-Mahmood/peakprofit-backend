@@ -158,6 +158,7 @@ router.post("/login", async (req, res, next) => {
     role: user?.role,
     name: user.name,
     affiliateId: user?.affiliateId,
+    status: user?.status,
   };
   const token = simplejwt.sign(data, process.env.JWT_SECRET, {
     expiresIn: "7d",
@@ -197,6 +198,7 @@ router.post("/login", async (req, res, next) => {
     affiliateStatus: affiliateStatus,
     kyc: kycInfo, // 👈 Added here
     kycApplicationsCount: user?.kycHistory ? user.kycHistory.length : 0,
+    status: user.status,
   };
 
   return sendSuccessResponse(res, "Login Successful", result);

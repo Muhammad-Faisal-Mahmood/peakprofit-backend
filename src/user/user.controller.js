@@ -9,6 +9,7 @@ const role = require("../middleware/role.js");
 const getUser = require("./requests/get.js");
 const updateUser = require("./requests/update.js");
 const removeProfilePicture = require("./requests/removeProfilePicture");
+const tokenParser = require("../middleware/tokenParser.js");
 
 // Response Helpers
 const {
@@ -55,7 +56,7 @@ const upload = multer({
   },
 });
 
-router.get("/get-user", jwt, getUser);
+router.get("/get-user", tokenParser, getUser);
 router.put("/update-user", jwt, upload.single("profilePicture"), updateUser);
 router.delete("/remove-profile-picture", jwt, removeProfilePicture);
 

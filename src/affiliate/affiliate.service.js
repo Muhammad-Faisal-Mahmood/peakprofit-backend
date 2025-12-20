@@ -152,14 +152,6 @@ async function processReferralSignup(referralCode, newUserId) {
       return null;
     }
 
-    const signupCommission = 1; // $1 for signup
-
-    // Get user signup date
-
-    // Add referral record to affiliate (simplified - just increment counters)
-    affiliate.totalReferrals += 1;
-    affiliate.totalEarnings += signupCommission;
-    affiliate.balance += signupCommission;
     await affiliate.addReferral(newUserId);
 
     // Create detailed commission entry
