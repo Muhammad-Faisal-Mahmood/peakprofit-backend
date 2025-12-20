@@ -16,12 +16,12 @@ const getUserKYCStatus = async (req, res) => {
       .populate({
         path: "kycId",
         select:
-          "status dateOfBirth rejectionReason idFrontImage idBackImage createdAt updatedAt legalName",
+          "status dateOfBirth rejectionReason socials idFrontImage idBackImage createdAt updatedAt legalName",
       })
       .populate({
         path: "kycHistory",
         select:
-          "status dateOfBirth rejectionReason idFrontImage idBackImage createdAt updatedAt legalName",
+          "status dateOfBirth rejectionReason socials idFrontImage idBackImage createdAt updatedAt legalName",
         options: { sort: { createdAt: -1 } }, // Latest first
       })
       .select("kycId kycHistory");
@@ -37,6 +37,7 @@ const getUserKYCStatus = async (req, res) => {
         _id: user.kycId._id,
         status: user.kycId.status,
         dateOfBirth: user.kycId.dateOfBirth,
+        socials: user.kycId.socials,
         rejectionReason: user.kycId.rejectionReason,
         legalName: user.kycId.legalName,
         idFrontImageUrl: `${process.env.BACKEND_URL}/uploads/kyc/${user.kycId.idFrontImage}`,
