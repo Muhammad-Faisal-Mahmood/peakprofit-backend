@@ -16,10 +16,12 @@ const updateWithdrawStatus = require("./requests/updateWithdrawStatus");
 const { getCommissionStats } = require("./requests/getCommissionStats");
 const giveUserTradingAccounts = require("./requests/giveUsersTradingAccounts");
 const getUserDetails = require("./requests/getUserDetails");
+const getTradingAccountDetails = require("./requests/getTradingAccountDetails");
 
 router.get("/users", jwt, getAllUsers);
 router.post("/users/give-account", jwt, giveUserTradingAccounts);
 router.get("/users/:userId", jwt, getUserDetails);
+router.get("/users/tradingAccount/:accountId", jwt, getTradingAccountDetails);
 router.get("/subscriptions", jwt, getSubscriptions);
 router.get("/contacts", jwt, getAllContacts);
 router.post("/contacts/:id/reply", jwt, ContactSubmissionReply);
