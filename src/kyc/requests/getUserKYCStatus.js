@@ -53,6 +53,7 @@ const getUserKYCStatus = async (req, res) => {
           status: kyc.status,
           dateOfBirth: kyc.dateOfBirth,
           legalName: kyc.legalName,
+          socials: kyc.socials,
           rejectionReason: kyc.rejectionReason,
           idFrontImageUrl: `${process.env.BACKEND_URL}/uploads/kyc/${kyc.idFrontImage}`,
           idBackImageUrl: `${process.env.BACKEND_URL}/uploads/kyc/${kyc.idBackImage}`,
