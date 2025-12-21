@@ -57,7 +57,7 @@ async function createAccount({
     maxDrawdownLimit,
     profitTarget,
     minTradingDays,
-    status: accountType == "demo" ? "active" : "passed",
+    status: "active",
     openPositions: [],
     closedPositions: [],
     currentDayEquity: initialBalance,

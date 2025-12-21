@@ -154,6 +154,12 @@ async function createPayoutReadyAccount() {
     });
 
     await testAccount.save();
+
+    await User.findByIdAndUpdate(
+      userId,
+      { $push: { accounts: testAccount._id } },
+      { new: true }
+    );
     console.log(`✅ Created payout-ready account: ${testAccount._id}`);
 
     // ===== 4. Verify payout eligibility =====
