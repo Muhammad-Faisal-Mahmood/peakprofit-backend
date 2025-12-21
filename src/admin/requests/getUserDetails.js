@@ -30,7 +30,7 @@ const getUserDetails = async (req, res) => {
       profilePicture: user.profilePicture || "",
       name: user.name,
       status: user.status,
-      joinedAt: user.createdAt
+      joinedAt: user.createdAt,
     };
 
     if (user?.affiliateId) {
@@ -61,7 +61,13 @@ const getUserDetails = async (req, res) => {
     }
 
     if (user.accounts.length > 0) {
-      const accounts = await Account.find({ _id: { $in: user.accounts } });
+      const accounts = await Account.find({
+        _id: { $in: user.accounts },
+      }).populate({
+        path: "payoutHistory",
+        model: "Withdraw",
+        options: { sort: { requestedDate: -1 } }, // Sort by most recent
+      });
       result.accounts = accounts;
     } else result.accounts = [];
     return sendSuccessResponse(

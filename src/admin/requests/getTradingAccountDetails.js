@@ -44,7 +44,6 @@ const getTradingAccountDetails = async (req, res) => {
     // Fetch payout history
     const payoutHistory = await Withdraw.find({
       accountId,
-      status: { $in: ["APPROVED", "PAID"] }, // Only approved/paid withdrawals
     })
       .sort({ requestedDate: -1 })
       .lean();
