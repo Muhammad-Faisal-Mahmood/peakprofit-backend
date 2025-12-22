@@ -6,7 +6,7 @@ const {
 } = require("../../shared/response.service");
 const mongoose = require("mongoose");
 
-module.exports = addTicketNote = async (req, res) => {
+const addTicketNote = async (req, res) => {
   try {
     const { id } = req.params;
     const { note } = req.body;
@@ -62,3 +62,5 @@ module.exports = addTicketNote = async (req, res) => {
     return sendErrorResponse(res, "Failed to add internal note");
   }
 };
+
+module.exports = addTicketNote;

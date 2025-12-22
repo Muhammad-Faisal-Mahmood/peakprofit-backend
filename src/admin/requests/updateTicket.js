@@ -5,8 +5,7 @@ const {
   sendErrorResponse,
 } = require("../../shared/response.service");
 const mongoose = require("mongoose");
-
-module.exports = updateTicket = async (req, res) => {
+const updateTicket = async (req, res) => {
   try {
     const { id } = req.params;
     const { status, priority } = req.body;
@@ -79,3 +78,5 @@ module.exports = updateTicket = async (req, res) => {
     return sendErrorResponse(res, "Failed to update ticket");
   }
 };
+
+module.exports = updateTicket;

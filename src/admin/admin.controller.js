@@ -20,6 +20,11 @@ const getTradingAccountDetails = require("./requests/getTradingAccountDetails");
 const setUserStatus = require("./requests/setUserStatus");
 const updateTradingAccountStatus = require("./requests/updateTradingAccountStatus");
 const promoteDemoToLive = require("./requests/promoteDemoToLive");
+const addTicketNote = require("./requests/addTicketNote");
+const updateTicket = require("./requests/updateTicket");
+const getAllTickets = require("./requests/getAllTickets");
+const reviewKYCApplication = require("./requests/reviewKYCApplication");
+const getAllKYCApplications = require("./requests/getAllKYCApplications");
 
 router.get("/users", jwt, getAllUsers);
 router.post("/users/give-account", jwt, giveUserTradingAccounts);
@@ -49,19 +54,11 @@ router.get("/affiliateWithdraws", jwt, getAllAffiliateWithdraws);
 router.get("/payoutStats", jwt, getPayoutStats);
 router.put("/updateWithdrawStatus/:withdrawId", jwt, updateWithdrawStatus);
 router.get("/commissionStats", jwt, getCommissionStats);
-router.get(
-  "/kycApplications",
-  jwt,
-  require("./requests/getAllKYCApplications")
-);
-router.put(
-  "/reviewKYCApplication/:kycId",
-  jwt,
-  require("./requests/reviewKYCApplication")
-);
+router.get("/kycApplications", jwt, getAllKYCApplications);
+router.put("/reviewKYCApplication/:kycId", jwt, reviewKYCApplication);
 
-router.get("/tickets", jwt, require("./requests/getAllTickets"));
-router.put("/updateTicket/:id", jwt, require("./requests/updateTicket"));
-router.post("/ticketNote/:id", jwt, require("./requests/addTicketNote"));
+router.get("/tickets", jwt, getAllTickets);
+router.put("/updateTicket/:id", jwt, updateTicket);
+router.post("/ticketNote/:id", jwt, addTicketNote);
 
 module.exports = router;
