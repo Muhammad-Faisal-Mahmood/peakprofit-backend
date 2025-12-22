@@ -197,16 +197,12 @@ AccountSchema.methods.canRequestPayout = function () {
 AccountSchema.methods.getAvailablePayoutAmount = function () {
   const profit = this.balance - this.initialBalance;
 
-  if (profit <= 0) {
+  if (profit <= 0 || profit < 100) {
     return 0;
   }
 
-  if (!this.hasReceivedFirstPayout) {
-    return profit * 0.5;
-  }
-
   // Return 85% of the profit
-  return profit * 0.85;
+  return profit;
 };
 
 // NEW: Method to reset drawdown limits after first payout

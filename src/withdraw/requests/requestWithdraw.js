@@ -98,8 +98,14 @@ const requestWithdraw = async (req, res) => {
             2
           )}) exceeds available payout amount ($${availablePayoutAmount.toFixed(
             2
-          )}). You can withdraw up to 85% of your profit`
+          )})`
         );
+      }
+      let payable = 0;
+      if (account.payoutHistory.length > 0) {
+        payable = amount * 0.85;
+      } else {
+        payable = amount * 0.5;
       }
 
       // Create withdrawal data
@@ -111,6 +117,7 @@ const requestWithdraw = async (req, res) => {
         accountId: account._id,
         notes: notes.trim(),
         requestedDate: new Date(),
+        payable: payable,
       };
 
       const newWithdraw = new Withdraw(withdrawData);
@@ -162,6 +169,7 @@ const requestWithdraw = async (req, res) => {
         affiliateId: affiliate._id,
         notes: notes.trim(),
         requestedDate: new Date(),
+        payable: amount,
       };
 
       const newWithdraw = new Withdraw(withdrawData);

@@ -72,6 +72,11 @@ const withdrawSchema = new Schema(
       required: true,
       min: 0,
     },
+    payable: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
     status: {
       type: String,
       enum: ["PENDING", "APPROVED", "DENIED", "PAID"],

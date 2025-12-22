@@ -248,7 +248,7 @@ const getAllAffiliateWithdraws = async (req, res) => {
               status: account.status,
             }
           : null,
-
+        payable: withdraw?.payable,
         // Payment Method Details
         paymentMethod: {
           type: withdraw.paymentMethod.type,
