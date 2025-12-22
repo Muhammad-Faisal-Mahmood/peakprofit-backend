@@ -91,6 +91,23 @@ const AccountSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+
+    liveAccountId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Account",
+      default: null,
+    },
+    demoAccountId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Account",
+      default: null,
+    },
+
+    promotionReason: {
+      type: String,
+      enum: ["profitTargetReached", "adminPromotion"],
+      default: null,
+    },
   },
   { timestamps: true }
 );
@@ -314,7 +331,7 @@ AccountSchema.methods.processPayout = async function (withdrawId, amount) {
 
   if (availablePayout > 0 && amount === availablePayout) {
     this.status = "closed";
-    accountLiquidatorWrapper(this._id.toString(), "maxSplit", this.equity);
+    accountLiquidatorWrapper(this._id.toString(), "maxSplit");
   }
 
   return this.save();

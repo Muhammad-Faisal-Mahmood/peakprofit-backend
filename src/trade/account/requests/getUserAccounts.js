@@ -4,6 +4,7 @@ const {
   sendSuccessResponse,
   sendErrorResponse,
 } = require("../../../shared/response.service");
+const User = require("../../../user/user.model");
 require("../../trade.model");
 
 // 1️⃣ Get all accounts of a specific user
@@ -15,17 +16,27 @@ async function getUserAccounts(req, res) {
       return sendErrorResponse(res, "User ID is required.");
     }
 
+    const user = await User.findById(userId).populate({
+      path: "accounts",
+      populate: [
+        { path: "openPositions" },
+        { path: "closedPositions" },
+        { path: "pendingOrders" },
+        { path: "cancelledOrders" },
+        {
+          path: "challengeId",
+          select: "name cost accountSize",
+        },
+      ],
+      options: { sort: { createdAt: -1 } },
+    });
+
+    if (!user) {
+      return sendErrorResponse(res, "User not found.");
+    }
+
     // Get all accounts for the user
-    const accounts = await Account.find({ userId })
-      .populate("openPositions")
-      .populate("closedPositions")
-      .populate("pendingOrders")
-      .populate("cancelledOrders")
-      .populate({
-        path: "challengeId",
-        select: "name cost accountSize",
-      })
-      .sort({ createdAt: -1 });
+    const accounts = user.accounts;
 
     // Get selected account for the user
     const selectedAccount = await SelectedAccount.findOne({ userId }).populate(

@@ -327,23 +327,36 @@ async function handleAccountLiquidation(
   console.log(
     `[LIQUIDATION] Found ${tradesToClose.length} open trades in MongoDB for account ${accountId}`
   );
-
+  const riskData = await redis.getAccountRisk(accountId);
+  let fallbackEquity = riskData.currentEquity;
   // Update the Account status to 'failed' atomically
+
+  let accountStatus;
+  if (violationRule === "maxSplit" || violationRule === "accountPromoted") {
+    accountStatus = "closed";
+  } else if (violationRule === "accountSuspended") {
+    accountStatus = "suspended";
+  } else {
+    accountStatus = "failed";
+  }
   const updatedAccount = await Account.findByIdAndUpdate(
     accountId,
     {
-      status: violationRule === "maxSplit" ? "closed" : "failed",
-      equity: finalEquity,
+      status: accountStatus,
+      equity: finalEquity ? finalEquity : fallbackEquity,
     },
     { new: true }
   ).populate("userId", "name email");
 
-  const closureReason =
-    violationRule === "dailyDrawdown"
-      ? "dailyDrawdownViolated"
-      : violationRule === "maxSplit"
-      ? "maxSplitTaken"
-      : "maxDrawdownViolated";
+  const closureReasonMap = {
+    dailyDrawdown: "dailyDrawdownViolated",
+    maxDrawdown: "maxDrawdownViolated",
+    maxSplit: "maxSplitTaken",
+    accountSuspended: "accountSuspended",
+    accountPromoted: "accountPromotedToLive",
+  };
+
+  const closureReason = closureReasonMap[violationRule];
 
   await cancelAllPendingOrders(accountId, closureReason);
 

@@ -99,7 +99,10 @@ async function closeTradeService(trade, currentPrice, reason) {
       ` [closeTrade] Account ${accountId} qualifies for promotion. Initiating promotion process...`
     );
 
-    const promotionResult = await promoteAccountToLive(accountId.toString());
+    const promotionResult = await promoteAccountToLive(
+      accountId.toString(),
+      "profitTargetReached"
+    );
 
     // Return promotion result instead of trade
     return {

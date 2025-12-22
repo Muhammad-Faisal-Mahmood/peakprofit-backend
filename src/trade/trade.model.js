@@ -141,6 +141,8 @@ const tradeSchema = new Schema(
         "dailyDrawdownViolated",
         "maxDrawdownViolated",
         "maxSplitTaken",
+        "accountSuspended",
+        "accountPromotedToLive",
       ],
     },
   },

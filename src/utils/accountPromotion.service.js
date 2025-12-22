@@ -1,13 +1,14 @@
 const Account = require("../trade/account/account.model");
-const Trade = require("../trade/trade.model");
-const redis = require("./redis.helper");
+const User = require("../user/user.model");
+const createAccount = require("./createAccount");
+const accountLiquidatorWrapper = require("./accountLiquidatorWrapper");
 
 /**
  * Promotes a demo account to live after passing challenge requirements
  * @param {String} accountId - The account ID to promote
  * @returns {Object} Promotion result with status and message
  */
-async function promoteAccountToLive(accountId) {
+async function promoteAccountToLive(accountId, promotionReason) {
   try {
     console.log(
       `[AccountPromotion] 🎉 Starting promotion process for account ${accountId}`
@@ -18,98 +19,67 @@ async function promoteAccountToLive(accountId) {
       throw new Error(`Account ${accountId} not found`);
     }
 
-    // ✅ Step 1: Delete ALL trades associated with this account from MongoDB
-    const deleteResult = await Trade.deleteMany({ accountId: accountId });
-    console.log(
-      `[AccountPromotion] Deleted ${deleteResult.deletedCount} demo trades`
-    );
-
-    // ✅ Step 2: Clean up ALL Redis data for this account
-    await redis.deleteAccountRisk(accountId.toString());
-    await redis.deleteAllTradePnLs(accountId.toString());
-    await redis.deleteAccountSymbols(accountId.toString());
-    console.log(
-      `  [AccountPromotion] Deleted account risk and PnL data from Redis`
-    );
-
-    // ✅ Step 3: Delete all open trades from Redis
-    const redisOpenTrades = await redis.getOpenTradesByAccount(
-      accountId.toString()
-    );
-    for (const redisTrade of redisOpenTrades) {
-      await redis.deleteOpenTrade(redisTrade._id);
-      console.log(
-        ` [AccountPromotion] Deleted Redis open trade: ${redisTrade._id}`
-      );
-    }
-
-    // ✅ Step 4: Delete all pending orders from Redis
-    const redisPendingOrders = await redis.getPendingOrdersByAccount(
-      accountId.toString()
-    );
-    for (const order of redisPendingOrders) {
-      await redis.deletePendingOrder(
-        order._id,
-        accountId.toString(),
-        order.symbol
-      );
-      console.log(
-        `[AccountPromotion] Deleted Redis pending order: ${order._id}`
-      );
-    }
-
-    // ✅ Step 5: Update account to live with complete reset
-    account.accountType = "live";
-    account.status = "active";
-    account.activelyTradedDays = 0;
-    account.minTradingDays = 5;
-    account.balance = account.initialBalance;
-    account.equity = account.initialBalance;
-
-    // Reset all trade arrays
-    account.openPositions = [];
-    account.closedPositions = [];
-    account.pendingOrders = [];
-    account.cancelledOrders = [];
-    account.dailyProfits = [];
-
-    // Reset margins
-    account.marginUsed = 0;
-    account.pendingMargin = 0;
-    account.lastTradeTimestamp = null;
-    account.dailyDrawdownLimit = account.initialBalance * 0.02; // 2%
-    account.maxDrawdownLimit = account.initialBalance * 0.06; // 6%
-    account.currentDayEquity = account.initialBalance;
-
+    account.promotionReason = promotionReason;
     await account.save();
-    console.log(`[AccountPromotion] Account updated to LIVE status`);
 
-    // ✅ Step 6: Initialize fresh Redis data for live account
-    const maxDrawdownThreshold =
-      account.initialBalance - account.initialBalance * 0.06;
-    await redis.setAccountRisk(accountId.toString(), {
-      initialBalance: account.initialBalance,
-      dailyDrawdownLimit: account.dailyDrawdownLimit,
-      maxDrawdownLimit: account.maxDrawdownLimit,
-      currentBalance: account.initialBalance,
-      currentEquity: account.initialBalance,
-      currentDailyLoss: 0,
-      highestEquity: account.initialBalance,
-      maxDrawdownThreshold,
-      currentDayEquity: account.initialBalance,
-    });
-    console.log(`[AccountPromotion] Initialized fresh Redis data`);
+    console.log(`[AccountPromotion] Set promotion reason: ${promotionReason}`);
 
-    console.log(
-      `[AccountPromotion] ✅ Account ${accountId} successfully promoted to LIVE. All demo data cleared. Starting fresh with balance: ${account.initialBalance}`
+    // ✅ Step 1: Call liquidation function to close all trades and cancel pending orders
+    await accountLiquidatorWrapper(
+      accountId,
+      "accountPromoted",
+      null,
+      null // No specific price data for promotion
     );
 
+    console.log(
+      `[AccountPromotion] All trades closed and pending orders cancelled`
+    );
+
+    // ✅ Step 2: Create new live account
+    const newLiveAccount = await createAccount({
+      userId: account.userId,
+      challengeId: account.challengeId || null,
+      accountSize: account.challengeId ? undefined : account.initialBalance,
+      accountType: "live",
+    });
+
+    console.log(
+      `[AccountPromotion] Created new live account: ${newLiveAccount._id}`
+    );
+
+    // ✅ Step 3: Link the demo and live accounts
+    // Update the new live account with the demo account reference
+    newLiveAccount.demoAccountId = accountId;
+    await newLiveAccount.save();
+
+    // Update the demo account with the live account reference
+    account.liveAccountId = newLiveAccount._id;
+    await account.save();
+
+    console.log(
+      `[AccountPromotion] Linked demo account ${accountId} with live account ${newLiveAccount._id}`
+    );
+
+    console.log(
+      `[AccountPromotion] ✅ Account ${accountId} successfully promoted to LIVE. New live account created: ${newLiveAccount._id}`
+    );
+
+    await User.findByIdAndUpdate(
+      account.userId,
+      { $pull: { accounts: accountId } },
+      { new: true }
+    );
+
+    console.log(
+      "[AccountPromotion] Removed demo account from user's account list"
+    );
     return {
       success: true,
       promoted: true,
-      message: "Account promoted to live. All demo trades deleted.",
-      accountId: accountId,
-      newBalance: account.initialBalance,
+      message: "Account promoted to live.",
+      accountId: newLiveAccount._id,
+      newBalance: newLiveAccount.initialBalance,
       accountType: "live",
       status: "active",
     };

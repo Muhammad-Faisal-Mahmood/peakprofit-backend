@@ -21,7 +21,7 @@ async function runSeeder() {
 
     console.log("✅ Connected to database");
 
-    const userId = "6931a29de6b608e4df8b5d43";
+    const userId = "693c46dc3f6918aeb92c9927";
     const initialBalance = 100000;
 
     // PeakProfit rules
