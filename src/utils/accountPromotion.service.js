@@ -55,6 +55,7 @@ async function promoteAccountToLive(accountId, promotionReason) {
 
     // Update the demo account with the live account reference
     account.liveAccountId = newLiveAccount._id;
+    account.status = "closed";
     await account.save();
 
     console.log(

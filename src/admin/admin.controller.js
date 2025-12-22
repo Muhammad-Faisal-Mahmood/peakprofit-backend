@@ -19,6 +19,7 @@ const getUserDetails = require("./requests/getUserDetails");
 const getTradingAccountDetails = require("./requests/getTradingAccountDetails");
 const setUserStatus = require("./requests/setUserStatus");
 const updateTradingAccountStatus = require("./requests/updateTradingAccountStatus");
+const promoteDemoToLive = require("./requests/promoteDemoToLive");
 
 router.get("/users", jwt, getAllUsers);
 router.post("/users/give-account", jwt, giveUserTradingAccounts);
@@ -26,6 +27,7 @@ router.get("/users/:userId", jwt, getUserDetails);
 router.get("/users/tradingAccount/:accountId", jwt, getTradingAccountDetails);
 router.put("/users/tradingAccount/status", jwt, updateTradingAccountStatus);
 router.post("/users/setStatus", jwt, setUserStatus);
+router.post("/users/tradingAccount/promoteDemoToLive", jwt, promoteDemoToLive);
 router.get("/subscriptions", jwt, getSubscriptions);
 router.get("/contacts", jwt, getAllContacts);
 router.post("/contacts/:id/reply", jwt, ContactSubmissionReply);

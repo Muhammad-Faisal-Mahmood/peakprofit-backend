@@ -328,7 +328,7 @@ async function handleAccountLiquidation(
     `[LIQUIDATION] Found ${tradesToClose.length} open trades in MongoDB for account ${accountId}`
   );
   const riskData = await redis.getAccountRisk(accountId);
-  let fallbackEquity = riskData.currentEquity;
+  let fallbackEquity = riskData?.currentEquity;
   // Update the Account status to 'failed' atomically
 
   let accountStatus;
@@ -339,14 +339,15 @@ async function handleAccountLiquidation(
   } else {
     accountStatus = "failed";
   }
-  const updatedAccount = await Account.findByIdAndUpdate(
-    accountId,
-    {
-      status: accountStatus,
-      equity: finalEquity ? finalEquity : fallbackEquity,
-    },
-    { new: true }
-  ).populate("userId", "name email");
+
+  const equityToSet = finalEquity ?? fallbackEquity;
+  const update = {
+    status: accountStatus,
+    ...(equityToSet !== undefined && { equity: equityToSet }),
+  };
+  const updatedAccount = await Account.findByIdAndUpdate(accountId, update, {
+    new: true,
+  }).populate("userId", "name email");
 
   const closureReasonMap = {
     dailyDrawdown: "dailyDrawdownViolated",
