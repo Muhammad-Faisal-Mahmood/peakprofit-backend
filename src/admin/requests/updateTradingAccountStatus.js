@@ -3,6 +3,7 @@ const {
   sendErrorResponse,
 } = require("../../shared/response.service");
 const Account = require("../../trade/account/account.model");
+const accountLiquidatorWrapper = require("../../utils/accountLiquidatorWrapper");
 
 const updateTradingAccountStatus = async (req, res) => {
   try {
@@ -34,6 +35,11 @@ const updateTradingAccountStatus = async (req, res) => {
     }
     account.status = status;
     const updatedAccount = await account.save();
+
+    if (status === "suspended") {
+      await accountLiquidatorWrapper(accountId, "accountSuspended", null, null);
+    }
+
     sendSuccessResponse(
       res,
       "Trading account status updated successfully.",

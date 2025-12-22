@@ -94,7 +94,7 @@ async function closeTradeService(trade, currentPrice, reason) {
 
   // ✅ Check if account should be promoted (AFTER saving everything)
   const freshAccount = await Account.findById(accountId); // Get fresh account data
-  if (shouldPromoteAccount(freshAccount)) {
+  if (reason != "accountSuspended" && shouldPromoteAccount(freshAccount)) {
     console.log(
       ` [closeTrade] Account ${accountId} qualifies for promotion. Initiating promotion process...`
     );
