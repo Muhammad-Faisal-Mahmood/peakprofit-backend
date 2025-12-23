@@ -4,6 +4,7 @@ const path = require("path");
 
 const mongoose = require("mongoose");
 const Account = require("./trade/account/account.model");
+const User = require("./user/user.model");
 
 require("dotenv").config({
   path: path.resolve(__dirname, "..", ".env"),
@@ -65,6 +66,12 @@ async function runSeeder() {
       pendingMargin: 0,
     });
 
+    const user = await User.findById(userId);
+    if (!user) throw new Error("User not found!");
+
+    user.accounts.push(account._id);
+    await user.save();
+    console.log("\n🎉 account pushed in user accounts array");
     console.log("\n🎉 Seeder Complete!");
     console.log("Created 100K demo-ready account:");
     console.log("Account ID:", account._id);
