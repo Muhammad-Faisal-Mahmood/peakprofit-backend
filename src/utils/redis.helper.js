@@ -12,6 +12,8 @@ const KEYS = {
   ACCOUNT_PENDING_ORDERS: (accountId) => `account:pending:${accountId}`,
   SYMBOL_PENDING_ORDERS: (symbol) => `symbol:pending:${symbol}`,
   SYMBOL_PRICE: (symbol) => `symbol:price:${symbol}`,
+  INACTIVE_USER: (userId) => `user:inactive:${userId}`,
+  INACTIVE_USERS_SET: "users:inactive:set",
 };
 
 async function setOpenTrade(tradeId, tradeData) {
@@ -276,6 +278,26 @@ async function getSymbolPrice(symbol) {
   return data ? JSON.parse(data) : null;
 }
 
+async function addInactiveUser(userId) {
+  const key = KEYS.INACTIVE_USER(userId);
+  await client.set(key, "1"); // No TTL - persists indefinitely
+  await client.sAdd(KEYS.INACTIVE_USERS_SET, userId.toString());
+  console.log(`[Redis] Added inactive user: ${userId}`);
+}
+
+async function removeInactiveUser(userId) {
+  const key = KEYS.INACTIVE_USER(userId);
+  await client.del(key);
+  await client.sRem(KEYS.INACTIVE_USERS_SET, userId.toString());
+  console.log(`[Redis] Removed inactive user: ${userId}`);
+}
+
+async function isUserInactive(userId) {
+  const key = KEYS.INACTIVE_USER(userId);
+  const exists = await client.exists(key);
+  return exists === 1;
+}
+
 module.exports = {
   // Trade operations
   setOpenTrade,
@@ -316,6 +338,11 @@ module.exports = {
 
   setSymbolPrice,
   getSymbolPrice,
+
+  //inactive users
+  addInactiveUser,
+  removeInactiveUser,
+  isUserInactive,
   //flush db
   clearAll,
 };

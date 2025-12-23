@@ -3,6 +3,10 @@ const {
   sendSuccessResponse,
   sendErrorResponse,
 } = require("../../shared/response.service");
+const {
+  addInactiveUser,
+  removeInactiveUser,
+} = require("../../utils/redis.helper");
 
 const setUserStatus = async (req, res) => {
   try {
@@ -34,6 +38,12 @@ const setUserStatus = async (req, res) => {
 
     user.status = status;
     await user.save();
+
+    if (status === "Inactive") {
+      await addInactiveUser(userId);
+    } else {
+      await removeInactiveUser(userId);
+    }
     sendSuccessResponse(res, "User status updated successfully.", user);
   } catch (error) {
     sendErrorResponse(res, "Error updating user status.");
