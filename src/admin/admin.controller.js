@@ -25,7 +25,9 @@ const updateTicket = require("./requests/updateTicket");
 const getAllTickets = require("./requests/getAllTickets");
 const reviewKYCApplication = require("./requests/reviewKYCApplication");
 const getAllKYCApplications = require("./requests/getAllKYCApplications");
+const getUserKYCHistory = require("./requests/getUserKYCHistory");
 
+router.get("/kycHistory/:userId", jwt, getUserKYCHistory);
 router.get("/users", jwt, getAllUsers);
 router.post("/users/give-account", jwt, giveUserTradingAccounts);
 router.get("/users/:userId", jwt, getUserDetails);
