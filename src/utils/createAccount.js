@@ -8,6 +8,7 @@ async function createAccount({
   challengeId,
   accountType = "demo",
   accountSize,
+  profit = 0,
 }) {
   if (!userId) {
     throw new Error("User ID is required.");
@@ -48,10 +49,10 @@ async function createAccount({
     challengeId: challengeId || null,
     accountType,
     initialBalance,
-    balance: initialBalance,
-    equity: initialBalance,
+    balance: initialBalance + profit,
+    equity: initialBalance + profit,
     marginUsed: 0,
-    freeMargin: initialBalance,
+    freeMargin: initialBalance + profit,
     leverage,
     dailyDrawdownLimit,
     maxDrawdownLimit,
@@ -60,7 +61,7 @@ async function createAccount({
     status: "active",
     openPositions: [],
     closedPositions: [],
-    currentDayEquity: initialBalance,
+    currentDayEquity: initialBalance + profit,
   });
 
   await User.findByIdAndUpdate(
