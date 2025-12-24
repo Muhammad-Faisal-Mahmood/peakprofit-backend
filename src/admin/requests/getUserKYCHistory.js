@@ -3,11 +3,11 @@ const {
   sendSuccessResponse,
   sendErrorResponse,
 } = require("../../shared/response.service");
+const userKYCData = require("../../utils/userKYCData");
 
 const getUserKYCHistory = async (req, res) => {
   try {
     const { userId } = req.params;
-    console.log("Fetching KYC history for userId:", userId);
     if (req.user.role !== "Admin") {
       return sendErrorResponse(
         res,
@@ -18,18 +18,11 @@ const getUserKYCHistory = async (req, res) => {
       return sendErrorResponse(res, "User ID is required.");
     }
 
-    const user = await User.findById(userId).populate({
-      path: "kycHistory",
-      model: "KYC",
-    });
-
-    if (!user) {
-      return sendErrorResponse(res, "User not found.");
-    }
+    const kycData = await userKYCData(userId);
     return sendSuccessResponse(
       res,
       "KYC history fetched successfully.",
-      user.kycHistory
+      kycData
     );
   } catch (error) {
     console.log("Error fetching KYC history:", error.message);
