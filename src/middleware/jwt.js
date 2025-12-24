@@ -7,7 +7,6 @@ module.exports = async (req, res, next) => {
     const user = JWT.verify(token, process.env.JWT_SECRET);
     req.user = user;
     const inactive = await isUserInactive(user.userId);
-    console.log("Inactive status:", inactive);
     if (inactive) {
       return res.status(403).json({
         code: 403,
