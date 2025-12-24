@@ -8,6 +8,7 @@ const Account = require("../../trade/account/account.model");
 const User = require("../../user/user.model");
 const path = require("path");
 const { sendEmail } = require("../../shared/mail.service");
+const formatDate = require("../../utils/formatDate");
 
 const updateWithdrawStatus = async (req, res) => {
   const VALID_STATUSES = ["APPROVED", "DENIED", "PAID"];
@@ -19,7 +20,7 @@ const updateWithdrawStatus = async (req, res) => {
     }
 
     const { withdrawId } = req.params;
-    const { status, transactionRef } = req.body;
+    const { status, transactionRef, rejectionReason } = req.body;
 
     // Validate status
     if (!status || !VALID_STATUSES.includes(status.toUpperCase())) {
@@ -91,6 +92,32 @@ const updateWithdrawStatus = async (req, res) => {
         return sendErrorResponse(res, "Account not found for this withdraw");
       }
       await account.processRejectedPayout(withdraw.amount);
+
+      const user = await User.findById(account.userId);
+      const freshAccount = await Account.findById(withdraw.accountId);
+
+      const replacementObject = {
+        first_name: user.name.split(" ")[0],
+        funded_account_size: freshAccount.initialBalance,
+        funded_account_currency: "$",
+        funded_account_type: freshAccount.accountType,
+        server_name: "PeakMarkets-Live",
+        payout_amount: withdraw.amount,
+        payout_currency: "$",
+        payout_method: withdraw.paymentMethod.type,
+        payout_reference: withdraw._id || "N/A",
+        payout_request_date: formatDate(withdraw.requestedDate),
+        decline_reason: rejectionReason || "Not specified",
+        can_resubmit: freshAccount.canRequestPayout().eligible,
+        year: new Date().getFullYear(),
+        unsubscribe_url: "#",
+        decline_date: formatDate(new Date()),
+      };
+
+      await sendPayoutDeclinedEmail(user.email, replacementObject);
+      if (rejectionReason) {
+        withdraw.rejectionReason = rejectionReason;
+      }
     } else if (withdraw.accountId && uppercaseStatus === "APPROVED") {
       const account = await Account.findById(withdraw.accountId);
       if (!account) {
@@ -110,8 +137,8 @@ const updateWithdrawStatus = async (req, res) => {
         payout_amount: withdraw.amount,
         payout_currency: "$",
         payout_method: withdraw.paymentMethod.type,
-        payout_reference: transactionRef || "N/A",
-        payout_date: withdraw.requestedDate,
+        payout_reference: withdraw._id,
+        payout_date: formatDate(withdraw.requestedDate),
         processing_time: "1-5 business days",
         trader_share: withdraw?.payable,
         firm_share: withdraw.amount - withdraw?.payable,
@@ -121,9 +148,11 @@ const updateWithdrawStatus = async (req, res) => {
         remaining_profit: account.balance - account.initialBalance,
         year: new Date().getFullYear(),
         unsubscribe_url: "#",
-        next_payout_date: new Date(
-          new Date(account.lastPayoutDate).setDate(
-            new Date(account.lastPayoutDate).getDate() + 5
+        next_payout_date: formatDate(
+          new Date(
+            new Date(account.lastPayoutDate).setDate(
+              new Date(account.lastPayoutDate).getDate() + 5
+            )
           )
         ),
         scaling_eligible: "-",
@@ -239,8 +268,32 @@ async function sendPayoutApprovalEmail(email, replacements) {
 
     console.log(`payout approval email sent to ${email}`);
   } catch (error) {
-    console.error("Error sending KYC approval email:", error);
+    console.error("Error sending payout approval email:", error);
     throw error;
   }
 }
+
+async function sendPayoutDeclinedEmail(email, replacements) {
+  try {
+    const template = path.join(
+      __dirname,
+      "..",
+      "mails",
+      "traderPayoutDeclined.html"
+    );
+
+    await sendEmail(
+      "Your Payout Has Been Declined ",
+      template,
+      email,
+      replacements
+    );
+
+    console.log(`payout decline email sent to ${email}`);
+  } catch (error) {
+    console.error("Error sending payout decline email:", error);
+    throw error;
+  }
+}
+
 module.exports = updateWithdrawStatus;

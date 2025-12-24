@@ -114,6 +114,12 @@ const withdrawSchema = new Schema(
       type: String,
       trim: true,
     },
+
+    rejectionReason: {
+      type: String,
+      default: null,
+      trim: true,
+    },
   },
   { timestamps: true }
 );

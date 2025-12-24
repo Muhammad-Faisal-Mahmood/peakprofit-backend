@@ -269,6 +269,14 @@ AccountSchema.methods.processPayout = async function (withdrawId, amount) {
     );
   }
 
+  if (this.canRequestPayout().eligible === false) {
+    throw new Error(
+      `Account is not eligible for payout: ${this.canRequestPayout().errors.join(
+        "; "
+      )}`
+    );
+  }
+
   // Deduct the payout amount from balance
   this.balance -= amount;
   this.lastPayoutDate = new Date();
@@ -344,8 +352,8 @@ AccountSchema.methods.processRejectedPayout = async function (amount) {
   this.freeMargin += amount;
 
   // Get current equity from Redis and add the rejected amount back
+  const riskData = await redis.getAccountRisk(this._id);
   try {
-    const riskData = await redis.getAccountRisk(this._id);
     if (riskData && riskData.equity !== undefined) {
       this.equity = riskData.equity + amount; // Add back rejected payout to current equity
     } else {
@@ -365,22 +373,24 @@ AccountSchema.methods.processRejectedPayout = async function (amount) {
     this.lastPayoutDate = null;
 
     // Update Redis to restore original drawdown limits
-    try {
-      await redis.updateAccountRisk(this._id, {
-        balance: this.balance,
-        equity: this.equity,
-        dailyDrawdownLimit: this.dailyDrawdownLimit,
-        maxDrawdownLimit: this.maxDrawdownLimit,
-        maxDrawdownThreshold: this.initialBalance - this.maxDrawdownLimit,
-      });
-      console.log(
-        `[Account] Redis updated after first payout rejection for account ${this._id}`
-      );
-    } catch (error) {
-      console.error(
-        `[Account] Error updating Redis after payout rejection:`,
-        error
-      );
+    if (riskData) {
+      try {
+        await redis.updateAccountRisk(this._id, {
+          balance: this.balance,
+          equity: this.equity,
+          dailyDrawdownLimit: this.dailyDrawdownLimit,
+          maxDrawdownLimit: this.maxDrawdownLimit,
+          maxDrawdownThreshold: this.initialBalance - this.maxDrawdownLimit,
+        });
+        console.log(
+          `[Account] Redis updated after first payout rejection for account ${this._id}`
+        );
+      } catch (error) {
+        console.error(
+          `[Account] Error updating Redis after payout rejection:`,
+          error
+        );
+      }
     }
   } else {
     // Get the last payout date from the previous withdrawal
@@ -389,19 +399,21 @@ AccountSchema.methods.processRejectedPayout = async function (amount) {
     this.lastPayoutDate = lastWithdraw?.requestedDate || null;
 
     // Update Redis with restored balance and equity
-    try {
-      await redis.updateAccountRisk(this._id, {
-        balance: this.balance,
-        equity: this.equity,
-      });
-      console.log(
-        `[Account] Redis updated after subsequent payout rejection for account ${this._id}`
-      );
-    } catch (error) {
-      console.error(
-        `[Account] Error updating Redis after payout rejection:`,
-        error
-      );
+    if (riskData) {
+      try {
+        await redis.updateAccountRisk(this._id, {
+          balance: this.balance,
+          equity: this.equity,
+        });
+        console.log(
+          `[Account] Redis updated after subsequent payout rejection for account ${this._id}`
+        );
+      } catch (error) {
+        console.error(
+          `[Account] Error updating Redis after payout rejection:`,
+          error
+        );
+      }
     }
   }
 

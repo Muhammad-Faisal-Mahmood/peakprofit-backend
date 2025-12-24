@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Your Payout Request Has Been Declined</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- VARIABLE NOTES:
+    {{first_name}}
+    {{funded_account_size}}
+    {{funded_account_currency}}
+    {{funded_account_type}}
+    {{server_name}}
+
+    {{payout_amount}}
+    {{payout_currency}}
+    {{payout_method}}            e.g. "Crypto (USDT-TRC20)", "Bank Transfer"
+    {{payout_reference}}         internal payout ID
+    {{payout_request_date}}      date user requested payout
+    {{decline_date}}             date declined
+
+    {{decline_reason}}     e.g. "Account breached rules", "KYC not completed"
+  //  {{decline_reason_detailed}}  longer human explanation (1–3 sentences)
+
+    {{can_resubmit}}             "Yes" / "No"
+   // {{resubmit_window}}          e.g. "after 7 days", "on your next payout cycle"
+   // {{support_ticket_link}}      URL to support / helpdesk if you have one
+
+    {{year}}
+    {{unsubscribe_url}}
+  -->
+
+    <style type="text/css">
+      body,
+      table,
+      td,
+      a {
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+      }
+      table,
+      td {
+        mso-table-lspace: 0pt;
+        mso-table-rspace: 0pt;
+      }
+      img {
+        -ms-interpolation-mode: bicubic;
+        border: 0;
+        outline: none;
+        text-decoration: none;
+        display: block;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        background: #0a0a12;
+      }
+      0 {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      100 {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .hero-title {
+        animation: fadeInUp 0.7s ease-out both;
+      }
+      .badge-declined {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        background: rgba(248, 113, 113, 0.12);
+        color: #fca5a5;
+        border: 1px solid rgba(248, 113, 113, 0.6);
+      }
+      .btn-primary {
+        transition: all 0.18s ease;
+      }
+      .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(124, 58, 237, 0.35);
+      }
+      .container {
+        width: 100% !important;
+        max-width: 100% !important;
+        border-radius: 0 !important;
+      }
+      .px-24 {
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+      }
+      .py-24 {
+        padding-top: 18px !important;
+        padding-bottom: 18px !important;
+      }
+    </style>
+  </head>
+
+  <body style="margin: 0; padding: 0; background-color: #0a0a12">
+    <table width="100%" cellpadding="0" cellspacing="0" style="padding: 20px 0">
+      <tr>
+        <td align="center">
+          <table
+            cellpadding="0"
+            cellspacing="0"
+            width="100%"
+            class="container"
+            style="
+              max-width: 600px;
+              background: #1a1f3c;
+              border-radius: 14px;
+              overflow: hidden;
+              border: 1px solid #2a2f50;
+            "
+          >
+            <!-- Header -->
+            <tr>
+              <td align="center">
+                <a
+                  href="https://peakprofitfunding.com"
+                  style="text-decoration: none"
+                >
+                  <img
+                    src="https://api.peakprofitfunding.com/images/logo.jpg"
+                    width="170"
+                    style="display: block; margin: 0 auto; padding-top: 20px"
+                    alt="logo"
+                  />
+                </a>
+              </td>
+            </tr>
+
+            <tr>
+              <td align="center" style="padding-top: 8px">
+                <div
+                  style="
+                    font-size: 18px;
+                    line-height: 1.3;
+                    color: #000;
+                    background: #fff;
+                    padding: 4px 12px;
+                    border-radius: 999px;
+                    letter-spacing: 0.16em;
+                    font-weight: bold;
+                    text-transform: uppercase;
+                    display: inline-block;
+                  "
+                >
+                  PEAKPROFITFUNDING
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                align="center"
+                style="
+                  padding-top: 8px;
+                  font-size: 10px;
+                  text-transform: uppercase;
+                  color: #9ca3c7;
+                  letter-spacing: 0.24em;
+                "
+              >
+                Funded Trader Network
+              </td>
+            </tr>
+
+            <!-- Divider -->
+            <tr>
+              <td class="px-24">
+                <hr
+                  style="border: none; border-top: 1px solid #2a2f50; margin: 0"
+                />
+              </td>
+            </tr>
+
+            <!-- Hero -->
+            <tr>
+              <td
+                class="px-24 py-24"
+                style="padding: 24px; font-family: Arial, Helvetica, sans-serif"
+              >
+                <span class="badge-declined">Payout declined</span>
+                <h1
+                  class="hero-title"
+                  style="
+                    margin: 10px 0 8px;
+                    font-size: 22px;
+                    color: #ffffff;
+                    font-weight: bold;
+                  "
+                >
+                  Your payout request could not be processed ⚠
+                </h1>
+                <p
+                  style="
+                    margin: 0;
+                    font-size: 14px;
+                    line-height: 1.6;
+                    color: #d1d5e9;
+                  "
+                >
+                  Hey {{first_name}}, your recent payout request from your
+                  PeakProfit funded account has been <strong>declined</strong>.
+                  Below is exactly what happened and what you can do next.
+                </p>
+              </td>
+            </tr>
+
+            <!-- Section: Funded Account Overview -->
+            <tr>
+              <td class="px-24" style="padding: 0 24px 18px">
+                <table
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="
+                    background: #020617;
+                    border-radius: 10px;
+                    border: 1px solid #2a2f50;
+                  "
+                >
+                  <tr>
+                    <td
+                      style="
+                        padding: 16px 18px;
+                        font-family: Arial, Helvetica, sans-serif;
+                      "
+                    >
+                      <p
+                        style="
+                          margin: 0 0 10px;
+                          font-size: 12px;
+                          text-transform: uppercase;
+                          letter-spacing: 0.12em;
+                          color: #9ca3c7;
+                        "
+                      >
+                        Funded account overview
+                      </p>
+
+                      <table
+                        width="100%"
+                        style="font-size: 13px; color: #e5e7eb"
+                      >
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Account Size
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            <strong
+                              >{{funded_account_currency}}{{funded_account_size}}
+                            </strong>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Account Type
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            <strong>{{funded_account_type}}</strong>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Platform
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            PeakMarkets
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Username
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            <strong>{{first_name}}</strong>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">Server</td>
+                          <td style="padding: 3px 0; text-align: right">
+                            {{server_name}}
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Section: Payout Request Summary -->
+            <tr>
+              <td class="px-24" style="padding: 0 24px 18px">
+                <table
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="
+                    background: #020617;
+                    border-radius: 10px;
+                    border: 1px solid #2a2f50;
+                  "
+                >
+                  <tr>
+                    <td
+                      style="
+                        padding: 16px 18px;
+                        font-family: Arial, Helvetica, sans-serif;
+                      "
+                    >
+                      <p
+                        style="
+                          margin: 0 0 8px;
+                          font-size: 12px;
+                          text-transform: uppercase;
+                          letter-spacing: 0.14em;
+                          color: #9ca3c7;
+                        "
+                      >
+                        Payout request summary
+                      </p>
+
+                      <table
+                        width="100%"
+                        style="font-size: 13px; color: #e5e7eb"
+                      >
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Requested Amount
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            <strong
+                              >{{payout_currency}}{{payout_amount}}
+                            </strong>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Requested Method
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            <strong>{{payout_method}}</strong>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Reference ID
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            <strong>{{payout_reference}}</strong>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Request Date
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            {{payout_request_date}}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Declined On
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            {{decline_date}}
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Section: Why it was declined -->
+            <tr>
+              <td class="px-24" style="padding: 0 24px 18px">
+                <table
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="
+                    background: linear-gradient(135deg, #1f2937, #0a0a12);
+                    border-radius: 10px;
+                    border: 1px solid #b91c1c;
+                  "
+                >
+                  <tr>
+                    <td
+                      style="
+                        padding: 16px 18px;
+                        font-family: Arial, Helvetica, sans-serif;
+                      "
+                    >
+                      <p
+                        style="
+                          margin: 0 0 8px;
+                          font-size: 12px;
+                          text-transform: uppercase;
+                          letter-spacing: 0.14em;
+                          color: #fca5a5;
+                        "
+                      >
+                        Why this payout was declined
+                      </p>
+
+                      <p
+                        style="margin: 0 0 6px; font-size: 13px; color: #fecaca"
+                      >
+                        <strong>Reason:</strong> {{decline_reason}}
+                      </p>
+                      <!-- 
+                      <p
+                        style="
+                          margin: 0;
+                          font-size: 13px;
+                          line-height: 1.6;
+                          color: #fee2e2;
+                        "
+                      >
+                        {{decline_reason_detailed}}
+                      </p> -->
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Section: What to do next -->
+            <tr>
+              <td
+                class="px-24"
+                style="
+                  padding: 0 24px 18px;
+                  font-family: Arial, Helvetica, sans-serif;
+                "
+              >
+                <p
+                  style="
+                    margin: 0 0 6px;
+                    font-size: 12px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.14em;
+                    color: #9ca3c7;
+                  "
+                >
+                  What happens next
+                </p>
+
+                <p
+                  style="
+                    margin: 0;
+                    font-size: 13px;
+                    line-height: 1.65;
+                    color: #d1d5e9;
+                  "
+                >
+                  {{#if can_resubmit}} You may be able to request another payout
+                  once the issue is resolved. {{else}} This payout cannot be
+                  reprocessed in its current state. {{/if}}
+                </p>
+
+                <ul
+                  style="
+                    margin: 6px 0 12px 20px;
+                    padding: 0;
+                    font-size: 13px;
+                    line-height: 1.65;
+                    color: #d1d5e9;
+                  "
+                >
+                  <li>
+                    Review your account status and recent trades in your Client
+                    Area.
+                  </li>
+                  <li>
+                    If the decline is related to rules (drawdown, consistency,
+                    instruments), compare your activity with the Rulebook.
+                  </li>
+                  <li>
+                    If the decline is related to KYC or payment method, complete
+                    any pending verification steps.
+                  </li>
+                </ul>
+              </td>
+            </tr>
+
+            <!-- Section: Rules Reminder -->
+            <tr>
+              <td
+                class="px-24"
+                style="
+                  padding: 0 24px 18px;
+                  font-family: Arial, Helvetica, sans-serif;
+                "
+              >
+                <p
+                  style="
+                    margin: 0 0 6px;
+                    font-size: 12px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.14em;
+                    color: #9ca3c7;
+                  "
+                >
+                  Common reasons payouts are declined
+                </p>
+
+                <ul
+                  style="
+                    margin: 0 0 8px 20px;
+                    padding: 0;
+                    font-size: 13px;
+                    line-height: 1.65;
+                    color: #d1d5e9;
+                  "
+                >
+                  <li>
+                    Open trades or equity breaching daily / max drawdown limits
+                    prior to payout.
+                  </li>
+                  <li>
+                    Trading instruments outside the allowed list (only
+                    <strong>Crypto pairs</strong> &amp;
+                    <strong>FX pairs</strong> are permitted).
+                  </li>
+                  <li>
+                    Use of disallowed EAs / algos (arbitrage, latency
+                    exploitation, HFT, grid/martingale, etc.).
+                  </li>
+                  <li>Incomplete or expired KYC / compliance checks.</li>
+                  <li>
+                    Incorrect payout details or unsupported payout method info.
+                  </li>
+                </ul>
+
+                <p style="margin: 0; font-size: 12px; color: #9ca3c7">
+                  For exact conditions, always refer to the official
+                  <a
+                    href="https://peakprofitfunding.com/rules"
+                    style="color: #7c3aed; text-decoration: none"
+                  >
+                    PeakProfit Rulebook </a
+                  >.
+                </p>
+              </td>
+            </tr>
+
+            <!-- Section: Need Help -->
+            <tr>
+              <td
+                class="px-24"
+                style="
+                  padding: 0 24px 18px;
+                  font-family: Arial, Helvetica, sans-serif;
+                "
+              >
+                <p
+                  style="
+                    margin: 0 0 6px;
+                    font-size: 12px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.14em;
+                    color: #9ca3c7;
+                  "
+                >
+                  Need help or think this is a mistake?
+                </p>
+
+                <p
+                  style="
+                    margin: 0 0 8px;
+                    font-size: 13px;
+                    line-height: 1.6;
+                    color: #d1d5e9;
+                  "
+                >
+                  If you believe this decision doesn’t reflect your account
+                  activity or you need clarification, please reach out to
+                  support and include:
+                </p>
+
+                <ul
+                  style="
+                    margin: 0 0 10px 20px;
+                    padding: 0;
+                    font-size: 13px;
+                    line-height: 1.65;
+                    color: #d1d5e9;
+                  "
+                >
+                  <li>Your funded account ID and email.</li>
+                  <li>
+                    This payout’s Reference ID:
+                    <strong>{{payout_reference}}</strong>.
+                  </li>
+                  <li>A short explanation of your concern or question.</li>
+                </ul>
+
+                <p style="margin: 0; font-size: 13px; color: #d1d5e9">
+                  You can contact us via email at
+                  <a
+                    href="mailto:support@peakprofitfunding.com"
+                    style="color: #7c3aed; text-decoration: none"
+                  >
+                    support@peakprofitfunding.com
+                  </a>
+                  <!-- {{#if support_ticket_link}} or submit a ticket here:
+                  <a
+                    href="{{support_ticket_link}}"
+                    style="color: #7c3aed; text-decoration: none"
+                  >
+                    Open Support Ticket </a
+                  >. {{/if}} -->
+                </p>
+              </td>
+            </tr>
+
+            <!-- Security Note -->
+            <tr>
+              <td
+                class="px-24"
+                style="
+                  padding: 0 24px 18px;
+                  font-family: Arial, Helvetica, sans-serif;
+                "
+              >
+                <p
+                  style="
+                    margin: 0 0 6px;
+                    font-size: 12px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.14em;
+                    color: #9ca3c7;
+                  "
+                >
+                  Security reminder
+                </p>
+
+                <p
+                  style="
+                    margin: 0;
+                    font-size: 12px;
+                    line-height: 1.6;
+                    color: #d1d5e9;
+                  "
+                >
+                  PeakProfit will <strong>never</strong> ask you to pay a fee or
+                  send funds back to us to “unlock” a payout, and we will never
+                  request your wallet private keys, exchange passwords, or 2FA
+                  codes. If you receive any suspicious messages related to
+                  payouts, contact
+                  <a
+                    href="mailto:support@peakprofitfunding.com"
+                    style="color: #7c3aed; text-decoration: none"
+                  >
+                    support@peakprofitfunding.com
+                  </a>
+                  before taking action.
+                </p>
+              </td>
+            </tr>
+
+            <!-- CTA -->
+            <tr>
+              <td align="center" class="px-24" style="padding: 0 24px 22px">
+                <a
+                  href="https://dashboard.peakprofitfunding.com/login"
+                  class="btn-primary"
+                  style="
+                    padding: 12px 28px;
+                    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+                    border-radius: 999px;
+                    font-size: 14px;
+                    font-weight: bold;
+                    color: #fff;
+                    text-decoration: none;
+                    font-family: Arial, Helvetica, sans-serif;
+                    display: inline-block;
+                  "
+                >
+                  Review payout status in dashboard
+                </a>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td
+                class="px-24"
+                style="
+                  padding: 16px 24px 24px;
+                  font-family: Arial, Helvetica, sans-serif;
+                  text-align: center;
+                "
+              >
+                <p style="margin: 0 0 6px; font-size: 11px; color: #7d82a8">
+                  Need more help? Contact
+                  <a
+                    href="mailto:support@peakprofitfunding.com"
+                    style="color: #a5a7d4; text-decoration: none"
+                  >
+                    support@peakprofitfunding.com </a
+                  >.
+                </p>
+                <p style="margin: 0; font-size: 10px; color: #5f6285">
+                  © {{year}} PeakProfit Funding. All rights reserved.
+                </p>
+                <p style="margin: 6px 0 0; font-size: 10px; color: #5f6285">
+                  <a
+                    href="{{unsubscribe_url}}"
+                    style="color: #7c3aed; text-decoration: none"
+                    >Unsubscribe</a
+                  >
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
