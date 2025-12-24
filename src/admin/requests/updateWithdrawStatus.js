@@ -5,6 +5,9 @@ const {
   sendErrorResponse,
 } = require("../../shared/response.service");
 const Account = require("../../trade/account/account.model");
+const User = require("../../user/user.model");
+const path = require("path");
+const { sendEmail } = require("../../shared/mail.service");
 
 const updateWithdrawStatus = async (req, res) => {
   const VALID_STATUSES = ["APPROVED", "DENIED", "PAID"];
@@ -88,6 +91,45 @@ const updateWithdrawStatus = async (req, res) => {
         return sendErrorResponse(res, "Account not found for this withdraw");
       }
       await account.processRejectedPayout(withdraw.amount);
+    } else if (withdraw.accountId && uppercaseStatus === "APPROVED") {
+      const account = await Account.findById(withdraw.accountId);
+      if (!account) {
+        return sendErrorResponse(res, "Account not found for this withdraw");
+      }
+      const user = await User.findById(account.userId);
+      if (!user) {
+        return sendErrorResponse(res, "User not found for this account");
+      }
+
+      const replacementObject = {
+        first_name: user.name.split(" ")[0],
+        funded_account_size: account.initialBalance,
+        funded_account_currency: "$",
+        funded_account_type: account.accountType,
+        server_name: "PeakMarkets-Live",
+        payout_amount: withdraw.amount,
+        payout_currency: "$",
+        payout_method: withdraw.paymentMethod.type,
+        payout_reference: transactionRef || "N/A",
+        payout_date: withdraw.requestedDate,
+        processing_time: "1-5 business days",
+        trader_share: withdraw?.payable,
+        firm_share: withdraw.amount - withdraw?.payable,
+        total_withdrawn: account.totalPayoutAmount,
+        total_account_profit:
+          account.totalPayoutAmount + account.balance - account.initialBalance,
+        remaining_profit: account.balance - account.initialBalance,
+        year: new Date().getFullYear(),
+        unsubscribe_url: "#",
+        next_payout_date: new Date(
+          new Date(account.lastPayoutDate).setDate(
+            new Date(account.lastPayoutDate).getDate() + 5
+          )
+        ),
+        scaling_eligible: "-",
+      };
+
+      await sendPayoutApprovalEmail(user.email, replacementObject);
     }
 
     // Save the updated withdraw
@@ -179,4 +221,26 @@ const updateWithdrawStatus = async (req, res) => {
   }
 };
 
+async function sendPayoutApprovalEmail(email, replacements) {
+  try {
+    const template = path.join(
+      __dirname,
+      "..",
+      "mails",
+      "traderPayoutApproved.html"
+    );
+
+    await sendEmail(
+      "Your Payout Has Been Approved ✔",
+      template,
+      email,
+      replacements
+    );
+
+    console.log(`payout approval email sent to ${email}`);
+  } catch (error) {
+    console.error("Error sending KYC approval email:", error);
+    throw error;
+  }
+}
 module.exports = updateWithdrawStatus;

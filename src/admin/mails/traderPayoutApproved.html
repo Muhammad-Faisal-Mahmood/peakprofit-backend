@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Your Payout Has Been Approved</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- VARIABLE NOTES:
+    {{first_name}}
+    {{email}}
+
+    {{funded_account_size}}
+    {{funded_account_currency}}
+    {{funded_account_type}}
+    {{server_name}}
+
+    {{payout_amount}}
+    {{payout_currency}}
+    {{payout_method}}
+    {{payout_reference}}
+    {{payout_date}}
+    {{processing_time}}
+
+  
+    {{trader_share}}
+    {{firm_share}}
+
+    {{total_account_profit}}
+    {{total_withdrawn}}
+    {{remaining_profit}}
+
+    {{next_payout_date}}
+    {{scaling_eligible}}
+
+    {{year}}
+    {{unsubscribe_url}}
+  -->
+
+    <style type="text/css">
+      body,
+      table,
+      td,
+      a {
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+      }
+      table,
+      td {
+        mso-table-lspace: 0pt;
+        mso-table-rspace: 0pt;
+      }
+      img {
+        -ms-interpolation-mode: bicubic;
+        border: 0;
+        outline: none;
+        text-decoration: none;
+        display: block;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        background: #0a0a12;
+      }
+      0 {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      100 {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .hero-title {
+        animation: fadeInUp 0.7s ease-out both;
+      }
+      .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        background: rgba(34, 197, 94, 0.12);
+        color: #6ee7b7;
+        border: 1px solid rgba(34, 197, 94, 0.4);
+      }
+      .btn-primary {
+        transition: all 0.18s ease;
+      }
+      .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(124, 58, 237, 0.35);
+      }
+      .container {
+        width: 100% !important;
+        max-width: 100% !important;
+        border-radius: 0 !important;
+      }
+      .px-24 {
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+      }
+      .py-24 {
+        padding-top: 18px !important;
+        padding-bottom: 18px !important;
+      }
+    </style>
+  </head>
+
+  <body style="margin: 0; padding: 0; background-color: #0a0a12">
+    <table width="100%" cellpadding="0" cellspacing="0" style="padding: 20px 0">
+      <tr>
+        <td align="center">
+          <table
+            cellpadding="0"
+            cellspacing="0"
+            width="100%"
+            class="container"
+            style="
+              max-width: 600px;
+              background: #1a1f3c;
+              border-radius: 14px;
+              overflow: hidden;
+              border: 1px solid #2a2f50;
+            "
+          >
+            <!-- Header -->
+            <tr>
+              <td align="center">
+                <a
+                  href="https://peakprofitfunding.com"
+                  style="text-decoration: none"
+                >
+                  <img
+                    src="https://api.peakprofitfunding.com/images/logo.jpg"
+                    width="170"
+                    style="display: block; margin: 0 auto; padding-top: 20px"
+                    alt="logo"
+                  />
+                </a>
+              </td>
+            </tr>
+
+            <tr>
+              <td align="center" style="padding-top: 8px">
+                <div
+                  style="
+                    font-size: 18px;
+                    line-height: 1.3;
+                    color: #000;
+                    background: #fff;
+                    padding: 4px 12px;
+                    border-radius: 999px;
+                    letter-spacing: 0.16em;
+                    font-weight: bold;
+                    text-transform: uppercase;
+                    display: inline-block;
+                  "
+                >
+                  PEAKPROFITFUNDING
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                align="center"
+                style="
+                  padding-top: 8px;
+                  font-size: 10px;
+                  text-transform: uppercase;
+                  color: #9ca3c7;
+                  letter-spacing: 0.24em;
+                "
+              >
+                Funded Trader Network
+              </td>
+            </tr>
+
+            <!-- Divider -->
+            <tr>
+              <td class="px-24">
+                <hr
+                  style="border: none; border-top: 1px solid #2a2f50; margin: 0"
+                />
+              </td>
+            </tr>
+
+            <!-- Hero -->
+            <tr>
+              <td
+                class="px-24 py-24"
+                style="padding: 24px; font-family: Arial, Helvetica, sans-serif"
+              >
+                <span class="badge">Payout approved</span>
+                <h1
+                  class="hero-title"
+                  style="
+                    margin: 10px 0 8px;
+                    font-size: 22px;
+                    color: #ffffff;
+                    font-weight: bold;
+                  "
+                >
+                  Your payout is on the way 💸
+                </h1>
+                <p
+                  style="
+                    margin: 0;
+                    font-size: 14px;
+                    line-height: 1.6;
+                    color: #d1d5e9;
+                  "
+                >
+                  Well done, {{first_name}} — your latest payout from your
+                  PeakProfit funded account has been
+                  <strong>approved and sent for processing</strong>. Here’s a
+                  full summary for your records.
+                </p>
+              </td>
+            </tr>
+
+            <!-- Section: Funded Account Overview -->
+            <tr>
+              <td class="px-24" style="padding: 0 24px 18px">
+                <table
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="
+                    background: #020617;
+                    border-radius: 10px;
+                    border: 1px solid #2a2f50;
+                  "
+                >
+                  <tr>
+                    <td
+                      style="
+                        padding: 16px 18px;
+                        font-family: Arial, Helvetica, sans-serif;
+                      "
+                    >
+                      <p
+                        style="
+                          margin: 0 0 10px;
+                          font-size: 12px;
+                          text-transform: uppercase;
+                          letter-spacing: 0.12em;
+                          color: #9ca3c7;
+                        "
+                      >
+                        Funded account overview
+                      </p>
+
+                      <table
+                        width="100%"
+                        style="font-size: 13px; color: #e5e7eb"
+                      >
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Account Size
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            <strong
+                              >{{funded_account_currency}}{{funded_account_size}}
+                            </strong>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Account Type
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            <strong>{{funded_account_type}}</strong>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Platform
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            PeakMarkets
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Username
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            <strong>{{first_name}}</strong>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">Server</td>
+                          <td style="padding: 3px 0; text-align: right">
+                            {{server_name}}
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Section: Payout Summary -->
+            <tr>
+              <td class="px-24" style="padding: 0 24px 18px">
+                <table
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="
+                    background: linear-gradient(135deg, #0f172a, #020617);
+                    border-radius: 10px;
+                    border: 1px solid #22c55e;
+                  "
+                >
+                  <tr>
+                    <td
+                      style="
+                        padding: 16px 18px;
+                        font-family: Arial, Helvetica, sans-serif;
+                      "
+                    >
+                      <p
+                        style="
+                          margin: 0 0 8px;
+                          font-size: 12px;
+                          text-transform: uppercase;
+                          letter-spacing: 0.14em;
+                          color: #a5f3fc;
+                        "
+                      >
+                        Payout summary
+                      </p>
+
+                      <table
+                        width="100%"
+                        style="font-size: 13px; color: #e5e7eb"
+                      >
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Approved Amount
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            <strong
+                              >{{payout_currency}}{{payout_amount}}</strong
+                            >
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Payout Method
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            <strong>{{payout_method}}</strong>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Reference ID
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            <strong>{{payout_reference}}</strong>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Approval Date
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            {{payout_date}}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Estimated Arrival
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            {{processing_time}}
+                          </td>
+                        </tr>
+                      </table>
+
+                      <p
+                        style="
+                          margin: 10px 0 0;
+                          font-size: 12px;
+                          color: #9ca3c7;
+                          line-height: 1.6;
+                        "
+                      >
+                        Network congestion, bank cut-off times, or blockchain
+                        confirmations can slightly affect the final arrival
+                        time. Keep this email and your Reference ID for support
+                        or personal accounting.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Section: Profit Split Breakdown -->
+            <tr>
+              <td class="px-24" style="padding: 0 24px 18px">
+                <table
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="
+                    background: linear-gradient(135deg, #1f2937, #020617);
+                    border-radius: 10px;
+                    border: 1px solid #2a2f50;
+                  "
+                >
+                  <tr>
+                    <td
+                      style="
+                        padding: 16px 18px;
+                        font-family: Arial, Helvetica, sans-serif;
+                      "
+                    >
+                      <p
+                        style="
+                          margin: 0 0 8px;
+                          font-size: 12px;
+                          text-transform: uppercase;
+                          letter-spacing: 0.14em;
+                          color: #a5a7d4;
+                        "
+                      >
+                        Profit split breakdown
+                      </p>
+
+                      <table
+                        width="100%"
+                        style="font-size: 13px; color: #e5e7eb"
+                      >
+                        <!-- <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Gross Profit (Period)
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            <strong
+                              >{{gross_profit}} {{payout_currency}}</strong
+                            >
+                          </td>
+                        </tr> -->
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Trader Share (You)
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            <strong
+                              >{{payout_currency}}{{trader_share}}
+                            </strong>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Firm Share (PeakProfit)
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            <strong>{{payout_currency}}{{firm_share}}</strong>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <p
+                        style="
+                          margin: 10px 0 0;
+                          font-size: 12px;
+                          color: #9ca3c7;
+                          line-height: 1.6;
+                        "
+                      >
+                        This split follows your current profit share agreement
+                        for this funded account. If your tier or payout
+                        structure changes in the future, it will be reflected
+                        inside your dashboard and payout confirmations.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Section: Earnings Snapshot -->
+            <tr>
+              <td class="px-24" style="padding: 0 24px 18px">
+                <table
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="
+                    background: linear-gradient(135deg, #1a1f3c, #0a0a12);
+                    border-radius: 10px;
+                    border: 1px solid #2a2f50;
+                  "
+                >
+                  <tr>
+                    <td
+                      style="
+                        padding: 16px 18px;
+                        font-family: Arial, Helvetica, sans-serif;
+                      "
+                    >
+                      <p
+                        style="
+                          margin: 0 0 8px;
+                          font-size: 12px;
+                          text-transform: uppercase;
+                          letter-spacing: 0.14em;
+                          color: #a5a7d4;
+                        "
+                      >
+                        Earnings snapshot (this funded account)
+                      </p>
+
+                      <table
+                        width="100%"
+                        style="font-size: 13px; color: #e3e4fa"
+                      >
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Total Account Profit
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            <strong
+                              >{{payout_currency}}{{total_account_profit}}
+                            </strong>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Total Withdrawn
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            <strong
+                              >{{payout_currency}}{{total_withdrawn}}</strong
+                            >
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Remaining Profit in Account
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            <strong
+                              >{{payout_currency}}{{remaining_profit}}</strong
+                            >
+                          </td>
+                        </tr>
+                      </table>
+
+                      <p
+                        style="
+                          margin: 10px 0 0;
+                          font-size: 12px;
+                          color: #9ca3c7;
+                        "
+                      >
+                        Your real-time stats are always available in your
+                        <a
+                          href="https://dashboard.peakprofitfunding.com/login"
+                          style="color: #7c3aed; text-decoration: none"
+                          >Client Area</a
+                        >.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Section: Next Payout & Scaling -->
+            <tr>
+              <td class="px-24" style="padding: 0 24px 18px">
+                <table
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="
+                    background: #020617;
+                    border-radius: 10px;
+                    border: 1px solid #2a2f50;
+                  "
+                >
+                  <tr>
+                    <td
+                      style="
+                        padding: 16px 18px;
+                        font-family: Arial, Helvetica, sans-serif;
+                      "
+                    >
+                      <p
+                        style="
+                          margin: 0 0 8px;
+                          font-size: 12px;
+                          text-transform: uppercase;
+                          letter-spacing: 0.14em;
+                          color: #9ca3c7;
+                        "
+                      >
+                        Next payout & scaling status
+                      </p>
+
+                      <table
+                        width="100%"
+                        style="font-size: 13px; color: #e5e7eb"
+                      >
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Next Eligible Payout
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            <strong>{{next_payout_date}}</strong>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 3px 0; color: #9ca3c7">
+                            Scaling Eligibility
+                          </td>
+                          <td style="padding: 3px 0; text-align: right">
+                            <strong>{{scaling_eligible}}</strong>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Section: Trading Rules Reminder -->
+            <tr>
+              <td
+                class="px-24"
+                style="
+                  padding: 0 24px 18px;
+                  font-family: Arial, Helvetica, sans-serif;
+                "
+              >
+                <p
+                  style="
+                    margin: 0 0 6px;
+                    font-size: 12px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.14em;
+                    color: #9ca3c7;
+                  "
+                >
+                  Keep your funded account in good standing
+                </p>
+
+                <p
+                  style="
+                    margin: 0;
+                    font-size: 13px;
+                    line-height: 1.65;
+                    color: #d1d5e9;
+                  "
+                >
+                  To stay eligible for future payouts and potential scaling,
+                  your trading must remain fully compliant with PeakProfit
+                  rules:
+                </p>
+
+                <ul
+                  style="
+                    margin: 6px 0 12px 20px;
+                    padding: 0;
+                    font-size: 13px;
+                    line-height: 1.65;
+                    color: #d1d5e9;
+                  "
+                >
+                  <li>
+                    Respect your daily and overall drawdown limits on every
+                    trading day.
+                  </li>
+                  <li>
+                    Trade only <strong>Crypto pairs</strong> and
+                    <strong>FX pairs</strong> as allowed by the account.
+                  </li>
+                  <li>
+                    No abusive EAs, arbitrage, latency exploitation, or
+                    HFT-style activity.
+                  </li>
+                  <li>
+                    Maintain consistent, controlled risk — no revenge trading,
+                    over-leverage, or gambling around major news.
+                  </li>
+                </ul>
+
+                <p style="margin: 0; font-size: 12px; color: #9ca3c7">
+                  For full and most up-to-date details, always refer to the
+                  official
+                  <a
+                    href="https://peakprofitfunding.com/rules"
+                    style="color: #7c3aed; text-decoration: none"
+                  >
+                    PeakProfit Rulebook </a
+                  >.
+                </p>
+              </td>
+            </tr>
+
+            <!-- Section: Security Note -->
+            <tr>
+              <td
+                class="px-24"
+                style="
+                  padding: 0 24px 18px;
+                  font-family: Arial, Helvetica, sans-serif;
+                "
+              >
+                <p
+                  style="
+                    margin: 0 0 6px;
+                    font-size: 12px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.14em;
+                    color: #9ca3c7;
+                  "
+                >
+                  Security & payout verification
+                </p>
+
+                <p
+                  style="
+                    margin: 0;
+                    font-size: 12px;
+                    line-height: 1.6;
+                    color: #d1d5e9;
+                  "
+                >
+                  PeakProfit will <strong>never</strong> ask you to send funds
+                  back to us in order to release a payout, and we will never ask
+                  for your wallet private keys, exchange passwords, or 2FA
+                  codes. If you receive any message that looks suspicious or
+                  unrelated to this email, contact
+                  <a
+                    href="mailto:support@peakprofitfunding.com"
+                    style="color: #7c3aed; text-decoration: none"
+                  >
+                    support@peakprofitfunding.com
+                  </a>
+                  before taking action.
+                </p>
+              </td>
+            </tr>
+
+            <!-- CTA -->
+            <tr>
+              <td align="center" class="px-24" style="padding: 0 24px 22px">
+                <a
+                  href="https://dashboard.peakprofitfunding.com/login"
+                  class="btn-primary"
+                  style="
+                    padding: 12px 28px;
+                    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+                    border-radius: 999px;
+                    font-size: 14px;
+                    font-weight: bold;
+                    color: #fff;
+                    text-decoration: none;
+                    font-family: Arial, Helvetica, sans-serif;
+                    display: inline-block;
+                  "
+                >
+                  View payout history in dashboard
+                </a>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td
+                class="px-24"
+                style="
+                  padding: 16px 24px 24px;
+                  font-family: Arial, Helvetica, sans-serif;
+                  text-align: center;
+                "
+              >
+                <p style="margin: 0 0 6px; font-size: 11px; color: #7d82a8">
+                  Questions about this payout? Contact
+                  <a
+                    href="mailto:support@peakprofitfunding.com"
+                    style="color: #a5a7d4; text-decoration: none"
+                  >
+                    support@peakprofitfunding.com </a
+                  >.
+                </p>
+                <p style="margin: 0; font-size: 10px; color: #5f6285">
+                  © {{year}} PeakProfit Funding. All rights reserved.
+                </p>
+                <p style="margin: 6px 0 0; font-size: 10px; color: #5f6285">
+                  <a
+                    href="{{unsubscribe_url}}"
+                    style="color: #7c3aed; text-decoration: none"
+                    >Unsubscribe</a
+                  >
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

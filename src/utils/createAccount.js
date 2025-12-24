@@ -33,8 +33,12 @@ async function createAccount({
   const leverage = 50;
   let dailyDrawdownLimit = initialBalance * 0.025; // 2.5%
   let maxDrawdownLimit = initialBalance * 0.07; // 7%
-  const profitTarget = initialBalance * 0.08; // 8%
+  let profitTarget = initialBalance * 0.08; // 8%
   let minTradingDays = 3; // Required to pass challenge
+  const dailyProfitTarget = profitTarget / minTradingDays;
+  if (accountType == "demo" && profit > dailyProfitTarget) {
+    profitTarget += profit - dailyProfitTarget;
+  }
 
   if (accountType === "live") {
     // Live account drawdown rules
