@@ -166,15 +166,5 @@ async function sendLiveAccountEmail(fundedAccountId) {
 /**
  * Example: Call this when user passes evaluation
  */
-async function handleEvaluationPass(accountId) {
-  try {
-    await sendLiveAccountEmail(accountId);
-  } catch (emailError) {
-    console.error("Error sending funded account email:", emailError);
-  }
-}
 
-module.exports = {
-  sendLiveAccountEmail,
-  handleEvaluationPass,
-};
+module.exports = sendLiveAccountEmail;

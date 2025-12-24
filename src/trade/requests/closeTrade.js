@@ -5,7 +5,7 @@ const {
 } = require("../../shared/response.service");
 const closeTradeService = require("../../utils/closeTrade.service");
 const redisTradeCleanup = require("../../utils/redisTradeCleanup");
-const { handleEvaluationPass } = require("../../utils/sendLiveAccountEmail");
+const sendLiveAccountEmail = require("../../utils/sendLiveAccountEmail");
 
 const closeTrade = async (req, res) => {
   try {
@@ -47,7 +47,7 @@ const closeTrade = async (req, res) => {
         ` [closeTrade Controller] Account promoted! Skipping Redis cleanup.`
       );
 
-      await handleEvaluationPass(result.accountId);
+      await sendLiveAccountEmail(result.accountId);
       return sendSuccessResponse(
         res,
         "🎉 Congratulations! You passed the challenge. Your account has been promoted to LIVE trading with a fresh start!",

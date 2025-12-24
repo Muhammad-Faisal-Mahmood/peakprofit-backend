@@ -413,11 +413,13 @@ async function handleAccountLiquidation(
     `[LIQUIDATION] Account ${accountId} fully liquidated and cleaned up.`
   );
 
-  try {
-    await sendAccountClosureEmail(updatedAccount, violationRule);
-  } catch (emailError) {
-    console.error("[LIQUIDATION] Error sending closure email:", emailError);
-    // Don't fail the liquidation if email fails
+  if (accountStatus === "failed") {
+    try {
+      await sendAccountClosureEmail(updatedAccount, violationRule);
+    } catch (emailError) {
+      console.error("[LIQUIDATION] Error sending closure email:", emailError);
+      // Don't fail the liquidation if email fails
+    }
   }
 }
 

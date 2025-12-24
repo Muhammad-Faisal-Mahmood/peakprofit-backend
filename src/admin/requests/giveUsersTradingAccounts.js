@@ -4,7 +4,7 @@ const {
 } = require("../../shared/response.service");
 const createAccount = require("../../utils/createAccount");
 const sendAccountActivationEmail = require("../../utils/sendAccountActivationEmail");
-const { sendLiveAccountEmail } = require("../../utils/sendLiveAccountEmail");
+const sendLiveAccountEmail  = require("../../utils/sendLiveAccountEmail");
 const giveUserTradingAccounts = async (req, res) => {
   try {
     if (!req.user || req.user.role !== "Admin") {

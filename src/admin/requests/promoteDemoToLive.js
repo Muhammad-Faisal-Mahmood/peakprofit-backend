@@ -5,6 +5,7 @@ const {
 const {
   promoteAccountToLive,
 } = require("../../utils/accountPromotion.service");
+const sendLiveAccountEmail = require("../../utils/sendLiveAccountEmail");
 const Account = require("../../trade/account/account.model");
 
 const promoteDemoToLive = async (req, res) => {
@@ -35,12 +36,19 @@ const promoteDemoToLive = async (req, res) => {
     }
 
     const promoted = await promoteAccountToLive(accountId, "adminPromotion");
-    sendSuccessResponse(res, "Demo account promoted to live successfully.", {
-      sucess: promoted?.success,
-      newLiveAccountId: promoted?.accountId,
-    });
+    if (promoted.success && promoted.accountId) {
+      await sendLiveAccountEmail(promoted.accountId);
+    }
+    return sendSuccessResponse(
+      res,
+      "Demo account promoted to live successfully.",
+      {
+        sucess: promoted?.success,
+        newLiveAccountId: promoted?.accountId,
+      }
+    );
   } catch (error) {
-    sendErrorResponse(res, "Couldn't promote demo to live");
+    return sendErrorResponse(res, "Couldn't promote demo to live");
   }
 };
 
