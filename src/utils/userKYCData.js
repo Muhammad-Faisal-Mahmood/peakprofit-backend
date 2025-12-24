@@ -13,7 +13,7 @@ const userKYCData = async (userId) => {
         "status dateOfBirth rejectionReason socials idFrontImage idBackImage createdAt updatedAt legalName",
       options: { sort: { createdAt: -1 } }, // Latest first
     })
-    .select("kycId kycHistory");
+    .select("name email status profilePicture role kycId kycHistory");
 
   if (!user) {
     throw new Error(res, "User not found");
@@ -59,7 +59,16 @@ const userKYCData = async (userId) => {
     (!user.kycId || (user.kycId && user.kycId.status === "rejected")) &&
     submissionsLeft > 0;
 
+  const userDetails = {
+    _id: userId,
+    name: user?.name,
+    email: user?.email,
+    profilePicture: user?.profilePicture,
+    role: user?.role,
+    status: user?.status,
+  };
   return {
+    user: userDetails,
     currentKYC: currentKYC,
     kycHistory: kycHistory,
     submissionStats: {
