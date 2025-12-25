@@ -221,6 +221,7 @@ const getAllAffiliateWithdraws = async (req, res) => {
         requestedDate: withdraw.requestedDate,
         processedDate: withdraw.processedDate,
         transactionRef: withdraw.transactionRef,
+        notes: withdraw.notes,
 
         // Affiliate Details
         affiliate: {

@@ -63,6 +63,9 @@ const updateWithdrawStatus = async (req, res) => {
 
     // Update withdraw status and additional fields
     withdraw.status = uppercaseStatus;
+    if (uppercaseStatus === "DENIED" && rejectionReason) {
+      withdraw.rejectionReason = rejectionReason;
+    }
     withdraw.processedDate = new Date();
 
     if (transactionRef && uppercaseStatus === "PAID") {
@@ -115,9 +118,6 @@ const updateWithdrawStatus = async (req, res) => {
       };
 
       await sendPayoutDeclinedEmail(user.email, replacementObject);
-      if (rejectionReason) {
-        withdraw.rejectionReason = rejectionReason;
-      }
     } else if (withdraw.accountId && uppercaseStatus === "APPROVED") {
       const account = await Account.findById(withdraw.accountId);
       if (!account) {
