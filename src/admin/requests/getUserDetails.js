@@ -31,6 +31,7 @@ const getUserDetails = async (req, res) => {
       name: user.name,
       status: user.status,
       joinedAt: user.createdAt,
+      isVerified: user.isVerified,
     };
 
     if (user?.affiliateId) {
