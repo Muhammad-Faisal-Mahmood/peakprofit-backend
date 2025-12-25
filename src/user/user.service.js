@@ -11,25 +11,78 @@ const User = require("./user.model");
 const GeneralHelper = require("../shared/GeneralHelper");
 const { bcryptPassword } = require("../shared/GeneralHelper");
 
-exports.list = async (pageNo = 1, searchValue = null) => {
+exports.list = async (pageNo = 1, searchValue = null, accountType = null) => {
   let pg = GeneralHelper.getPaginationDetails(pageNo);
-  let condition = [{ deletedAt: null }];
+  let matchStage = { deletedAt: null };
 
   if (searchValue) {
     const regex = GeneralHelper.makeRegex(searchValue);
-    condition.push({
-      $or: [{ name: regex }, { email: regex }],
-    });
+    matchStage.$or = [{ name: regex }, { email: regex }];
   }
-  condition = { $and: condition };
-  let result = await User.find(condition)
-    .populate("accounts")
-    .sort({ _id: -1 })
-    .skip(pg.skip)
-    .limit(pg.pageSize)
-    .exec();
 
-  let total = await User.find(condition).countDocuments();
+  let pipeline = [{ $match: matchStage }];
+
+  // Add account-based filtering
+  if (accountType) {
+    if (accountType === "non-traders") {
+      pipeline.push({
+        $match: {
+          $or: [{ accounts: { $exists: false } }, { accounts: { $eq: [] } }],
+        },
+      });
+    } else {
+      // Lookup accounts to filter by type
+      pipeline.push({
+        $lookup: {
+          from: "accounts",
+          localField: "accounts",
+          foreignField: "_id",
+          as: "accountDetails",
+        },
+      });
+
+      if (accountType === "live") {
+        pipeline.push({
+          $match: {
+            "accountDetails.accountType": "live",
+          },
+        });
+      } else if (accountType === "demo") {
+        pipeline.push({
+          $match: {
+            $and: [
+              { accountDetails: { $ne: [] } },
+              { "accountDetails.accountType": { $not: { $eq: "live" } } },
+            ],
+          },
+        });
+      }
+    }
+  }
+
+  // Get total count
+  let countPipeline = [...pipeline, { $count: "total" }];
+  let countResult = await User.aggregate(countPipeline);
+  let total = countResult.length > 0 ? countResult[0].total : 0;
+
+  // Add pagination
+  pipeline.push(
+    { $sort: { _id: -1 } },
+    { $skip: pg.skip },
+    { $limit: pg.pageSize }
+  );
+
+  // Populate accounts
+  pipeline.push({
+    $lookup: {
+      from: "accounts",
+      localField: "accounts",
+      foreignField: "_id",
+      as: "accounts",
+    },
+  });
+
+  let result = await User.aggregate(pipeline);
 
   return {
     pagination: GeneralHelper.makePaginationObject(

@@ -52,7 +52,7 @@ function isValueNotSet(value) {
 }
 
 function getPageSize() {
-  return 10;
+  return 50;
 }
 
 function getSkipCount(pageNo, pageSize) {

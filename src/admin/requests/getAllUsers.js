@@ -11,8 +11,9 @@ const getAllUsers = async (req, res) => {
 
     const pageNo = parseInt(req.query.pageNo) || 1;
     const search = req.query.search || null;
+    const accountType = req.query.accountType || null;
 
-    const users = await UserService.list(pageNo, search);
+    const users = await UserService.list(pageNo, search, accountType);
 
     return sendSuccessResponse(res, "Users fetched successfully", users);
   } catch (error) {
