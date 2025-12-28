@@ -71,7 +71,7 @@ const updateWithdrawStatus = async (req, res) => {
     if (transactionRef && uppercaseStatus === "PAID") {
       withdraw.transactionRef = transactionRef;
     }
-
+    await withdraw.save();
     // If this is an affiliate-related withdraw, process it through the affiliate system
     if (withdraw.affiliateId) {
       const affiliate = await Affiliate.findById(withdraw.affiliateId);
@@ -94,7 +94,7 @@ const updateWithdrawStatus = async (req, res) => {
       if (!account) {
         return sendErrorResponse(res, "Account not found for this withdraw");
       }
-      await account.processRejectedPayout(withdraw.amount);
+      await account.processRejectedPayout(withdraw.amount, withdraw._id);
 
       const user = await User.findById(account.userId);
       const freshAccount = await Account.findById(withdraw.accountId);

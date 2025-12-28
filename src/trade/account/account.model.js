@@ -284,8 +284,8 @@ AccountSchema.methods.processPayout = async function (withdrawId, amount) {
   this.payoutHistory.push(withdrawId);
 
   // Get current equity from Redis (includes unrealized P&L)
+  const riskData = await redis.getAccountRisk(this._id);
   try {
-    const riskData = await redis.getAccountRisk(this._id);
     if (riskData && riskData.equity !== undefined) {
       this.equity = riskData.equity - amount; // Deduct payout from current equity
     } else {
@@ -324,16 +324,18 @@ AccountSchema.methods.processPayout = async function (withdrawId, amount) {
     }
   } else {
     // Update Redis for subsequent payouts (balance/equity changed)
-    try {
-      await redis.updateAccountRisk(this._id, {
-        balance: this.balance,
-        equity: this.equity,
-      });
-      console.log(
-        `[Account] Redis updated after payout for account ${this._id}`
-      );
-    } catch (error) {
-      console.error(`[Account] Error updating Redis after payout:`, error);
+    if (riskData) {
+      try {
+        await redis.updateAccountRisk(this._id, {
+          balance: this.balance,
+          equity: this.equity,
+        });
+        console.log(
+          `[Account] Redis updated after payout for account ${this._id}`
+        );
+      } catch (error) {
+        console.error(`[Account] Error updating Redis after payout:`, error);
+      }
     }
   }
 
@@ -345,10 +347,14 @@ AccountSchema.methods.processPayout = async function (withdrawId, amount) {
   return this.save();
 };
 
-AccountSchema.methods.processRejectedPayout = async function (amount) {
+AccountSchema.methods.processRejectedPayout = async function (
+  amount,
+  withdrawId
+) {
   this.balance += amount;
   this.totalPayoutAmount -= amount;
-  this.payoutHistory.pop();
+
+  // this.payoutHistory.pop();
   this.freeMargin += amount;
 
   // Get current equity from Redis and add the rejected amount back
@@ -364,7 +370,7 @@ AccountSchema.methods.processRejectedPayout = async function (amount) {
     this.equity = this.balance; // Fallback
   }
 
-  if (this.payoutHistory.length === 0) {
+  if (this.totalPayoutAmount === 0) {
     // First payout was rejected - restore original drawdown limits
     this.status = "active";
     this.hasReceivedFirstPayout = false;
@@ -394,9 +400,65 @@ AccountSchema.methods.processRejectedPayout = async function (amount) {
     }
   } else {
     // Get the last payout date from the previous withdrawal
-    const lastWithdrawId = this.payoutHistory[this.payoutHistory.length - 1];
-    const lastWithdraw = await Withdraw.findById(lastWithdrawId);
-    this.lastPayoutDate = lastWithdraw?.requestedDate || null;
+    let lastValidWithdraw = null;
+    const rejectedWithdraw = await Withdraw.findById(withdrawId);
+    const wasRejectedWithdrawHalfSplit =
+      rejectedWithdraw &&
+      rejectedWithdraw.payable == rejectedWithdraw.amount / 2;
+    for (let i = this.payoutHistory.length - 1; i >= 0; i--) {
+      const withdrawId = this.payoutHistory[i];
+      const withdraw = await Withdraw.findById(withdrawId);
+
+      if (withdraw && withdraw.status !== "DENIED") {
+        lastValidWithdraw = withdraw;
+        break;
+      }
+    }
+
+    // Set lastPayoutDate to the requestedDate of the last valid withdrawal
+    this.lastPayoutDate = lastValidWithdraw?.requestedDate || null;
+    if (!lastValidWithdraw) {
+      this.hasReceivedFirstPayout = false;
+    }
+
+    if (wasRejectedWithdrawHalfSplit && lastValidWithdraw) {
+      const rejectedIndex = this.payoutHistory.findIndex(
+        (id) => id.toString() === withdrawId.toString()
+      );
+
+      if (
+        rejectedIndex !== -1 &&
+        rejectedIndex < this.payoutHistory.length - 1
+      ) {
+        const nextWithdrawId = this.payoutHistory[rejectedIndex + 1];
+        const nextWithdraw = await Withdraw.findById(nextWithdrawId);
+        if (
+          nextWithdraw &&
+          nextWithdraw.requestedDate > rejectedWithdraw.requestedDate &&
+          nextWithdraw.status === "PENDING" &&
+          nextWithdraw.payable !== nextWithdraw.amount / 2
+        ) {
+          nextWithdraw.payable = nextWithdraw.amount / 2;
+          await nextWithdraw.save();
+        } else {
+          for (let i = rejectedIndex + 2; i < this.payoutHistory.length; i++) {
+            const currentWithdrawId = this.payoutHistory[i];
+            const withdraw = await Withdraw.findById(currentWithdrawId);
+
+            if (
+              withdraw &&
+              withdraw.status === "PENDING" &&
+              withdraw.requestedDate > rejectedWithdraw.requestedDate &&
+              withdraw.payable !== withdraw.amount / 2
+            ) {
+              withdraw.payable = withdraw.amount / 2;
+              await withdraw.save();
+              break;
+            }
+          }
+        }
+      }
+    }
 
     // Update Redis with restored balance and equity
     if (riskData) {

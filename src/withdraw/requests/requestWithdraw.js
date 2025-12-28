@@ -102,7 +102,7 @@ const requestWithdraw = async (req, res) => {
         );
       }
       let payable = 0;
-      if (account.payoutHistory.length > 0) {
+      if (account.hasReceivedFirstPayout) {
         payable = amount * 0.85;
       } else {
         payable = amount * 0.5;
