@@ -26,8 +26,10 @@ const getAllTickets = require("./requests/getAllTickets");
 const reviewKYCApplication = require("./requests/reviewKYCApplication");
 const getAllKYCApplications = require("./requests/getAllKYCApplications");
 const getUserKYCHistory = require("./requests/getUserKYCHistory");
+const exportSubscriptionsCSV = require("./requests/exportSubscriptionsCSV")
 
 router.get("/kycHistory/:userId", jwt, getUserKYCHistory);
+
 router.get("/users", jwt, getAllUsers);
 router.post("/users/give-account", jwt, giveUserTradingAccounts);
 router.get("/users/:userId", jwt, getUserDetails);
@@ -36,6 +38,7 @@ router.put("/users/tradingAccount/status", jwt, updateTradingAccountStatus);
 router.post("/users/setStatus", jwt, setUserStatus);
 router.post("/users/tradingAccount/promoteDemoToLive", jwt, promoteDemoToLive);
 router.get("/subscriptions", jwt, getSubscriptions);
+router.get("/subscriptions/csv", jwt, exportSubscriptionsCSV);
 router.get("/contacts", jwt, getAllContacts);
 router.post("/contacts/:id/reply", jwt, ContactSubmissionReply);
 router.get("/affiliateApplications", jwt, getAllAffiliateApplications);
