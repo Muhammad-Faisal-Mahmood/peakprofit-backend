@@ -111,70 +111,80 @@ router.get("/charts/:chartId", jwt, async (req, res) => {
 // Body: { name, symbol, resolution, content }
 router.post("/charts", jwt, async (req, res) => {
   try {
+    /* -------------------- Extract Data -------------------- */
     const { client, chart: chartId } = req.query;
     const { name, symbol, resolution, content } = req.body;
-    const user = req.user.userId;
+    const userId = req.user?.userId;
 
-    // Validation
-    if (!client || !user || !chartId) {
-      return res.json({
+    /* -------------------- Validate Auth -------------------- */
+    if (!userId) {
+      return res.status(401).json({
         status: "error",
-        message: "Missing required parameters",
+        message: "Unauthorized",
       });
     }
 
+    /* -------------------- Validate Query Params -------------------- */
+    if (!client || !chartId) {
+      return res.status(400).json({
+        status: "error",
+        message: "Missing required query parameters: client or chart",
+      });
+    }
+
+    /* -------------------- Validate Body -------------------- */
     if (!name || !symbol || !resolution || !content) {
-      return res.json({
+      return res.status(400).json({
         status: "error",
-        message: "Missing required fields in body",
+        message: "Missing required fields in request body",
       });
     }
 
-    // Check if chart already exists
+    /* -------------------- Find Existing Chart -------------------- */
     let chart = await ChartLayout.findOne({
       clientId: client,
-      userId: user,
-      chartId: chartId,
+      userId,
+      chartId,
     });
 
+    /* -------------------- Update or Create -------------------- */
     if (chart) {
-      // UPDATE existing chart
       chart.name = name;
       chart.symbol = symbol;
       chart.resolution = resolution;
-      chart.content = content; // This includes all drawings
-      chart.timestamp = new Date();
-      await chart.save();
+      chart.content = content;
+      chart.updatedAt = new Date();
 
-      console.log(`Chart ${chartId} updated for user ${user}`);
+      await chart.save();
     } else {
-      // CREATE new chart
       chart = await ChartLayout.create({
         clientId: client,
-        userId: user,
-        chartId: chartId,
-        name: name,
-        symbol: symbol,
-        resolution: resolution,
-        content: content,
-        timestamp: new Date(),
+        userId,
+        chartId,
+        name,
+        symbol,
+        resolution,
+        content,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
-
-      console.log(`Chart ${chartId} created for user ${user}`);
     }
 
-    res.json({
+    /* -------------------- Success Response -------------------- */
+    return res.status(200).json({
       status: "ok",
       id: chart.chartId,
     });
   } catch (error) {
     console.error("Error saving chart:", error);
-    res.json({
+
+    return res.status(500).json({
       status: "error",
-      message: error.message,
+      message: "Internal server error while saving chart",
     });
   }
 });
+
 
 // ============================================================
 // ENDPOINT 4: DELETE CHART (Remove a saved layout)
