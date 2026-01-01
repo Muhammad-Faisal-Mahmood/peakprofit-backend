@@ -3,6 +3,8 @@ const User = require("../user/user.model"); // Adjust path as needed
 const Commission = require("./commission/commission.model"); // Add this new model
 
 // Tier upgrade thresholds and benefits
+
+const signupCommission = 1;
 const TIER_CONFIG = {
   BRONZE: {
     minReferrals: 0,
