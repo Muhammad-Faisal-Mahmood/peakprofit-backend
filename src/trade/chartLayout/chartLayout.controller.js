@@ -10,20 +10,18 @@ const jwt = require("../../middleware/jwt");
 // GET /charts?client=CLIENT_ID&user=USER_ID
 router.get("/charts", jwt, async (req, res) => {
   try {
-    const { client } = req.query;
     const user = req.user.userId;
 
     // Validation
-    if (!client || !user) {
+    if (!user) {
       return res.json({
         status: "error",
-        message: "Missing client or user parameter",
+        message: "Missing user parameter",
       });
     }
 
     // Find all charts for this user
     const charts = await ChartLayout.find({
-      clientId: client,
       userId: user,
     })
       .select("chartId name symbol resolution timestamp")
@@ -57,21 +55,19 @@ router.get("/charts", jwt, async (req, res) => {
 // GET /charts/:chartId?client=CLIENT_ID&user=USER_ID
 router.get("/charts/:chartId", jwt, async (req, res) => {
   try {
-    const { client } = req.query;
     const { chartId } = req.params;
     const user = req.user.userId;
 
     // Validation
-    if (!client || !user) {
+    if (!user) {
       return res.json({
         status: "error",
-        message: "Missing client or user parameter",
+        message: "Missing user",
       });
     }
 
     // Find the specific chart
     const chart = await ChartLayout.findOne({
-      clientId: client,
       userId: user,
       chartId: chartId,
     });
@@ -112,7 +108,7 @@ router.get("/charts/:chartId", jwt, async (req, res) => {
 router.post("/charts", jwt, async (req, res) => {
   try {
     /* -------------------- Extract Data -------------------- */
-    const { client, chart: chartId } = req.query;
+    const { chartId = `chart_${Date.now()}`} = req.query;
     const { name, symbol, resolution, content } = req.body;
     const userId = req.user?.userId;
 
@@ -124,13 +120,7 @@ router.post("/charts", jwt, async (req, res) => {
       });
     }
 
-    /* -------------------- Validate Query Params -------------------- */
-    if (!client || !chartId) {
-      return res.status(400).json({
-        status: "error",
-        message: "Missing required query parameters: client or chart",
-      });
-    }
+   
 
     /* -------------------- Validate Body -------------------- */
     if (!name || !symbol || !resolution || !content) {
@@ -142,7 +132,6 @@ router.post("/charts", jwt, async (req, res) => {
 
     /* -------------------- Find Existing Chart -------------------- */
     let chart = await ChartLayout.findOne({
-      clientId: client,
       userId,
       chartId,
     });
@@ -158,7 +147,6 @@ router.post("/charts", jwt, async (req, res) => {
       await chart.save();
     } else {
       chart = await ChartLayout.create({
-        clientId: client,
         userId,
         chartId,
         name,

@@ -94,7 +94,7 @@ app.use("/api/trade/account", Account);
 app.use("/api/trade", Trade);
 app.use("/api/trade/chart", Chart);
 app.use("/api/payment", Payment);
-app.use("/api/chartLayout/1.0", ChartLayout);
+app.use("/api/chartLayout", ChartLayout);
 
 app.get("/api/health", (req, res) => {
   res.status(200).json({

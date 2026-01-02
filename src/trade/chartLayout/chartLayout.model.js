@@ -8,11 +8,6 @@ const chartLayoutSchema = new mongoose.Schema({
     required: true,
     index: true,
   },
-  clientId: {
-    type: String,
-    required: true,
-    index: true,
-  },
 
   // Chart identification
   chartId: {
