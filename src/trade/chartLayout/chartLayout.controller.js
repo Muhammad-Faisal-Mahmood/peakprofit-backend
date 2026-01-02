@@ -108,7 +108,7 @@ router.get("/charts/:chartId", jwt, async (req, res) => {
 router.post("/charts", jwt, async (req, res) => {
   try {
     /* -------------------- Extract Data -------------------- */
-    const { chartId = `chart_${Date.now()}`} = req.query;
+    const { chartId = Date.now()} = req.query;
     const { name, symbol, resolution, content } = req.body;
     const userId = req.user?.userId;
 
@@ -180,21 +180,13 @@ router.post("/charts", jwt, async (req, res) => {
 // DELETE /charts/:chartId?client=CLIENT_ID&user=USER_ID
 router.delete("/charts/:chartId", jwt, async (req, res) => {
   try {
-    const { client } = req.query;
     const { chartId } = req.params;
     const user = req.user.userId;
 
-    // Validation
-    if (!client || !user) {
-      return res.json({
-        status: "error",
-        message: "Missing client or user parameter",
-      });
-    }
+    
 
     // Delete the chart
     const result = await ChartLayout.deleteOne({
-      clientId: client,
       userId: user,
       chartId: chartId,
     });

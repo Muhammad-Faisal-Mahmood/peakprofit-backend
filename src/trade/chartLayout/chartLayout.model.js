@@ -11,7 +11,7 @@ const chartLayoutSchema = new mongoose.Schema({
 
   // Chart identification
   chartId: {
-    type: String,
+    type: Number,
     required: true,
     unique: true,
     index: true,
