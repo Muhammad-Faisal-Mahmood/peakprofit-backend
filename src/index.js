@@ -43,7 +43,7 @@ const allowedOrigins = [
   process.env.FRONT_APP_URL_DEV,
 ];
 
-app.use("/api/whop", require("./whop/whop.webhook"));
+app.use("/api/whop", require("./paymentProcessor/payment.webhook"));
 
 app.use(express.json());
 
@@ -102,7 +102,11 @@ app.get("/api/health", (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
-app.post("/api/whop/session", jwt, require("./whop/whop.sessionLink"));
+app.post(
+  "/api/payment/session",
+  jwt,
+  require("./paymentProcessor/payment.sessionLink")
+);
 
 // MongoDB Connection
 const connectToMongoDB = async () => {
