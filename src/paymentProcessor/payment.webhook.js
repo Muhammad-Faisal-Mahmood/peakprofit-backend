@@ -1,394 +1,280 @@
 const express = require("express");
-const router = express.Router();
 const crypto = require("crypto");
-const createAccount = require("../utils/createAccount");
 const Payment = require("../payment/payment.model");
 const challengeBuyingService = require("../utils/challengeBuying.service");
-const WHOP_WEBHOOK_SECRET = process.env.WHOP_WEBHOOK_SECRET;
+
+const router = express.Router();
+
+const SIGNATURE_KEY = process.env.AUTHORIZE_NET_SIGNATURE_KEY;
 
 router.post(
   "/webhook",
-  express.raw({ type: "application/json" }), // IMPORTANT
+  express.raw({ type: "application/json" }),
   async (req, res) => {
-    console.log("webhook called");
+    console.log("📡 Authorize.Net webhook received");
+    console.log("🔍 Content-Type:", req.headers["content-type"]);
+    console.log("🔍 Body type:", typeof req.body);
+    console.log("🔍 Body is Buffer:", Buffer.isBuffer(req.body));
+    console.log("🔍 Body length:", req.body?.length);
+
     const rawBody = req.body;
-    console.log("Incoming headers:", req.headers);
+    const signatureHeader = req.headers["x-anet-signature"];
 
-    // Whop uses Svix signature format
-    const signature = req.headers["webhook-signature"];
-    const timestamp = req.headers["webhook-timestamp"];
-    const webhookId = req.headers["webhook-id"];
+    if (!signatureHeader) {
+      console.log("❌ Missing signature header");
+      return res.status(400).send("Missing signature");
+    }
 
-    // Verify signature
-    const signedContent = `${webhookId}.${timestamp}.${rawBody.toString()}`;
-    const secret = WHOP_WEBHOOK_SECRET.startsWith("whsec_")
-      ? WHOP_WEBHOOK_SECRET.slice(6)
-      : WHOP_WEBHOOK_SECRET;
+    // Log the actual payload for debugging
+    console.log(
+      "📦 Raw body (first 200 chars):",
+      rawBody.toString().substring(0, 200)
+    );
 
-    const expectedSignature = crypto
-      .createHmac("sha256", secret)
-      .update(signedContent)
-      .digest("base64");
+    // Try multiple signature generation methods
+    console.log("\n🧪 Testing different signature methods:");
 
-    // Signature comes as "v1,signature" - extract the signature part
-    const providedSignature = signature.split(",")[1];
+    // Method 1: Original (hex decode the key)
+    const sig1 =
+      "sha512=" +
+      crypto
+        .createHmac("sha512", Buffer.from(SIGNATURE_KEY, "hex"))
+        .update(rawBody)
+        .digest("hex");
+    console.log("1️⃣ With hex decoded key:", sig1);
 
-    if (providedSignature !== expectedSignature) {
-      console.log("❌ Invalid webhook signature");
-      console.log("Received:", providedSignature);
-      console.log("Expected:", expectedSignature);
+    // Method 2: Use key as-is (UTF-8 string)
+    const sig2 =
+      "sha512=" +
+      crypto.createHmac("sha512", SIGNATURE_KEY).update(rawBody).digest("hex");
+    console.log("2️⃣ With raw string key:", sig2);
+
+    // Method 3: Try with UTF-8 encoded body
+    const sig3 =
+      "sha512=" +
+      crypto
+        .createHmac("sha512", Buffer.from(SIGNATURE_KEY, "hex"))
+        .update(rawBody.toString("utf8"))
+        .digest("hex");
+    console.log("3️⃣ With UTF-8 body string:", sig3);
+
+    // Method 4: Double-check the received signature format
+    console.log("\n📨 Received signature:", signatureHeader);
+    console.log("📨 Received (lowercase):", signatureHeader.toLowerCase());
+
+    // Check which method matches
+    const receivedLower = signatureHeader.toLowerCase();
+    let isValid = false;
+    let matchedMethod = null;
+
+    if (receivedLower === sig1.toLowerCase()) {
+      isValid = true;
+      matchedMethod = "Method 1 (hex decoded key)";
+    } else if (receivedLower === sig2.toLowerCase()) {
+      isValid = true;
+      matchedMethod = "Method 2 (raw string key)";
+    } else if (receivedLower === sig3.toLowerCase()) {
+      isValid = true;
+      matchedMethod = "Method 3 (UTF-8 body)";
+    }
+
+    if (!isValid) {
+      console.log("❌ Invalid signature - no methods matched");
+      console.log("💡 Check if:");
+      console.log("   - The signature key in .env is correct");
+      console.log("   - There's no middleware modifying the body");
+      console.log("   - The webhook URL in Authorize.Net is correct");
       return res.status(400).send("Invalid signature");
     }
 
-    console.log("✅ Signature verified");
+    console.log("✅ Signature verified using:", matchedMethod);
 
     const event = JSON.parse(rawBody.toString());
-
-    console.log("🔥 WHOP EVENT:", event.type);
-    console.log("📦 Event data:", JSON.stringify(event.data, null, 2));
+    console.log("🔥 Event Type:", event.eventType);
+    console.log("payload:", event.payload);
+    console.log("event body:", event);
 
     try {
-      // Handle different event types
-      switch (event.type) {
-        case "membership.activated":
-          console.log("🎉 New membership activated!");
-          await handleMembershipActivated(event.data);
+      switch (event.eventType) {
+        case "net.authorize.payment.authcapture.created":
+          await handlePaymentSucceeded(event.payload);
           break;
 
-        case "payment.succeeded":
-          console.log("💰 Payment succeeded");
-          await handlePaymentSucceeded(event.data);
+        case "net.authorize.payment.authcapture.failed":
+          await handlePaymentFailed(event.payload);
           break;
 
-        case "payment.failed":
-          console.log("⚠️ Payment failed");
-          await handlePaymentFailed(event.data);
+        case "net.authorize.payment.refund.created":
+          await handleRefund(event.payload);
+          break;
+
+        case "net.authorize.payment.void.created":
+          await handleVoid(event.payload);
           break;
 
         default:
-          console.log("ℹ️ Unhandled event type:", event.type);
+          console.log("ℹ️ Unhandled event:", event.eventType);
       }
 
       res.status(200).send("OK");
-    } catch (error) {
-      console.error("❌ Error processing webhook:", error);
-      // Still return 200 to prevent Whop from retrying
+    } catch (err) {
+      console.error("❌ Webhook error:", err);
       res.status(200).send("OK");
     }
   }
 );
 
-// Handler functions
-async function handlePaymentSucceeded(data) {
-  console.log("📋 Processing successful payment...");
+const ApiContracts = require("authorizenet").APIContracts;
+const ApiControllers = require("authorizenet").APIControllers;
+const SDKConstants = require("authorizenet").Constants;
 
-  const userId = data.metadata?.userId;
-  const challengeId = data.metadata?.challengeId;
-  const paymentId = data.id;
-  const amount = data.total;
-  const currency = data.currency;
-
-  console.log("👤 User ID:", userId);
-  console.log("💰 Payment ID:", paymentId);
-  console.log("💵 Amount:", amount, currency.toUpperCase());
-
-  try {
-    // Create or update payment record
-    const payment = await Payment.findOneAndUpdate(
-      { whopPaymentId: paymentId },
-      {
-        whopPaymentId: paymentId,
-        status: data.status,
-        substatus: "succeeded",
-        userId: userId,
-        challengeId: challengeId,
-
-        // Whop references
-        whopUserId: data.user.id,
-        whopMembershipId: data.membership?.id,
-        whopMemberId: data.member?.id,
-        membershipStatus: data.membership?.status,
-
-        // Product info
-        productId: data.product.id,
-        productTitle: data.product.title,
-        planId: data.plan.id,
-
-        // Amounts
-        total: data.total,
-        subtotal: data.subtotal,
-        usdTotal: data.usd_total,
-        refundedAmount: data.refunded_amount,
-        amountAfterFees: data.amount_after_fees,
-        currency: data.currency,
-
-        // Payment method
-        paymentMethodId: data.payment_method?.id,
-        paymentMethodType: data.payment_method_type,
-        cardBrand: data.card_brand,
-        cardLast4: data.card_last4,
-        cardExpMonth: data.payment_method?.card?.exp_month,
-        cardExpYear: data.payment_method?.card?.exp_year,
-
-        // Billing address
-        billingAddress: data.billing_address
-          ? {
-              name: data.billing_address.name,
-              line1: data.billing_address.line1,
-              line2: data.billing_address.line2,
-              city: data.billing_address.city,
-              state: data.billing_address.state,
-              postalCode: data.billing_address.postal_code,
-              country: data.billing_address.country,
-            }
-          : undefined,
-
-        // User info
-        userEmail: data.user.email,
-        userName: data.user.name,
-        userPhone: data.member?.phone,
-
-        // Flags
-        refundable: data.refundable,
-        retryable: data.retryable,
-        voidable: data.voidable,
-        autoRefunded: data.auto_refunded,
-
-        // Billing info
-        billingReason: data.billing_reason,
-        promoCode: data.promo_code
-          ? {
-              id: data.promo_code.id,
-              code: data.promo_code.code,
-              amountOff: data.promo_code.amount_off,
-              baseCurrency: data.promo_code.base_currency,
-              promoType: data.promo_code.promo_type,
-              numberOfIntervals: data.promo_code.number_of_intervals,
-            }
-          : undefined,
-
-        // Timestamps
-        createdAt: data.created_at ? new Date(data.created_at) : undefined,
-        paidAt: data.paid_at ? new Date(data.paid_at) : undefined,
-        lastPaymentAttempt: data.last_payment_attempt
-          ? new Date(data.last_payment_attempt)
-          : undefined,
-
-        // Metadata
-        metadata: data.metadata,
-      },
-      {
-        upsert: true,
-        new: true,
-        setDefaultsOnInsert: true,
-      }
+async function getTransactionDetails(transactionId) {
+  return new Promise((resolve, reject) => {
+    const merchantAuthenticationType =
+      new ApiContracts.MerchantAuthenticationType();
+    merchantAuthenticationType.setName(process.env.AUTHORIZE_NET_API_LOGIN_ID);
+    merchantAuthenticationType.setTransactionKey(
+      process.env.AUTHORIZE_NET_TRANSACTION_KEY
     );
 
-    console.log("✅ Payment record saved:", payment._id);
+    const getRequest = new ApiContracts.GetTransactionDetailsRequest();
+    getRequest.setMerchantAuthentication(merchantAuthenticationType);
+    getRequest.setTransId(transactionId);
 
-    // Create account for the user ONLY if payment succeeded
+    const ctrl = new ApiControllers.GetTransactionDetailsController(
+      getRequest.getJSON()
+    );
+
+    const environment =
+      process.env.AUTHORIZE_NET_ENVIRONMENT === "production"
+        ? SDKConstants.endpoint.production
+        : SDKConstants.endpoint.sandbox;
+
+    ctrl.setEnvironment(environment);
+
+    ctrl.execute(() => {
+      const apiResponse = ctrl.getResponse();
+      const response = new ApiContracts.GetTransactionDetailsResponse(
+        apiResponse
+      );
+
+      if (
+        response.getMessages().getResultCode() ===
+        ApiContracts.MessageTypeEnum.OK
+      ) {
+        resolve(response.getTransaction());
+      } else {
+        reject(new Error(response.getMessages().getMessage()[0].getText()));
+      }
+    });
+  });
+}
+
+async function handlePaymentSucceeded(payload) {
+  const transactionId = payload.id;
+
+  console.log("💰 Payment succeeded:", transactionId);
+  console.log("📞 Fetching full transaction details...");
+
+  try {
+    // Fetch complete transaction details
+    const fullTransaction = await getTransactionDetails(transactionId);
+    console.log("full transaction: ", fullTransaction);
+    const amount = fullTransaction.getAuthAmount();
+    const currency = "USD";
+
+    // Get metadata from order description
+    const orderDescription = fullTransaction.getOrder()?.getDescription();
+    const userId = orderDescription?.match(/User:(\w+)/)?.[1];
+    const challengeId = orderDescription?.match(/Challenge:(\w+)/)?.[1];
+
+    // Get card details
+    const cardLast4 = fullTransaction
+      .getPayment()
+      ?.getCreditCard()
+      ?.getCardNumber()
+      ?.slice(-4);
+    const cardType = fullTransaction
+      .getPayment()
+      ?.getCreditCard()
+      ?.getCardType();
+
+    console.log("🎯 Challenge ID:", challengeId);
+    console.log("👤 User ID:", userId);
+    console.log("💳 Card:", cardType, "****" + cardLast4);
+
+    const payment = await Payment.findOneAndUpdate(
+      { transactionId },
+      {
+        transactionId,
+        status: "succeeded",
+        amount,
+        currency,
+        userId,
+        challengeId,
+        cardLast4,
+        cardType,
+        createdAt: new Date(fullTransaction.getSubmitTimeUTC()),
+        rawPayload: payload,
+      },
+      { upsert: true, new: true }
+    );
+
+    console.log("✅ Payment saved:", payment._id);
+
     if (userId && challengeId) {
-      try {
-        const challengeBought = await challengeBuyingService(
-          challengeId,
-          userId,
-          "demo"
-        );
-
-        console.log(
-          "✅ challenge bought and affiliate commission processed:",
-          challengeBought
-        );
-      } catch (accountError) {
-        console.error("❌ Error creating account:", accountError.message);
-        // Don't throw - payment was successful even if account creation failed
-        // You can handle this separately (e.g., retry logic, alert admin)
-      }
-    } else {
-      console.warn("⚠️ Missing userId or challengeId - account not created");
+      await challengeBuyingService(challengeId, userId, "authorize-net");
     }
-
-    console.log("✅ Payment processed successfully");
   } catch (error) {
-    console.error("❌ Error saving payment:", error);
+    console.error("❌ Error fetching transaction details:", error);
     throw error;
   }
 }
 
-// Handler for failed payments
-async function handlePaymentFailed(data) {
-  console.log("📋 Processing failed payment...");
+async function handlePaymentFailed(payload) {
+  const transaction = payload.transaction;
 
-  const userId = data.metadata?.userId;
-  const challengeId = data.metadata?.challengeId;
-  const paymentId = data.id;
-  const failureReason = data.failure_message;
+  await Payment.findOneAndUpdate(
+    { transactionId: transaction.id },
+    {
+      transactionId: transaction.id,
+      status: "failed",
+      failureReason: transaction.responseReasonDescription,
+      rawPayload: payload,
+    },
+    { upsert: true }
+  );
 
-  console.log("👤 User ID:", userId);
-  console.log("💰 Payment ID:", paymentId);
-  console.log("❌ Failure reason:", failureReason);
-
-  try {
-    // Create or update payment record
-    const payment = await Payment.findOneAndUpdate(
-      { whopPaymentId: paymentId },
-      {
-        whopPaymentId: paymentId,
-        status: data.status,
-        substatus: "failed",
-        userId: userId,
-        challengeId: challengeId,
-
-        // Whop references
-        whopUserId: data.user.id,
-        whopMembershipId: data.membership?.id,
-        whopMemberId: data.member?.id,
-        membershipStatus: data.membership?.status,
-
-        // Product info
-        productId: data.product.id,
-        productTitle: data.product.title,
-        planId: data.plan.id,
-
-        // Amounts
-        total: data.total,
-        subtotal: data.subtotal,
-        usdTotal: data.usd_total,
-        refundedAmount: data.refunded_amount,
-        amountAfterFees: data.amount_after_fees,
-        currency: data.currency,
-
-        // Payment method
-        paymentMethodId: data.payment_method?.id,
-        paymentMethodType: data.payment_method_type,
-        cardBrand: data.card_brand,
-        cardLast4: data.card_last4,
-        cardExpMonth: data.payment_method?.card?.exp_month,
-        cardExpYear: data.payment_method?.card?.exp_year,
-
-        // Billing address
-        billingAddress: data.billing_address
-          ? {
-              name: data.billing_address.name,
-              line1: data.billing_address.line1,
-              line2: data.billing_address.line2,
-              city: data.billing_address.city,
-              state: data.billing_address.state,
-              postalCode: data.billing_address.postal_code,
-              country: data.billing_address.country,
-            }
-          : undefined,
-
-        // User info
-        userEmail: data.user.email,
-        userName: data.user.name,
-        userPhone: data.member?.phone,
-
-        // Flags
-        refundable: data.refundable,
-        retryable: data.retryable,
-        voidable: data.voidable,
-        autoRefunded: data.auto_refunded,
-
-        // Billing info
-        billingReason: data.billing_reason,
-        failureMessage: data.failure_message,
-        promoCode: data.promo_code
-          ? {
-              id: data.promo_code.id,
-              code: data.promo_code.code,
-              amountOff: data.promo_code.amount_off,
-              baseCurrency: data.promo_code.base_currency,
-              promoType: data.promo_code.promo_type,
-              numberOfIntervals: data.promo_code.number_of_intervals,
-            }
-          : undefined,
-
-        // Timestamps
-        createdAt: data.created_at ? new Date(data.created_at) : undefined,
-        paidAt: data.paid_at ? new Date(data.paid_at) : undefined,
-        lastPaymentAttempt: data.last_payment_attempt
-          ? new Date(data.last_payment_attempt)
-          : undefined,
-
-        // Increment retry count
-        $inc: { retryCount: 1 },
-        lastRetryAt: new Date(),
-
-        // Metadata
-        metadata: data.metadata,
-      },
-      {
-        upsert: true,
-        new: true,
-        setDefaultsOnInsert: true,
-      }
-    );
-
-    console.log("✅ Failed payment logged:", payment._id);
-
-    // TODO: Send notification to user about failed payment
-    // TODO: If retryable, you could schedule a retry
-
-    if (data.retryable && payment.retryCount < 3) {
-      console.log("🔄 Payment is retryable. Consider scheduling a retry.");
-      // You could add logic here to trigger a retry mechanism
-    }
-  } catch (error) {
-    console.error("❌ Error saving failed payment:", error);
-    throw error;
-  }
+  console.log("❌ Payment failed:", transaction.id);
 }
 
-// Handler for membership activation
-async function handleMembershipActivated(data) {
-  console.log("📋 Processing membership activation...");
+async function handleRefund(payload) {
+  const transaction = payload.transaction;
 
-  const userId = data.metadata?.userId;
-  const challengeId = data.metadata?.challengeId;
-  const whopMembershipId = data.id;
-  const whopUserId = data.user.id;
-  const planId = data.plan.id;
-  const productId = data.product.id;
+  await Payment.findOneAndUpdate(
+    { transactionId: transaction.refTransId },
+    {
+      status: "refunded",
+      refundedAmount: transaction.authAmount,
+      refundedAt: new Date(),
+    }
+  );
 
-  console.log("👤 User ID (from metadata):", userId);
-  console.log("🎯 Challenge ID (from metadata):", challengeId);
-  console.log("🆔 Whop Membership ID:", whopMembershipId);
-  console.log("👥 Whop User ID:", whopUserId);
-  console.log("📦 Plan ID:", planId);
-  console.log("🏷️ Product ID:", productId);
-  console.log("📊 Membership Status:", data.status);
+  console.log("🔄 Payment refunded:", transaction.refTransId);
+}
 
-  if (!userId) {
-    console.warn("⚠️ No userId in metadata - cannot update user");
-    return;
-  }
+async function handleVoid(payload) {
+  const transaction = payload.transaction;
 
-  try {
-    // DON'T create account here - that's done in payment.succeeded
-    // This event is just for tracking membership status
+  await Payment.findOneAndUpdate(
+    { transactionId: transaction.originalTransId },
+    {
+      status: "voided",
+      voidedAt: new Date(),
+    }
+  );
 
-    // TODO: Update your User model with membership info
-    // await User.findByIdAndUpdate(userId, {
-    //   membershipStatus: data.status, // "completed", "active", etc.
-    //   whopMembershipId: whopMembershipId,
-    //   whopUserId: whopUserId,
-    //   whopMemberId: data.member.id,
-    //   subscriptionPlanId: planId,
-    //   subscriptionProductId: productId,
-    //   cancelAtPeriodEnd: data.cancel_at_period_end,
-    //   renewalPeriodStart: data.renewal_period_start ? new Date(data.renewal_period_start) : null,
-    //   renewalPeriodEnd: data.renewal_period_end ? new Date(data.renewal_period_end) : null,
-    //   membershipManageUrl: data.manage_url,
-    //   promoCodeId: data.promo_code?.id,
-    //   lastMembershipUpdate: new Date(),
-    // });
-
-    console.log("✅ Membership activation processed - user record updated");
-  } catch (error) {
-    console.error("❌ Error processing membership activation:", error.message);
-    throw error;
-  }
+  console.log("❌ Payment voided:", transaction.originalTransId);
 }
 
 module.exports = router;

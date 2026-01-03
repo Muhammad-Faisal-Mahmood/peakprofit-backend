@@ -45,6 +45,6 @@ const chartLayoutSchema = new mongoose.Schema({
 });
 
 // Compound index for faster queries
-chartLayoutSchema.index({ userId: 1, clientId: 1 });
+chartLayoutSchema.index({ userId: 1 });
 
 module.exports = mongoose.model("ChartLayout", chartLayoutSchema);

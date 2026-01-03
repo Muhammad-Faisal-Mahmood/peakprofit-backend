@@ -95,7 +95,6 @@ function createHostedPaymentPage(amount, userId, challengeId, description) {
     merchantAuthenticationType.setTransactionKey(
       process.env.AUTHORIZE_NET_TRANSACTION_KEY
     );
-    console.log("✅ Merchant authentication created");
 
     console.log("🔧 Step 2: Creating transaction request...");
     const transactionRequestType = new ApiContracts.TransactionRequestType();
@@ -103,8 +102,6 @@ function createHostedPaymentPage(amount, userId, challengeId, description) {
       ApiContracts.TransactionTypeEnum.AUTHCAPTURETRANSACTION
     );
     transactionRequestType.setAmount(amount);
-    console.log("✅ Transaction type set: authCaptureTransaction");
-    console.log("✅ Amount set:", amount);
 
     console.log("🔧 Step 3: Adding order information...");
     const orderType = new ApiContracts.OrderType();
@@ -118,42 +115,34 @@ function createHostedPaymentPage(amount, userId, challengeId, description) {
     console.log("✅ Invoice Number:", invoiceNumber);
     console.log("✅ Order Description:", orderDescription);
 
-    console.log("🔧 Step 4: Configuring hosted payment settings...");
-
-    const frontendUrl = process.env.FRONTEND_URL || "https://yourdomain.com";
-    const returnUrl = `${frontendUrl}/payment/callback`;
-    const cancelUrl = `${frontendUrl}/payment/cancel`;
-
-    console.log("✅ Return URL:", returnUrl);
-    console.log("✅ Cancel URL:", cancelUrl);
+    console.log("🔧 Step 4: Configuring minimal hosted payment settings...");
 
     const settingList = [];
 
-    // Setting 1: Return options
+    // SOLUTION: Use ONLY the settings that work
+    // Don't include hostedPaymentReturnOptions - configure return URL in merchant account instead
+
+    // Setting 1: Button options (this works fine)
     const setting1 = new ApiContracts.SettingType();
-    setting1.setSettingName("hostedPaymentReturnOptions");
-    setting1.setSettingValue(
-      `{"showReceipt": false, "url": "${returnUrl}", "urlText": "Continue", "cancelUrl": "${cancelUrl}", "cancelUrlText": "Cancel"}`
-    );
+    setting1.setSettingName("hostedPaymentButtonOptions");
+    setting1.setSettingValue('{"text":"Pay"}');
     settingList.push(setting1);
 
-    // Setting 2: Button options
+    // Setting 2: Payment options (this works fine)
     const setting2 = new ApiContracts.SettingType();
-    setting2.setSettingName("hostedPaymentButtonOptions");
-    setting2.setSettingValue(`{"text": "Pay Now"}`);
+    setting2.setSettingName("hostedPaymentPaymentOptions");
+    setting2.setSettingValue('{"cardCodeRequired":true,"showCreditCard":true}');
     settingList.push(setting2);
 
-    // Setting 3: Payment options
+    // Setting 3: Customer options (optional)
     const setting3 = new ApiContracts.SettingType();
-    setting3.setSettingName("hostedPaymentPaymentOptions");
-    setting3.setSettingValue(
-      `{"cardCodeRequired": true, "showCreditCard": true}`
-    );
+    setting3.setSettingName("hostedPaymentSecurityOptions");
+    setting3.setSettingValue('{"captcha":false}');
     settingList.push(setting3);
 
     const alist = new ApiContracts.ArrayOfSetting();
     alist.setSetting(settingList);
-    console.log("✅ Payment settings configured");
+    console.log("✅ Payment settings configured (minimal approach)");
 
     console.log("🔧 Step 5: Creating hosted payment page request...");
     const getRequest = new ApiContracts.GetHostedPaymentPageRequest();
@@ -176,7 +165,6 @@ function createHostedPaymentPage(amount, userId, challengeId, description) {
       "✅ Environment set to:",
       process.env.AUTHORIZE_NET_ENVIRONMENT || "sandbox"
     );
-
     console.log("🚀 Executing API call...");
 
     ctrl.execute(() => {
@@ -193,24 +181,17 @@ function createHostedPaymentPage(amount, userId, challengeId, description) {
       if (resultCode === ApiContracts.MessageTypeEnum.OK) {
         const token = response.getToken();
 
-        // FIXED: Properly format the hosted payment URL
         const isProduction =
           process.env.AUTHORIZE_NET_ENVIRONMENT === "production";
         const hostedPaymentUrl = isProduction
-          ? "https://test.authorize.net/payment/payment"
+          ? "https://accept.authorize.net/payment/payment"
           : "https://test.authorize.net/payment/payment";
 
-        // URL encode the token properly
         const encodedToken = encodeURIComponent(token);
         const fullUrl = `${hostedPaymentUrl}?token=${encodedToken}`;
 
         console.log("✅ ========= SUCCESS =========");
-        console.log("✅ Raw Token:", token);
-        console.log("✅ Token length:", token.length);
-        console.log(
-          "✅ Encoded Token (first 100 chars):",
-          encodedToken.substring(0, 100)
-        );
+        console.log("✅ Token:", token.substring(0, 50) + "...");
         console.log("✅ Payment URL:", fullUrl);
         console.log("✅ ============================");
 

@@ -43,7 +43,7 @@ const allowedOrigins = [
   process.env.FRONT_APP_URL_DEV,
 ];
 
-app.use("/api/whop", require("./paymentProcessor/payment.webhook"));
+app.use("/api/paymentEvents", require("./paymentProcessor/payment.webhook"));
 
 app.use(express.json());
 
