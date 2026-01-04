@@ -167,15 +167,10 @@ function createHostedPaymentPage(amount, invoiceNumber, requestedChallenge) {
         ApiContracts.MessageTypeEnum.OK
       ) {
         const token = response.getToken();
-        const baseUrl =
-          process.env.AUTHORIZE_NET_ENVIRONMENT === "production"
-            ? "https://accept.authorize.net/payment/payment"
-            : "https://test.authorize.net/payment/payment";
 
         resolve({
           success: true,
           token,
-          url: `${baseUrl}?token=${encodeURIComponent(token)}`,
         });
       } else {
         const err = response.getMessages().getMessage()[0];
