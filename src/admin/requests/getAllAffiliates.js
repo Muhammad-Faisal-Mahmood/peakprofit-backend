@@ -140,7 +140,7 @@ const getAllAffiliates = async (req, res) => {
         data: affiliates,
         pagination: {
           currentPage: pageNo,
-          perPage,
+          itemsPerPage: perPage,
           totalItems: totalCount,
           totalPages,
           hasNextPage: pageNo < totalPages,
