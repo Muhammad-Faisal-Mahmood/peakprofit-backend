@@ -25,7 +25,7 @@ const paymentSchema = new mongoose.Schema(
     /* -------------------- AUTHORIZE.NET IDS -------------------- */
     transactionId: {
       type: String,
-      unique: true,
+      default: null,
     },
 
     invoiceNumber: {
