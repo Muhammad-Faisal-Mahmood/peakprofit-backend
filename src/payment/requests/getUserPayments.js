@@ -27,7 +27,6 @@ const getUserPayments = async (req, res) => {
         ...rest,
         user: userId, // Rename userId to user
         challenge: challengeId, // Rename challengeId to challenge
-        amountInDollars: (payment.total / 100).toFixed(2), // Convert cents to dollars
       };
     });
 

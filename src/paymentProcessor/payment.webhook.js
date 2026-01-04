@@ -4,6 +4,9 @@ const Payment = require("../payment/payment.model");
 const challengeBuyingService = require("../utils/challengeBuying.service");
 
 const router = express.Router();
+const ApiContracts = require("authorizenet").APIContracts;
+const ApiControllers = require("authorizenet").APIControllers;
+const SDKConstants = require("authorizenet").Constants;
 
 const SIGNATURE_KEY = process.env.AUTHORIZE_NET_SIGNATURE_KEY;
 
@@ -31,32 +34,11 @@ router.post(
       rawBody.toString().substring(0, 200)
     );
 
-    // Try multiple signature generation methods
-    console.log("\n🧪 Testing different signature methods:");
-
-    // Method 1: Original (hex decode the key)
-    const sig1 =
-      "sha512=" +
-      crypto
-        .createHmac("sha512", Buffer.from(SIGNATURE_KEY, "hex"))
-        .update(rawBody)
-        .digest("hex");
-    console.log("1️⃣ With hex decoded key:", sig1);
-
     // Method 2: Use key as-is (UTF-8 string)
     const sig2 =
       "sha512=" +
       crypto.createHmac("sha512", SIGNATURE_KEY).update(rawBody).digest("hex");
     console.log("2️⃣ With raw string key:", sig2);
-
-    // Method 3: Try with UTF-8 encoded body
-    const sig3 =
-      "sha512=" +
-      crypto
-        .createHmac("sha512", Buffer.from(SIGNATURE_KEY, "hex"))
-        .update(rawBody.toString("utf8"))
-        .digest("hex");
-    console.log("3️⃣ With UTF-8 body string:", sig3);
 
     // Method 4: Double-check the received signature format
     console.log("\n📨 Received signature:", signatureHeader);
@@ -67,15 +49,9 @@ router.post(
     let isValid = false;
     let matchedMethod = null;
 
-    if (receivedLower === sig1.toLowerCase()) {
-      isValid = true;
-      matchedMethod = "Method 1 (hex decoded key)";
-    } else if (receivedLower === sig2.toLowerCase()) {
+    if (receivedLower === sig2.toLowerCase()) {
       isValid = true;
       matchedMethod = "Method 2 (raw string key)";
-    } else if (receivedLower === sig3.toLowerCase()) {
-      isValid = true;
-      matchedMethod = "Method 3 (UTF-8 body)";
     }
 
     if (!isValid) {
@@ -90,43 +66,28 @@ router.post(
     console.log("✅ Signature verified using:", matchedMethod);
 
     const event = JSON.parse(rawBody.toString());
-    console.log("🔥 Event Type:", event.eventType);
-    console.log("payload:", event.payload);
-    console.log("event body:", event);
 
     try {
       switch (event.eventType) {
         case "net.authorize.payment.authcapture.created":
-          await handlePaymentSucceeded(event.payload);
+          await handlePaymentAccepted(event.payload);
           break;
 
         case "net.authorize.payment.authcapture.failed":
           await handlePaymentFailed(event.payload);
           break;
 
-        case "net.authorize.payment.refund.created":
-          await handleRefund(event.payload);
-          break;
-
-        case "net.authorize.payment.void.created":
-          await handleVoid(event.payload);
-          break;
-
         default:
-          console.log("ℹ️ Unhandled event:", event.eventType);
+          console.log("ℹ️ Ignored event:", event.eventType);
       }
 
       res.status(200).send("OK");
     } catch (err) {
-      console.error("❌ Webhook error:", err);
-      res.status(200).send("OK");
+      console.error("❌ Webhook processing error:", err);
+      res.status(200).send("OK"); // prevent retries
     }
   }
 );
-
-const ApiContracts = require("authorizenet").APIContracts;
-const ApiControllers = require("authorizenet").APIControllers;
-const SDKConstants = require("authorizenet").Constants;
 
 async function getTransactionDetails(transactionId) {
   return new Promise((resolve, reject) => {
@@ -170,111 +131,162 @@ async function getTransactionDetails(transactionId) {
   });
 }
 
-async function handlePaymentSucceeded(payload) {
+async function handlePaymentAccepted(payload) {
   const transactionId = payload.id;
 
-  console.log("💰 Payment succeeded:", transactionId);
-  console.log("📞 Fetching full transaction details...");
+  console.log("💰 Payment accepted:", transactionId);
 
-  try {
-    // Fetch complete transaction details
-    const fullTransaction = await getTransactionDetails(transactionId);
-    console.log("full transaction: ", fullTransaction);
-    const amount = fullTransaction.getAuthAmount();
-    const currency = "USD";
+  const fullTransaction = await getTransactionDetails(transactionId);
+  console.log("transaction details:", fullTransaction);
 
-    // Get metadata from order description
-    const orderDescription = fullTransaction.getOrder()?.getDescription();
-    const userId = orderDescription?.match(/User:(\w+)/)?.[1];
-    const challengeId = orderDescription?.match(/Challenge:(\w+)/)?.[1];
+  const invoiceNumber = fullTransaction.getOrder()?.getInvoiceNumber();
 
-    // Get card details
-    const cardLast4 = fullTransaction
-      .getPayment()
-      ?.getCreditCard()
-      ?.getCardNumber()
-      ?.slice(-4);
-    const cardType = fullTransaction
-      .getPayment()
-      ?.getCreditCard()
-      ?.getCardType();
-
-    console.log("🎯 Challenge ID:", challengeId);
-    console.log("👤 User ID:", userId);
-    console.log("💳 Card:", cardType, "****" + cardLast4);
-
-    const payment = await Payment.findOneAndUpdate(
-      { transactionId },
-      {
-        transactionId,
-        status: "succeeded",
-        amount,
-        currency,
-        userId,
-        challengeId,
-        cardLast4,
-        cardType,
-        createdAt: new Date(fullTransaction.getSubmitTimeUTC()),
-        rawPayload: payload,
-      },
-      { upsert: true, new: true }
-    );
-
-    console.log("✅ Payment saved:", payment._id);
-
-    if (userId && challengeId) {
-      await challengeBuyingService(challengeId, userId, "authorize-net");
-    }
-  } catch (error) {
-    console.error("❌ Error fetching transaction details:", error);
-    throw error;
+  if (!invoiceNumber) {
+    throw new Error("Missing invoice number in transaction");
   }
+
+  const payment = await Payment.findOne({ invoiceNumber });
+
+  if (!payment) {
+    throw new Error(`Payment not found for invoice ${invoiceNumber}`);
+  }
+
+  if (payment.status !== "pending") {
+    console.log(`⚠️ Payment already processed with status: ${payment.status}`);
+    return; // Don't throw, just skip
+  }
+
+  // Extract all available information
+  const paymentInfo = fullTransaction.getPayment();
+  const creditCard = paymentInfo?.getCreditCard();
+  const bankAccount = paymentInfo?.getBankAccount();
+  const billTo = fullTransaction.getBillTo();
+  const order = fullTransaction.getOrder();
+
+  const update = {
+    // -------------------- STATUS & IDS --------------------
+    status: "accepted",
+    transactionId: String(transactionId),
+
+    // -------------------- AMOUNTS --------------------
+    authAmount: fullTransaction.getAuthAmount(),
+    settledAmount: fullTransaction.getSettleAmount(),
+
+    // -------------------- RESPONSE INFO --------------------
+    responseCode: fullTransaction.getResponseCode(),
+    responseReasonCode: fullTransaction.getResponseReasonCode(),
+    responseReasonDescription: fullTransaction.getResponseReasonDescription(),
+    authCode: fullTransaction.getAuthCode(),
+    avsResponse: fullTransaction.getAVSResponse(),
+    cardCodeResponse: fullTransaction.getCardCodeResponse(),
+
+    // -------------------- PAYMENT METHOD --------------------
+    paymentMethodType: creditCard
+      ? "card"
+      : bankAccount
+      ? "bank_account"
+      : undefined,
+
+    // -------------------- CARD INFO --------------------
+    ...(creditCard && {
+      card: {
+        brand: creditCard.getCardType(),
+        last4: creditCard.getCardNumber()?.slice(-4),
+        expirationDate: creditCard.getExpirationDate(),
+      },
+    }),
+
+    // -------------------- BANK INFO --------------------
+    ...(bankAccount && {
+      bank: {
+        accountType: bankAccount.getAccountType(),
+        routingNumberMasked: bankAccount.getRoutingNumber(),
+        accountNumberMasked: bankAccount.getAccountNumber(),
+        nameOnAccount: bankAccount.getNameOnAccount(),
+        bankName: bankAccount.getBankName(),
+      },
+    }),
+
+    // -------------------- BILLING ADDRESS --------------------
+    ...(billTo && {
+      billingAddress: {
+        firstName: billTo.getFirstName(),
+        lastName: billTo.getLastName(),
+        address: billTo.getAddress(),
+        city: billTo.getCity(),
+        state: billTo.getState(),
+        zip: billTo.getZip(),
+        country: billTo.getCountry(),
+        phoneNumber: billTo.getPhoneNumber(),
+      },
+    }),
+
+    // -------------------- ORDER INFO --------------------
+    orderDescription: order?.getDescription(),
+
+    // -------------------- NETWORK & TRANSACTION META --------------------
+    customerIP: fullTransaction.getCustomerIP(),
+    networkTransId: fullTransaction.getNetworkTransId(),
+    marketType: fullTransaction.getMarketType(),
+    product: fullTransaction.getProduct(),
+
+    // -------------------- TIMESTAMPS --------------------
+    submitTimeUTC: new Date(fullTransaction.getSubmitTimeUTC()),
+    submitTimeLocal: fullTransaction.getSubmitTimeLocal(),
+
+    // -------------------- INTERNAL --------------------
+    updatedAt: new Date(),
+  };
+
+  console.log("📝 Updates to be applied:", JSON.stringify(update, null, 2));
+
+  const updatedPayment = await Payment.updateOne(
+    { _id: payment._id },
+    { $set: update }
+  );
+
+  console.log("✅ Payment update result:", updatedPayment);
+
+  if (updatedPayment.modifiedCount === 0) {
+    console.warn("⚠️ No documents were modified");
+  }
+
+  // Fetch the updated payment to confirm
+  const confirmedPayment = await Payment.findById(payment._id);
+  console.log("✅ Payment confirmed as accepted:", {
+    invoiceNumber: confirmedPayment.invoiceNumber,
+    status: confirmedPayment.status,
+    transactionId: confirmedPayment.transactionId,
+    amount: confirmedPayment.authAmount,
+  });
+
+  // 🎯 Grant challenge access
+  await challengeBuyingService(payment.challengeId, payment.userId);
 }
 
 async function handlePaymentFailed(payload) {
-  const transaction = payload.transaction;
+  try {
+    const transactionId = payload?.id;
 
-  await Payment.findOneAndUpdate(
-    { transactionId: transaction.id },
-    {
-      transactionId: transaction.id,
-      status: "failed",
-      failureReason: transaction.responseReasonDescription,
-      rawPayload: payload,
-    },
-    { upsert: true }
-  );
+    console.log("❌ Payment failed:", transactionId);
 
-  console.log("❌ Payment failed:", transaction.id);
-}
+    const fullTransaction = await getTransactionDetails(transactionId);
+    console.log("failed transaction details:", fullTransaction);
+    const invoiceNumber = fullTransaction.getOrder()?.getInvoiceNumber();
 
-async function handleRefund(payload) {
-  const transaction = payload.transaction;
+    if (!invoiceNumber) return;
 
-  await Payment.findOneAndUpdate(
-    { transactionId: transaction.refTransId },
-    {
-      status: "refunded",
-      refundedAmount: transaction.authAmount,
-      refundedAt: new Date(),
-    }
-  );
-
-  console.log("🔄 Payment refunded:", transaction.refTransId);
-}
-
-async function handleVoid(payload) {
-  const transaction = payload.transaction;
-
-  await Payment.findOneAndUpdate(
-    { transactionId: transaction.originalTransId },
-    {
-      status: "voided",
-      voidedAt: new Date(),
-    }
-  );
-
-  console.log("❌ Payment voided:", transaction.originalTransId);
+    await Payment.updateOne(
+      { invoiceNumber },
+      {
+        status: "failed",
+        transactionId: String(transactionId),
+        updatedAt: new Date(),
+      }
+    );
+  } catch (error) {
+    throw new Error("Couldnt handle payment failure", error.message);
+  }
 }
 
 module.exports = router;

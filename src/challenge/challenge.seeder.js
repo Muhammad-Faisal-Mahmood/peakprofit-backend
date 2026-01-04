@@ -31,7 +31,7 @@ const challenges = [
   {
     name: "100k Challenge",
     cost: 350,
-    accountSize: 150000,
+    accountSize: 100000,
   },
   {
     name: "200k Challenge",

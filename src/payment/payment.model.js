@@ -2,251 +2,133 @@ const mongoose = require("mongoose");
 
 const paymentSchema = new mongoose.Schema(
   {
-    // Core Payment Info
-    whopPaymentId: {
-      type: String,
-      required: true,
-      unique: true,
-      index: true,
-    },
-    status: {
-      type: String,
-      enum: ["open", "paid", "refunded", "failed", "disputed"],
-      required: true,
-    },
-    substatus: {
-      type: String,
-      enum: ["pending", "succeeded", "failed", "requires_action"],
-    },
-
-    // User References
+    /* -------------------- CORE REFERENCES -------------------- */
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
       index: true,
     },
+
     challengeId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Challenge",
       index: true,
     },
 
-    // Whop References
-    whopUserId: {
+    /* -------------------- AUTHORIZE.NET IDS -------------------- */
+    transactionId: {
       type: String,
-      required: true,
-    },
-    whopMembershipId: {
-      type: String,
-    },
-    whopMemberId: {
-      type: String,
-    },
-    membershipStatus: {
-      type: String,
-      enum: ["active", "trialing", "past_due", "canceled", "drafted"],
+      unique: true,
     },
 
-    // Product & Plan Info
-    productId: {
+    invoiceNumber: {
       type: String,
       required: true,
+      index: true,
     },
-    productTitle: {
+
+    /* -------------------- STATUS -------------------- */
+    status: {
       type: String,
+      enum: ["pending", "accepted", "failed"],
+      default: "pending",
+      index: true,
     },
-    planId: {
-      type: String,
+
+    /* -------------------- AMOUNTS -------------------- */
+    authAmount: {
+      type: Number,
       required: true,
     },
 
-    // Payment Amounts
-    total: {
-      type: Number,
-      required: true,
-    },
-    subtotal: {
-      type: Number,
-      required: true,
-    },
-    usdTotal: {
-      type: Number,
-      required: true,
-    },
-    refundedAmount: {
-      type: Number,
-      default: 0,
-    },
-    amountAfterFees: {
+    settledAmount: {
       type: Number,
     },
+
     currency: {
       type: String,
-      default: "usd",
+      default: "USD",
     },
 
-    // Payment Method Details
-    paymentMethodId: {
-      type: String,
-    },
+    /* -------------------- RESPONSE INFO -------------------- */
+    responseCode: Number,
+    responseReasonCode: Number,
+    responseReasonDescription: String,
+    authCode: String,
+
+    avsResponse: String,
+    cardCodeResponse: String,
+
+    /* -------------------- PAYMENT METHOD -------------------- */
     paymentMethodType: {
       type: String,
-      enum: ["card", "paypal", "crypto", "bank_transfer"],
-    },
-    cardBrand: {
-      type: String,
-    },
-    cardLast4: {
-      type: String,
-    },
-    cardExpMonth: {
-      type: Number,
-    },
-    cardExpYear: {
-      type: Number,
+      enum: ["card", "bank_account"],
     },
 
-    // Billing Address
+    /* ---- CARD ---- */
+    card: {
+      brand: String, // Visa, MasterCard, Amex
+      last4: String, // XXXX0002
+      expirationDate: String,
+    },
+
+    /* ---- BANK / ACH ---- */
+    bank: {
+      accountType: String, // checking / savings
+      routingNumberMasked: String,
+      accountNumberMasked: String,
+      nameOnAccount: String,
+      bankName: String,
+    },
+
+    /* -------------------- BILLING INFO -------------------- */
     billingAddress: {
-      name: String,
-      line1: String,
-      line2: String,
+      firstName: String,
+      lastName: String,
+      address: String,
       city: String,
       state: String,
-      postalCode: String,
+      zip: String,
       country: String,
+      phoneNumber: String,
     },
 
-    // User Info (from Whop)
-    userEmail: {
-      type: String,
-    },
-    userName: {
-      type: String,
-    },
-    userPhone: {
-      type: String,
-    },
+    /* -------------------- ORDER INFO -------------------- */
+    orderDescription: String,
 
-    // Payment Status Flags
-    refundable: {
-      type: Boolean,
-      default: false,
-    },
-    retryable: {
-      type: Boolean,
-      default: false,
-    },
-    voidable: {
-      type: Boolean,
-      default: false,
-    },
-    autoRefunded: {
-      type: Boolean,
-      default: false,
-    },
+    /* -------------------- NETWORK / META -------------------- */
+    customerIP: String,
+    networkTransId: String,
+    marketType: String,
+    product: String,
 
-    // Billing & Failure Info
-    billingReason: {
-      type: String,
-      enum: ["one_time", "subscription", "trial"],
-    },
-    failureMessage: {
-      type: String,
-    },
+    /* -------------------- TIMESTAMPS FROM AUTH.NET -------------------- */
+    submitTimeUTC: Date,
+    submitTimeLocal: Date,
 
-    // Promo Code (Whop sends this as an object)
-    promoCode: {
-      id: String,
-      code: String,
-      amountOff: Number,
-      baseCurrency: String,
-      promoType: {
-        type: String,
-        enum: ["percentage", "fixed", "free_trial"],
-      },
-      numberOfIntervals: Number,
-    },
-
-    // Timestamps from Whop
-    createdAt: {
-      type: Date,
-    },
-    paidAt: {
-      type: Date,
-    },
-    lastPaymentAttempt: {
-      type: Date,
-    },
-    refundedAt: {
-      type: Date,
-    },
-    disputeAlertedAt: {
-      type: Date,
-    },
-
-    // Metadata (flexible for custom data)
-    metadata: {
-      type: mongoose.Schema.Types.Mixed,
-    },
-
-    // Internal Notes
-    internalNotes: {
-      type: String,
-    },
-
-    // Retry tracking for failed payments
-    retryCount: {
-      type: Number,
-      default: 0,
-    },
-    lastRetryAt: {
-      type: Date,
-    },
+    /* -------------------- INTERNAL METADATA -------------------- */
+    metadata: mongoose.Schema.Types.Mixed,
   },
   {
-    timestamps: true, // Adds createdAt and updatedAt
+    timestamps: true,
   }
 );
 
-// Indexes for common queries
+/* -------------------- INDEXES -------------------- */
 paymentSchema.index({ userId: 1, status: 1 });
 paymentSchema.index({ challengeId: 1 });
-paymentSchema.index({ whopUserId: 1 });
-paymentSchema.index({ status: 1, createdAt: -1 });
-paymentSchema.index({ "metadata.price": 1 });
+paymentSchema.index({ invoiceNumber: 1 });
+paymentSchema.index({ transId: 1 });
 
-// Virtual for amount in dollars
-paymentSchema.virtual("amountInDollars").get(function () {
-  return (this.total / 100).toFixed(2);
-});
-
-// Instance method to check if payment is successful
+/* -------------------- HELPERS -------------------- */
 paymentSchema.methods.isSuccessful = function () {
-  return this.status === "paid" && this.substatus === "succeeded";
+  return this.status === "accepted";
 };
 
-// Instance method to check if payment failed
 paymentSchema.methods.isFailed = function () {
-  return this.status === "open" && this.substatus === "failed";
-};
-
-// Static method to get user's payment history
-paymentSchema.statics.getUserPayments = async function (userId) {
-  return this.find({ userId }).sort({ createdAt: -1 });
-};
-
-// Static method to get failed payments that can be retried
-paymentSchema.statics.getRetryablePayments = async function () {
-  return this.find({
-    status: "open",
-    substatus: "failed",
-    retryable: true,
-    retryCount: { $lt: 3 },
-  });
+  return this.status === "failed";
 };
 
 const Payment = mongoose.model("Payment", paymentSchema);
-
 module.exports = Payment;
