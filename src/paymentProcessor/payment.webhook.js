@@ -261,7 +261,27 @@ async function handlePaymentAccepted(payload) {
   });
 
   // 🎯 Grant challenge access
-  await challengeBuyingService(payment.challengeId, payment.userId);
+  const result = await challengeBuyingService(
+    payment.challengeId,
+    payment.userId
+  );
+
+  if (result && result?.account?._id) {
+    await Payment.updateOne(
+      { _id: payment._id },
+      {
+        $set: {
+          accountId: result.account._id,
+          updatedAt: new Date(),
+        },
+      }
+    );
+
+    console.log("🔗 Account linked to payment:", {
+      paymentId: payment._id,
+      accountId: result.account._id,
+    });
+  }
 }
 
 async function handlePaymentFailed(payload) {

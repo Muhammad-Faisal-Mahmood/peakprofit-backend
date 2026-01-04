@@ -16,6 +16,12 @@ const paymentSchema = new mongoose.Schema(
       index: true,
     },
 
+    accountId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Account",
+      default: null,
+    },
+
     /* -------------------- AUTHORIZE.NET IDS -------------------- */
     transactionId: {
       type: String,
@@ -120,15 +126,6 @@ paymentSchema.index({ userId: 1, status: 1 });
 paymentSchema.index({ challengeId: 1 });
 paymentSchema.index({ invoiceNumber: 1 });
 paymentSchema.index({ transId: 1 });
-
-/* -------------------- HELPERS -------------------- */
-paymentSchema.methods.isSuccessful = function () {
-  return this.status === "accepted";
-};
-
-paymentSchema.methods.isFailed = function () {
-  return this.status === "failed";
-};
 
 const Payment = mongoose.model("Payment", paymentSchema);
 module.exports = Payment;
