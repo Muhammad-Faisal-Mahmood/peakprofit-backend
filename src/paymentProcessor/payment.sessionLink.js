@@ -119,9 +119,9 @@ function createHostedPaymentPage(amount, invoiceNumber, requestedChallenge) {
     successSetting.setSettingValue(
       JSON.stringify({
         showReceipt: false,
-        url: `${process.env.FRONT_APP_URL_DEV}`,
+        url: `${process.env.DASHBOARD_URL}`,
         urlText: "Continue",
-        cancelUrl: `${process.env.FRONT_APP_URL_DEV}`,
+        cancelUrl: `${process.env.DASHBOARD_URL}`,
         cancelUrlText: "Cancel",
       })
     );
