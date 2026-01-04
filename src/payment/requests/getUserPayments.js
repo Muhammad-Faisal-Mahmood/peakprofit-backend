@@ -14,7 +14,7 @@ const getUserPayments = async (req, res) => {
     const userId = req.user.userId;
 
     // Fetch all payments for the user
-    const payments = await Payment.find({ userId })
+    const payments = await Payment.find({ userId, status: "accepted" })
       .populate("userId", "name email") // Populate user details
       .populate("challengeId", "name accountSize cost") // Populate challenge details
       .sort({ createdAt: -1 }) // Most recent first

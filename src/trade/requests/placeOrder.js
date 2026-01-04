@@ -84,9 +84,8 @@ const placeOrder = async (req, res) => {
       account.lastTradeTimestamp.toISOString().slice(0, 10) !== today;
 
     if (isNewTradingDay) {
-      if (account.accountType === "demo") {
-        account.activelyTradedDays += 1;
-      }
+      account.activelyTradedDays += 1;
+
       account.currentDayEquity = account.equity || account.balance;
       console.log(
         `[Account] New trading day for account ${account._id}. Baseline: ${account.currentDayEquity}`
