@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payment Notification</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 40px 20px;
+      }
+      .email-container {
+        max-width: 600px;
+        margin: 0 auto;
+        background: #ffffff;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      }
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 40px 30px;
+        text-align: center;
+        position: relative;
+      }
+      .header::after {
+        content: "";
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #667eea, #764ba2, #667eea);
+      }
+      .header-icon {
+        width: 70px;
+        height: 70px;
+        background: rgba(16, 185, 129, 0.3);
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 15px;
+        backdrop-filter: blur(10px);
+      }
+      .checkmark {
+        font-size: 36px;
+        color: #10b981;
+        font-weight: bold;
+      }
+      .header h1 {
+        margin: 0;
+        color: #ffffff;
+        font-size: 28px;
+        font-weight: 600;
+      }
+      .header p {
+        margin: 8px 0 0;
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 14px;
+      }
+      .content {
+        padding: 40px 30px;
+      }
+      .status-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: #ffffff;
+        padding: 8px 20px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 25px;
+      }
+      .amount-display {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        padding: 25px;
+        border-radius: 12px;
+        text-align: center;
+        margin: 25px 0;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+      }
+      .amount-label {
+        color: #ffffff;
+        font-size: 14px;
+        font-weight: 500;
+        margin: 0 0 8px;
+        opacity: 0.9;
+      }
+      .amount-value {
+        color: #ffffff;
+        font-size: 42px;
+        font-weight: 700;
+        margin: 0;
+        line-height: 1;
+      }
+      .info-section {
+        margin: 30px 0;
+      }
+      .section-title {
+        color: #667eea;
+        font-size: 16px;
+        font-weight: 600;
+        margin: 0 0 15px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #e9ecef;
+      }
+      .info-grid {
+        display: table;
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 10px;
+      }
+      .info-row {
+        display: table-row;
+      }
+      .info-label {
+        display: table-cell;
+        padding: 12px 15px;
+        background: #f8f9fa;
+        color: #6c757d;
+        font-size: 13px;
+        font-weight: 500;
+        width: 40%;
+        border-radius: 8px 0 0 8px;
+        vertical-align: middle;
+      }
+      .info-value {
+        display: table-cell;
+        padding: 12px 15px;
+        background: #f8f9fa;
+        color: #212529;
+        font-size: 14px;
+        font-weight: 600;
+        border-radius: 0 8px 8px 0;
+        vertical-align: middle;
+      }
+      .card-info {
+        background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+        padding: 20px;
+        border-radius: 12px;
+        border-left: 4px solid #667eea;
+        margin: 20px 0;
+      }
+      .card-brand {
+        display: inline-block;
+        background: #667eea;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 10px;
+      }
+      .card-details {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-top: 8px;
+      }
+      .card-number {
+        font-size: 18px;
+        font-weight: 600;
+        color: #212529;
+        letter-spacing: 2px;
+      }
+      .challenge-badge {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 12px;
+        margin: 25px 0;
+        text-align: center;
+      }
+      .challenge-name {
+        font-size: 20px;
+        font-weight: 700;
+        margin: 0 0 8px;
+      }
+      .challenge-size {
+        font-size: 14px;
+        opacity: 0.9;
+        margin: 0;
+      }
+      .account-created {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+        padding: 15px;
+        border-radius: 8px;
+        margin: 20px 0;
+        text-align: center;
+        font-weight: 600;
+      }
+      .account-created .check-icon {
+        color: #10b981;
+        font-size: 18px;
+        font-weight: bold;
+      }
+      .footer {
+        background: #f8f9fa;
+        padding: 30px;
+        text-align: center;
+        border-top: 1px solid #dee2e6;
+      }
+      .footer-text {
+        color: #6c757d;
+        font-size: 13px;
+        margin: 5px 0;
+      }
+      .divider {
+        height: 1px;
+        background: linear-gradient(90deg, transparent, #dee2e6, transparent);
+        margin: 30px 0;
+      }
+      @media only screen and (max-width: 600px) {
+        .content {
+          padding: 30px 20px;
+        }
+        .amount-value {
+          font-size: 36px;
+        }
+        .info-label,
+        .info-value {
+          display: block;
+          width: 100%;
+          border-radius: 8px;
+        }
+        .info-label {
+          margin-bottom: 5px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="email-container">
+      <!-- Header -->
+      <div class="header">
+        <div class="header-icon">
+          <span class="checkmark">✓</span>
+        </div>
+        <h1>Payment Received</h1>
+        <p>New challenge purchase completed</p>
+      </div>
+
+      <!-- Content -->
+      <div class="content">
+        <span class="status-badge">✓ Payment {{status}}</span>
+
+        <!-- Amount Display -->
+        <div class="amount-display">
+          <p class="amount-label">Transaction Amount</p>
+          <h2 class="amount-value">{{currency}}{{amount}}</h2>
+        </div>
+
+        <!-- Challenge Info -->
+        <div class="challenge-badge">
+          <h3 class="challenge-name">{{challengeName}}</h3>
+          <p class="challenge-size">
+            Account Size: {{currency}}{{accountSize}}
+          </p>
+        </div>
+
+        <!-- User Information -->
+        <div class="info-section">
+          <h3 class="section-title">👤 Customer Details</h3>
+          <div class="info-grid">
+            <div class="info-row">
+              <span class="info-label">Name</span>
+              <span class="info-value">{{userName}}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Email</span>
+              <span class="info-value">{{userEmail}}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">User ID</span>
+              <span class="info-value">{{userId}}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment Method -->
+        <div class="card-info">
+          <span class="card-brand">{{paymentIcon}} {{cardBrand}}</span>
+          <div class="card-details">
+            <span class="card-number">{{cardNumber}}</span>
+          </div>
+        </div>
+
+        <!-- Transaction Details -->
+        <div class="info-section">
+          <h3 class="section-title">💰 Transaction Information</h3>
+          <div class="info-grid">
+            <div class="info-row">
+              <span class="info-label">Transaction ID</span>
+              <span class="info-value">{{transactionId}}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Invoice Number</span>
+              <span class="info-value">{{invoiceNumber}}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Authorization Code</span>
+              <span class="info-value">{{authCode}}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Response</span>
+              <span class="info-value">{{responseDescription}}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Network Trans ID</span>
+              <span class="info-value">{{networkTransId}}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Payment Method</span>
+              <span class="info-value">{{paymentMethod}}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Account Created -->
+        <div class="account-created">
+          <span class="check-icon">✓</span> {{accountType}} Account Successfully
+          Created
+        </div>
+
+        <!-- Account Details -->
+        <div class="info-section">
+          <h3 class="section-title">📊 Account Information</h3>
+          <div class="info-grid">
+            <div class="info-row">
+              <span class="info-label">Account ID</span>
+              <span class="info-value">{{accountId}}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Account Type</span>
+              <span class="info-value">{{accountType}}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Initial Balance</span>
+              <span class="info-value">{{currency}}{{initialBalance}}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Current Balance</span>
+              <span class="info-value">{{currency}}{{currentBalance}}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Equity</span>
+              <span class="info-value">{{currency}}{{equity}}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Additional Info -->
+        <div class="info-section">
+          <h3 class="section-title">🌐 Additional Details</h3>
+          <div class="info-grid">
+            <div class="info-row">
+              <span class="info-label">Customer IP</span>
+              <span class="info-value">{{customerIP}}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Transaction Date (UTC)</span>
+              <span class="info-value">{{transactionDateUTC}}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Local Time</span>
+              <span class="info-value">{{transactionDateLocal}}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Billing Country</span>
+              <span class="info-value">{{billingCountry}}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <p class="footer-text">
+          <strong>This is an automated notification</strong>
+        </p>
+        <p class="footer-text">Payment processed via {{processedBy}}</p>
+        <p class="footer-text">
+          © {{year}} {{companyName}}. All rights reserved.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

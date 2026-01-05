@@ -7,6 +7,7 @@ const router = express.Router();
 const ApiContracts = require("authorizenet").APIContracts;
 const ApiControllers = require("authorizenet").APIControllers;
 const SDKConstants = require("authorizenet").Constants;
+const sendPaymentNotification = require("../utils/adminPaymentNotificationMailer");
 
 const SIGNATURE_KEY = process.env.AUTHORIZE_NET_SIGNATURE_KEY;
 
@@ -281,6 +282,28 @@ async function handlePaymentAccepted(payload) {
       paymentId: payment._id,
       accountId: result.account._id,
     });
+
+    try {
+      // Fetch the complete payment with all populated fields
+      const paymentWithDetails = await Payment.findById(payment._id)
+        .populate("userId", "name email")
+        .populate("challengeId", "name cost accountSize")
+        .populate("accountId")
+        .lean();
+
+      if (!paymentWithDetails) {
+        throw new Error("Payment not found after update");
+      }
+
+      // Send the notification
+      await sendPaymentNotification(paymentWithDetails);
+    } catch (emailError) {
+      console.error(
+        "⚠️ Email notification failed, but payment was processed successfully:",
+        emailError
+      );
+      // Don't throw - we don't want email failures to affect payment processing
+    }
   }
 }
 
