@@ -21,6 +21,10 @@ const getUserPayments = async (req, res) => {
       .sort({ createdAt: -1 }) // Most recent first
       .lean();
 
+    if (!payments) {
+      return sendErrorResponse(res, "couldn't fetch user payments");
+    }
+
     // Transform the data to rename fields
     const transformedPayments = payments.map((payment) => {
       const { userId, challengeId, accountId, ...rest } = payment;

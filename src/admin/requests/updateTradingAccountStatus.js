@@ -40,7 +40,7 @@ const updateTradingAccountStatus = async (req, res) => {
       await accountLiquidatorWrapper(accountId, "accountSuspended", null, null);
     }
 
-    sendSuccessResponse(
+    return sendSuccessResponse(
       res,
       "Trading account status updated successfully.",
       updatedAccount

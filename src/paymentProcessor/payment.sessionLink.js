@@ -11,11 +11,15 @@ const SDKConstants = require("authorizenet").Constants;
 
 const createAuthorizeNetCheckout = async (req, res) => {
   try {
-    const { challengeId } = req.body;
+    const { challengeId, usersLastUrl } = req.body;
     const user = req.user;
 
     if (!user || !user.userId) {
       return res.status(401).json({ message: "User not authenticated" });
+    }
+
+    if (!usersLastUrl) {
+      return sendErrorResponse(res, "Users last url is required");
     }
 
     const requestedChallenge = await Challenge.findById(challengeId);
@@ -48,7 +52,9 @@ const createAuthorizeNetCheckout = async (req, res) => {
     const hostedPaymentPageResponse = await createHostedPaymentPage(
       amount,
       invoiceNumber,
-      requestedChallenge
+      requestedChallenge,
+      payment._id.toString(),
+      usersLastUrl
     );
 
     if (!hostedPaymentPageResponse.success) {
@@ -75,7 +81,13 @@ const createAuthorizeNetCheckout = async (req, res) => {
   }
 };
 
-function createHostedPaymentPage(amount, invoiceNumber, requestedChallenge) {
+function createHostedPaymentPage(
+  amount,
+  invoiceNumber,
+  requestedChallenge,
+  paymentId,
+  usersLastUrl
+) {
   return new Promise((resolve) => {
     const merchantAuthenticationType =
       new ApiContracts.MerchantAuthenticationType();
@@ -119,9 +131,9 @@ function createHostedPaymentPage(amount, invoiceNumber, requestedChallenge) {
     successSetting.setSettingValue(
       JSON.stringify({
         showReceipt: false,
-        url: `${process.env.DASHBOARD_URL}`,
+        url: `${process.env.DASHBOARD_URL}/payment-successful/${paymentId}`,
         urlText: "Continue",
-        cancelUrl: `${process.env.DASHBOARD_URL}`,
+        cancelUrl: `${usersLastUrl}`,
         cancelUrlText: "Cancel",
       })
     );
