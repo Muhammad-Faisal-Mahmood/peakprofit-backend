@@ -8,8 +8,16 @@ const expressWs = require("express-ws");
 const PolygonWebSocketManager = require("./polygonWebSocketManager");
 const tradeMonitorService = require("../trade/tradeMonitor.service");
 const { polygonManager } = require("./polygonManager");
-const normalizeAggregates = require("../utils/normalizingHistoricalData");
+const HistoricalDataProcessor = require("../utils/historicalDataProcessor");
 const allowedSymbols = require("../utils/allowedSymbols.json").symbols;
+
+const historicalDataProcessor = new HistoricalDataProcessor({
+  wickCompressionEnabled: true,
+  wickCompressionFactor: 0.2,        // Heavy compression
+  outlierZScoreThreshold: 2,         // Strict
+  flashCrashThreshold: 0.03,         // 3%+ moves
+  adaptToTimeframe: true
+});
 
 const router = express.Router();
 expressWs(router);
@@ -69,6 +77,7 @@ router.get(
   async (req, res) => {
     try {
       const { ticker, multiplier, timespan, from, to } = req.params;
+
       const { adjusted, sort, limit } = req.query;
 
       // Build query parameters
@@ -90,15 +99,8 @@ router.get(
       // ✅ Check if crypto BEFORE sending any response
       const isCrypto = ticker.startsWith("X:");
       if (isCrypto && data.results) {
-        const normalized = normalizeAggregates(data, {
-          removeOutliers: true,
-          limitWicks: true,
-          smooth: false,
-          removeFlashCrashes: true,
-          outlierThreshold: 1.5,
-          maxWickPercentage: 0.45,
-        });
-        res.json(normalized); // ✅ Send normalized data
+        const normalizedData = historicalDataProcessor.process(data, timespan)
+        res.json(normalizedData); // ✅ Send normalized data
       } else {
         res.json(data); // ✅ Send original data
       }
