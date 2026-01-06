@@ -31,12 +31,13 @@ class PolygonWebSocketManager {
     this.throttleMs = 2000; // 100 ms = 10 updates/sec
 
     this.normalizer = new RealtimeDataNormalizer({
-      historySize: 20, // Keep last 20 ticks for validation
-      aggregationWindow: 2000, // Match your throttle window
-      maxDeviationPercent: 0.03, // 3% max price deviation
-      minTicksForValidation: 5, // Need 5 ticks before filtering
-      enableVWAP: true, // Use VWAP for aggregated price
-    });
+  smoothingFactor: 0.3,              // Base smoothing for normal conditions
+  maxInstantChange: 0.005,           // 0.5% max in normal mode
+  trendConfirmationTicks: 3,         // 3 ticks in same direction = trend
+  highVolatilityThreshold: 0.02,     // 2% volatility triggers volatile mode
+  volatilityWindow: 20,              // Look at last 20 ticks for volatility
+  minUpdateInterval: 1000             // Update every 100ms
+});
   }
 
   async checkSymbolInUse(symbol) {
@@ -420,7 +421,7 @@ class PolygonWebSocketManager {
       }
     }
 
-    const finalTick = this.normalizer.flush(symbol);
+  
     this.normalizer.clearSymbol(symbol);
 
     console.log(`[PolygonWS] Unsubscribed from Polygon: ${symbol}`);

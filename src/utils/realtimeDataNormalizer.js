@@ -1,240 +1,365 @@
 /**
  * RealtimeDataNormalizer.js
- * Normalizes and aggregates real-time price data to prevent wild spikes
+ * Smooths out noise while adapting to legitimate market moves
  */
 
 class RealtimeDataNormalizer {
   constructor(options = {}) {
-    // Moving window for price validation
-    this.priceHistory = new Map(); // symbol -> array of recent prices
-    this.historySize = options.historySize || 20; // Keep last 20 ticks
-
-    // Aggregation windows
-    this.aggregationWindow = options.aggregationWindow || 700; // Match throttle
-    this.pendingTicks = new Map(); // symbol -> array of ticks in current window
-    this.lastAggregation = new Map(); // symbol -> timestamp of last aggregation
-
-    // Outlier detection parameters
-    this.maxDeviationPercent = options.maxDeviationPercent || 0.03; // 3% max deviation
-    this.minTicksForValidation = options.minTicksForValidation || 5;
-
-    // VWAP calculation
-    this.enableVWAP = options.enableVWAP !== false;
+    // Exponential smoothing - ADAPTIVE based on volatility
+    this.smoothedPrices = new Map();
+    this.baseSmoothingFactor = options.smoothingFactor || 0.3;
+    this.adaptiveSmoothingEnabled = options.adaptiveSmoothingEnabled !== false;
+    
+    // Price history for trend detection
+    this.priceHistory = new Map();
+    this.historySize = options.historySize || 50;
+    
+    // Spike vs Trend detection
+    this.maxInstantChange = options.maxInstantChange || 0.005; // 0.5%
+    this.trendConfirmationTicks = options.trendConfirmationTicks || 3;
+    this.directionHistory = new Map(); // Track recent price directions
+    
+    // Volatility regime detection
+    this.volatilityWindow = options.volatilityWindow || 20;
+    this.highVolatilityThreshold = options.highVolatilityThreshold || 0.02; // 2% std dev
+    this.currentRegime = new Map(); // 'normal' | 'volatile' | 'trending'
+    
+    // Rate limiting
+    this.minUpdateInterval = options.minUpdateInterval || 100;
+    this.lastEmitTime = new Map();
+    
+    // Initialization
+    this.initialized = new Map();
+    this.tickCounter = new Map();
   }
 
   /**
-   * Process incoming tick and decide whether to emit it
+   * Main processing function with adaptive behavior
    */
   processTick(tick) {
     const symbol = tick.symbol;
     const now = Date.now();
-
-    // Initialize structures for new symbol
-    if (!this.priceHistory.has(symbol)) {
-      this.priceHistory.set(symbol, []);
-      this.pendingTicks.set(symbol, []);
-      this.lastAggregation.set(symbol, now);
+    
+    // Initialize
+    if (!this.initialized.has(symbol)) {
+      this.initializeSymbol(symbol, tick.price);
+      return this.createTick(symbol, tick.price, tick, 'initialized');
     }
-
-    // Validate and potentially filter the tick
-    const validatedTick = this.validateTick(tick);
-    if (!validatedTick) {
-      console.log(
-        `[Normalizer] Filtered outlier tick for ${symbol}: ${tick.price}`
-      );
-      return null; // Skip this tick
+    
+    // Rate limiting
+    const lastEmit = this.lastEmitTime.get(symbol) || 0;
+    if (now - lastEmit < this.minUpdateInterval) {
+      return null;
     }
-
-    // Add to pending ticks for aggregation
-    this.pendingTicks.get(symbol).push(validatedTick);
-
-    // Check if we should aggregate
-    const lastAgg = this.lastAggregation.get(symbol);
-    if (now - lastAgg >= this.aggregationWindow) {
-      return this.aggregateAndEmit(symbol, now);
+    
+    // Increment tick counter
+    const tickCount = (this.tickCounter.get(symbol) || 0) + 1;
+    this.tickCounter.set(symbol, tickCount);
+    
+    // Detect market regime
+    const regime = this.detectMarketRegime(symbol, tick.price);
+    this.currentRegime.set(symbol, regime);
+    
+    // Process based on regime
+    let processedPrice;
+    let processingMode;
+    
+    switch (regime) {
+      case 'trending':
+        // Legitimate trend - use higher smoothing factor for faster response
+        processedPrice = this.processTrendingPrice(symbol, tick.price);
+        processingMode = 'trending';
+        break;
+        
+      case 'volatile':
+        // High volatility - medium smoothing
+        processedPrice = this.processVolatilePrice(symbol, tick.price);
+        processingMode = 'volatile';
+        break;
+        
+      case 'normal':
+      default:
+        // Normal conditions - aggressive smoothing
+        processedPrice = this.processNormalPrice(symbol, tick.price);
+        processingMode = 'normal';
+        break;
     }
-
-    return null; // Wait for more ticks
+    
+    // Update history
+    this.addToHistory(symbol, processedPrice);
+    this.lastEmitTime.set(symbol, now);
+    
+    return this.createTick(symbol, processedPrice, tick, processingMode);
   }
 
   /**
-   * Validate tick against recent price history
+   * Initialize symbol
    */
-  validateTick(tick) {
-    const symbol = tick.symbol;
-    const history = this.priceHistory.get(symbol);
-
-    // Not enough history yet - accept tick
-    if (history.length < this.minTicksForValidation) {
-      this.addToHistory(symbol, tick.price);
-      return tick;
-    }
-
-    // Calculate moving average and standard deviation
-    const prices = history.slice(-this.historySize);
-    const avg = prices.reduce((sum, p) => sum + p, 0) / prices.length;
-    const variance =
-      prices.reduce((sum, p) => sum + Math.pow(p - avg, 2), 0) / prices.length;
-    const stdDev = Math.sqrt(variance);
-
-    // Check for extreme deviation
-    const deviation = Math.abs(tick.price - avg) / avg;
-    const zScore = Math.abs(tick.price - avg) / (stdDev || 1);
-
-    // Filter if:
-    // 1. Price deviates more than maxDeviationPercent (e.g., 3%)
-    // 2. Z-score is greater than 3 (statistical outlier)
-    if (deviation > this.maxDeviationPercent && zScore > 3) {
-      // This is likely a flash crash or erroneous tick
-      // Return a capped version instead of the raw tick
-      const cappedPrice =
-        tick.price > avg
-          ? avg * (1 + this.maxDeviationPercent)
-          : avg * (1 - this.maxDeviationPercent);
-
-      return {
-        ...tick,
-        price: cappedPrice,
-        capped: true,
-        originalPrice: tick.price,
-      };
-    }
-
-    // Valid tick - add to history
-    this.addToHistory(symbol, tick.price);
-    return tick;
+  initializeSymbol(symbol, price) {
+    this.smoothedPrices.set(symbol, price);
+    this.priceHistory.set(symbol, [price]);
+    this.directionHistory.set(symbol, []);
+    this.initialized.set(symbol, true);
+    this.lastEmitTime.set(symbol, Date.now());
+    this.tickCounter.set(symbol, 0);
+    this.currentRegime.set(symbol, 'normal');
   }
 
   /**
-   * Add price to history buffer
+   * Detect market regime: normal, volatile, or trending
+   */
+  detectMarketRegime(symbol, newPrice) {
+    const history = this.priceHistory.get(symbol);
+    const smoothed = this.smoothedPrices.get(symbol);
+    
+    if (history.length < 10) {
+      return 'normal'; // Not enough data
+    }
+    
+    // Calculate recent volatility
+    const recentPrices = history.slice(-this.volatilityWindow);
+    const volatility = this.calculateVolatility(recentPrices);
+    
+    // Check for consistent directional movement (trend)
+    const isTrending = this.detectTrend(symbol, newPrice);
+    
+    if (isTrending) {
+      console.log(`[Normalizer] ${symbol} - TRENDING detected (${volatility.toFixed(4)})`);
+      return 'trending';
+    }
+    
+    if (volatility > this.highVolatilityThreshold) {
+      console.log(`[Normalizer] ${symbol} - HIGH VOLATILITY (${volatility.toFixed(4)})`);
+      return 'volatile';
+    }
+    
+    return 'normal';
+  }
+
+  /**
+   * Calculate volatility (coefficient of variation)
+   */
+  calculateVolatility(prices) {
+    const avg = prices.reduce((sum, p) => sum + p, 0) / prices.length;
+    const variance = prices.reduce((sum, p) => sum + Math.pow(p - avg, 2), 0) / prices.length;
+    const stdDev = Math.sqrt(variance);
+    return stdDev / avg; // Coefficient of variation
+  }
+
+  /**
+   * Detect if we're in a sustained trend
+   */
+  detectTrend(symbol, newPrice) {
+    const smoothed = this.smoothedPrices.get(symbol);
+    const directions = this.directionHistory.get(symbol);
+    
+    // Determine direction: 1 = up, -1 = down, 0 = sideways
+    const change = (newPrice - smoothed) / smoothed;
+    let direction = 0;
+    
+    if (Math.abs(change) > 0.002) { // 0.2% threshold
+      direction = change > 0 ? 1 : -1;
+    }
+    
+    // Add to direction history
+    directions.push(direction);
+    if (directions.length > this.trendConfirmationTicks * 2) {
+      directions.shift();
+    }
+    
+    // Check if we have consistent direction
+    if (directions.length >= this.trendConfirmationTicks) {
+      const recentDirections = directions.slice(-this.trendConfirmationTicks);
+      const sum = recentDirections.reduce((s, d) => s + d, 0);
+      
+      // If all same direction (up or down), it's a trend
+      if (Math.abs(sum) === this.trendConfirmationTicks) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
+  /**
+   * Process price during TRENDING regime (news events, sustained moves)
+   */
+  processTrendingPrice(symbol, rawPrice) {
+    const smoothed = this.smoothedPrices.get(symbol);
+    
+    // Use HIGHER smoothing factor for faster response to trends
+    // But still cap extreme instant changes
+    const change = Math.abs(rawPrice - smoothed) / smoothed;
+    
+    // Allow larger moves during trends (2% instead of 0.5%)
+    const trendMaxChange = 0.02;
+    let filteredPrice = rawPrice;
+    
+    if (change > trendMaxChange) {
+      const direction = rawPrice > smoothed ? 1 : -1;
+      filteredPrice = smoothed * (1 + direction * trendMaxChange);
+      console.log(
+        `[Normalizer] ${symbol} TREND capped: ${rawPrice.toFixed(2)} → ${filteredPrice.toFixed(2)}`
+      );
+    }
+    
+    // Use higher alpha (0.6-0.7) for faster trend following
+    const trendSmoothingFactor = 0.6;
+    const newSmoothed = 
+      trendSmoothingFactor * filteredPrice + 
+      (1 - trendSmoothingFactor) * smoothed;
+    
+    this.smoothedPrices.set(symbol, newSmoothed);
+    return newSmoothed;
+  }
+
+  /**
+   * Process price during VOLATILE regime
+   */
+  processVolatilePrice(symbol, rawPrice) {
+    const smoothed = this.smoothedPrices.get(symbol);
+    
+    // Medium smoothing during volatility
+    const change = Math.abs(rawPrice - smoothed) / smoothed;
+    const volatileMaxChange = 0.01; // 1%
+    
+    let filteredPrice = rawPrice;
+    if (change > volatileMaxChange) {
+      const direction = rawPrice > smoothed ? 1 : -1;
+      filteredPrice = smoothed * (1 + direction * volatileMaxChange);
+    }
+    
+    // Medium alpha (0.4)
+    const volatileSmoothingFactor = 0.4;
+    const newSmoothed = 
+      volatileSmoothingFactor * filteredPrice + 
+      (1 - volatileSmoothingFactor) * smoothed;
+    
+    this.smoothedPrices.set(symbol, newSmoothed);
+    return newSmoothed;
+  }
+
+  /**
+   * Process price during NORMAL regime (filter noise aggressively)
+   */
+  processNormalPrice(symbol, rawPrice) {
+    const smoothed = this.smoothedPrices.get(symbol);
+    
+    // Aggressive filtering during normal conditions
+    const change = Math.abs(rawPrice - smoothed) / smoothed;
+    const normalMaxChange = 0.005; // 0.5%
+    
+    let filteredPrice = rawPrice;
+    if (change > normalMaxChange) {
+      const direction = rawPrice > smoothed ? 1 : -1;
+      filteredPrice = smoothed * (1 + direction * normalMaxChange);
+      
+      // Also check if it's an outlier
+      const history = this.priceHistory.get(symbol);
+      if (history.length >= 10) {
+        const isOutlier = this.checkOutlier(rawPrice, history);
+        if (isOutlier) {
+          console.log(`[Normalizer] ${symbol} OUTLIER filtered: ${rawPrice.toFixed(2)}`);
+          filteredPrice = smoothed; // Keep previous price
+        }
+      }
+    }
+    
+    // Low alpha (0.2-0.3) for heavy smoothing
+    const normalSmoothingFactor = this.baseSmoothingFactor;
+    const newSmoothed = 
+      normalSmoothingFactor * filteredPrice + 
+      (1 - normalSmoothingFactor) * smoothed;
+    
+    this.smoothedPrices.set(symbol, newSmoothed);
+    return newSmoothed;
+  }
+
+  /**
+   * Check if price is statistical outlier
+   */
+  checkOutlier(price, history) {
+    const recentPrices = history.slice(-20);
+    const avg = recentPrices.reduce((sum, p) => sum + p, 0) / recentPrices.length;
+    const variance = recentPrices.reduce((sum, p) => sum + Math.pow(p - avg, 2), 0) / recentPrices.length;
+    const stdDev = Math.sqrt(variance);
+    const zScore = Math.abs(price - avg) / (stdDev || 1);
+    
+    return zScore > 3; // 3 standard deviations
+  }
+
+  /**
+   * Add price to history
    */
   addToHistory(symbol, price) {
     const history = this.priceHistory.get(symbol);
     history.push(price);
-
-    // Keep only last N prices
     if (history.length > this.historySize) {
       history.shift();
     }
   }
 
   /**
-   * Aggregate pending ticks into a single normalized tick
+   * Create tick object
    */
-  aggregateAndEmit(symbol, now) {
-    const ticks = this.pendingTicks.get(symbol);
-
-    if (ticks.length === 0) {
-      return null;
-    }
-
-    // Calculate aggregated values
-    const aggregated = this.calculateAggregatedTick(symbol, ticks);
-
-    // Clear pending ticks
-    this.pendingTicks.set(symbol, []);
-    this.lastAggregation.set(symbol, now);
-
-    return aggregated;
-  }
-
-  /**
-   * Calculate aggregated tick from multiple ticks
-   */
-  calculateAggregatedTick(symbol, ticks) {
-    if (ticks.length === 1) {
-      return ticks[0];
-    }
-
-    // Extract prices and volumes
-    const prices = ticks.map((t) => t.price);
-    const volumes = ticks.map((t) => t.volume || 0);
-    const timestamps = ticks.map((t) => t.timestamp || Date.now());
-
-    // Calculate OHLC
-    const open = ticks[0].price;
-    const close = ticks[ticks.length - 1].price;
-    const high = Math.max(...prices);
-    const low = Math.min(...prices);
-
-    // Calculate VWAP if volumes available
-    let vwap = close;
-    const totalVolume = volumes.reduce((sum, v) => sum + v, 0);
-
-    if (this.enableVWAP && totalVolume > 0) {
-      const volumeWeightedSum = ticks.reduce((sum, tick, i) => {
-        return sum + tick.price * (volumes[i] || 0);
-      }, 0);
-      vwap = volumeWeightedSum / totalVolume;
-    }
-
-    // Use VWAP as price if available, otherwise use close
-    const aggregatedPrice = this.enableVWAP && totalVolume > 0 ? vwap : close;
-
+  createTick(symbol, price, originalTick, mode) {
     return {
       symbol,
-      price: aggregatedPrice,
-      open,
-      high,
-      low,
-      close,
-      vwap,
-      volume: totalVolume,
-      timestamp: timestamps[timestamps.length - 1],
-      tickCount: ticks.length,
-      aggregated: true,
+      price,
+      volume: originalTick.volume || 0,
+      timestamp: originalTick.timestamp || Date.now(),
+      originalPrice: originalTick.price,
+      processingMode: mode,
+      regime: this.currentRegime.get(symbol),
+      smoothed: true
     };
   }
 
   /**
-   * Force emit current pending ticks (useful on unsubscribe)
+   * Get current state
    */
-  flush(symbol) {
-    const ticks = this.pendingTicks.get(symbol);
-    if (!ticks || ticks.length === 0) {
-      return null;
-    }
-
-    const aggregated = this.calculateAggregatedTick(symbol, ticks);
-    this.pendingTicks.set(symbol, []);
-    return aggregated;
+  getState(symbol) {
+    return {
+      currentPrice: this.smoothedPrices.get(symbol),
+      regime: this.currentRegime.get(symbol),
+      tickCount: this.tickCounter.get(symbol),
+      historySize: this.priceHistory.get(symbol)?.length || 0
+    };
   }
 
   /**
-   * Clear history for a symbol (when unsubscribed)
+   * Clear symbol
    */
   clearSymbol(symbol) {
+    this.smoothedPrices.delete(symbol);
     this.priceHistory.delete(symbol);
-    this.pendingTicks.delete(symbol);
-    this.lastAggregation.delete(symbol);
+    this.directionHistory.delete(symbol);
+    this.initialized.delete(symbol);
+    this.lastEmitTime.delete(symbol);
+    this.tickCounter.delete(symbol);
+    this.currentRegime.delete(symbol);
   }
 
   /**
-   * Get statistics for monitoring
+   * Get statistics
    */
   getStats(symbol) {
-    const history = this.priceHistory.get(symbol) || [];
-    const pending = this.pendingTicks.get(symbol) || [];
+    const history = this.priceHistory.get(symbol);
+    if (!history || history.length === 0) return null;
 
-    if (history.length === 0) {
-      return null;
-    }
-
-    const avg = history.reduce((sum, p) => sum + p, 0) / history.length;
-    const variance =
-      history.reduce((sum, p) => sum + Math.pow(p - avg, 2), 0) /
-      history.length;
-    const stdDev = Math.sqrt(variance);
-
+    const volatility = this.calculateVolatility(history);
+    
     return {
       symbol,
-      historySize: history.length,
-      pendingTicks: pending.length,
-      avgPrice: avg,
-      stdDev,
-      coefficientOfVariation: (stdDev / avg) * 100, // Volatility measure
+      currentPrice: this.smoothedPrices.get(symbol),
+      regime: this.currentRegime.get(symbol),
+      volatility: (volatility * 100).toFixed(2) + '%',
+      tickCount: this.tickCounter.get(symbol),
+      historySize: history.length
     };
   }
 }
+
+
 
 module.exports = RealtimeDataNormalizer;
