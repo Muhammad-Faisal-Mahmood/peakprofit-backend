@@ -85,7 +85,7 @@ const sendPaymentNotification = async (payment) => {
 
     // ==================== CHALLENGE INFORMATION ====================
     challengeName: challenge.name || "N/A",
-    accountSize: formatNumber(challenge.accountSize),
+    accountSize: formatNumber(challenge?.accountSize),
 
     // ==================== ACCOUNT INFORMATION ====================
     accountId: account._id?.toString() || "N/A",
@@ -93,9 +93,9 @@ const sendPaymentNotification = async (payment) => {
       ? account.accountType.charAt(0).toUpperCase() +
         account.accountType.slice(1)
       : "N/A",
-    initialBalance: formatCurrency(account.initialBalance),
-    currentBalance: formatCurrency(account.balance),
-    equity: formatCurrency(account.equity),
+    initialBalance: formatCurrency(account?.initialBalance),
+    currentBalance: formatCurrency(account?.balance),
+    equity: formatCurrency(account?.equity),
 
     // ==================== ADDITIONAL DETAILS ====================
     customerIP: payment.customerIP || "N/A",
