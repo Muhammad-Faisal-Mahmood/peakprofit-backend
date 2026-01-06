@@ -33,19 +33,45 @@ function filterOutliers(bars, threshold = 3) {
   });
 }
 
-function limitWicks(bars, maxWickPercentage = 0.15) {
+function limitWicks(bars, wickCompression = 0.1) {
   return bars.map((bar) => {
-    const body = Math.abs(bar.o - bar.c);
-    const bodyMid = (bar.o + bar.c) / 2;
-    const maxWick = body * maxWickPercentage;
+    const o = bar.o;
+    const c = bar.c;
+    const h = bar.h;
+    const l = bar.l;
+
+    // Body
+    const bodyTop = Math.max(o, c);
+    const bodyBottom = Math.min(o, c);
+    const bodySize = bodyTop - bodyBottom;
+
+    // Skip zero-body candles
+    if (bodySize === 0) {
+      return bar;
+    }
+
+    // Wicks
+    const upperWick = Math.max(0, h - bodyTop);
+    const lowerWick = Math.max(0, bodyBottom - l);
+
+    // Compress wicks to percentage
+    const compressedUpperWick = upperWick * wickCompression;
+    const compressedLowerWick = lowerWick * wickCompression;
+
+    // Rebuild OHLC
+    const newHigh = bodyTop + compressedUpperWick;
+    const newLow = bodyBottom - compressedLowerWick;
 
     return {
       ...bar,
-      h: Math.min(bar.h, bodyMid + body / 2 + maxWick),
-      l: Math.max(bar.l, bodyMid - body / 2 - maxWick),
+      h: Math.max(newHigh, o, c), // enforce OHLC rules
+      l: Math.min(newLow, o, c),
+      compressed: true,
+      wickCompression
     };
   });
 }
+
 
 function smoothOHLC(bars, window = 3) {
   if (bars.length < window) return bars;
@@ -77,26 +103,26 @@ function normalizeAggregates(data, options = {}) {
     limitWicks: shouldLimitWicks = true, // ✅ Renamed
     smooth: shouldSmooth = false, // ✅ Renamed
     outlierThreshold = 3,
-    maxWickPercentage = 0.15,
+    maxWickPercentage,
     smoothWindow = 3,
   } = options;
 
   let results = data.results;
 
   // Apply filters in sequence
-  if (removeOutliers) {
-    results = filterOutliers(results, outlierThreshold);
-  }
+//   if (removeOutliers) {
+//     results = filterOutliers(results, outlierThreshold);
+//   }
 
   if (shouldLimitWicks) {
     // ✅ Use renamed variable
     results = limitWicks(results, maxWickPercentage);
   }
 
-  if (shouldSmooth) {
-    // ✅ Use renamed variable
-    results = smoothOHLC(results, smoothWindow);
-  }
+//   if (shouldSmooth) {
+//     // ✅ Use renamed variable
+//     results = smoothOHLC(results, smoothWindow);
+//   }
 
   return {
     ...data,

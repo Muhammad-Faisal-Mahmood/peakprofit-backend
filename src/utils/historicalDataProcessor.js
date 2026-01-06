@@ -39,7 +39,7 @@ class HistoricalDataProcessor {
 
     
     // Step 1: Detect and flag anomalies (non-destructive)
-    bars = this.detectAnomalies(bars, params);
+    // bars = this.detectAnomalies(bars, params);
     
     // Step 2: Apply intelligent wick compression
     if (this.wickCompressionEnabled) {

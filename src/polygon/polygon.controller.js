@@ -9,6 +9,7 @@ const PolygonWebSocketManager = require("./polygonWebSocketManager");
 const tradeMonitorService = require("../trade/tradeMonitor.service");
 const { polygonManager } = require("./polygonManager");
 const HistoricalDataProcessor = require("../utils/historicalDataProcessor");
+const normalizeAggregates = require("../utils/normalizingHistoricalData");
 const allowedSymbols = require("../utils/allowedSymbols.json").symbols;
 
 const historicalDataProcessor = new HistoricalDataProcessor({
@@ -99,8 +100,15 @@ router.get(
       // ✅ Check if crypto BEFORE sending any response
       const isCrypto = ticker.startsWith("X:");
       if (isCrypto && data.results) {
-        const normalizedData = historicalDataProcessor.process(data, timespan)
-        res.json(normalizedData); // ✅ Send normalized data
+       const normalized = timespan === "minute" ? normalizeAggregates(data, {
+          removeOutliers: true,
+          limitWicks: true,
+          smooth: false,
+          removeFlashCrashes: true,
+          outlierThreshold: 1.5,
+          maxWickPercentage: 0.3,
+        }) : data;
+        res.json(normalized); // ✅ Send normalized data
       } else {
         res.json(data); // ✅ Send original data
       }
