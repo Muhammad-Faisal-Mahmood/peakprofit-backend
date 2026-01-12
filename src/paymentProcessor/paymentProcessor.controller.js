@@ -162,7 +162,8 @@ router.post("/checkout/session/expire", jwt, async (req, res) => {
       sessionId: session._id,
       status: session.status,
       expiresAt: session.expiresAt,
-      updatedAt: session.updatedAt,
+      createdAt: session.updatedAt,
+
       payment: session.paymentId
         ? {
             id: session.paymentId._id,
