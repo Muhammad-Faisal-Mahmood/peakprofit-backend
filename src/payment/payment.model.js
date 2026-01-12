@@ -10,6 +10,13 @@ const paymentSchema = new mongoose.Schema(
       index: true,
     },
 
+    sessionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "PaymentSession",
+      required: true,
+      index: true,
+    },
+
     challengeId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Challenge",
@@ -120,11 +127,6 @@ const paymentSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
-
-/* -------------------- INDEXES -------------------- */
-paymentSchema.index({ userId: 1, status: 1 });
-paymentSchema.index({ challengeId: 1 });
-paymentSchema.index({ invoiceNumber: 1 });
 
 const Payment = mongoose.model("Payment", paymentSchema);
 module.exports = Payment;

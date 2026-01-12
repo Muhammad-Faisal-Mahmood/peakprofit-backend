@@ -28,6 +28,7 @@ const Trade = require("./trade/trade.controller");
 const Chart = require("./trade/chart/chart.controller");
 const Payment = require("./payment/payment.controller");
 const ChartLayout = require("./trade/chartLayout/chartLayout.controller");
+const paymentProcessor = require("./paymentProcessor/paymentProcessor.controller");
 
 // Import for startup initialization
 const { polygonManager } = require("./polygon/polygonManager");
@@ -41,6 +42,7 @@ const PORT = process.env.PORT || 3000;
 const allowedOrigins = [
   process.env.MARKETING_SITE_URL,
   process.env.FRONT_APP_URL_DEV,
+  "https://5e529d6b3807.ngrok-free.app",
 ];
 
 app.use("/api/paymentEvents", require("./paymentProcessor/payment.webhook"));
@@ -95,6 +97,7 @@ app.use("/api/trade", Trade);
 app.use("/api/trade/chart", Chart);
 app.use("/api/payment", Payment);
 app.use("/api/chartLayout", ChartLayout);
+app.use("/api/paymentProcessor", paymentProcessor);
 
 app.get("/api/health", (req, res) => {
   res.status(200).json({
@@ -102,11 +105,11 @@ app.get("/api/health", (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
-app.post(
-  "/api/payment/session",
-  jwt,
-  require("./paymentProcessor/payment.sessionLink")
-);
+// app.post(
+//   "/api/payment/session",
+//   jwt,
+//   require("./paymentProcessor/payment.sessionLink")
+// );
 
 // MongoDB Connection
 const connectToMongoDB = async () => {
