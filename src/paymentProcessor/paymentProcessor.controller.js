@@ -200,17 +200,10 @@ function getMerchantAuth() {
 
 router.post("/process-payment", async (req, res) => {
   try {
-    const {
-      dataDescriptor,
-      dataValue,
+    const { dataDescriptor, dataValue, paymentId, billingAddress } =
+      req.body.paymentData;
 
-      paymentId,
-      invoiceNumber,
-      description,
-      billingAddress,
-    } = req.body;
-
-    const paymentObject = Payment.findById(paymentId);
+    const paymentObject = await Payment.findById(paymentId);
 
     if (!paymentObject) {
       return sendErrorResponse(res, "Payment not found");
@@ -239,8 +232,8 @@ router.post("/process-payment", async (req, res) => {
 
     // Create order information
     const orderDetails = new ApiContracts.OrderType();
-    orderDetails.setInvoiceNumber(invoiceNumber || `INV-${Date.now()}`); // Added fallback
-    orderDetails.setDescription(description || "Payment transaction");
+    orderDetails.setInvoiceNumber(paymentObject.invoiceNumber);
+    orderDetails.setDescription("Payment transaction");
 
     // Create transaction request
     const transactionRequestType = new ApiContracts.TransactionRequestType();
@@ -250,7 +243,7 @@ router.post("/process-payment", async (req, res) => {
     transactionRequestType.setPayment(payment); // Use 'payment' instead of 'paymentType'
     transactionRequestType.setAmount(paymentObject.authAmount);
     transactionRequestType.setOrder(orderDetails);
-    transactionRequestType.setRefId(paymentId || `ref-${Date.now()}`); // Use paymentId or generate one
+    // transactionRequestType.setRefId(paymentId || `ref-${Date.now()}`); // Use paymentId or generate one
 
     // REMOVED - customerEmail is not in your req.body destructuring - ISSUE #2
     // If you want to add customer email, add it to your frontend request body first
