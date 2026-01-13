@@ -317,8 +317,8 @@ router.post("/process-payment", async (req, res) => {
           console.error(`[${requestId}] No gateway response`);
           return reject({ error: "No response from payment gateway" });
         }
-        let responseCode = response.getTransactionResponse().getResponseCode();
-        if (responseCode === "1") {
+
+        if (response.getTransactionResponse().getResponseCode() === "1") {
           const trx = response.getTransactionResponse();
 
           if (trx?.getMessages()) {
@@ -354,41 +354,39 @@ router.post("/process-payment", async (req, res) => {
             errorCode: err.getErrorCode(),
             errorMessage: err.getErrorText(),
           });
-        } else {
-          reject({
-            success: false,
-            errorCode: msg.getCode(),
-            errorMessage: msg.getText(),
-          });
-
-          return sendErrorResponse(
-            res,
-            responseCode === "2"
-              ? "Payment Declined"
-              : responseCode === "3"
-              ? "Payment Error"
-              : responseCode === "4"
-              ? "Payment Under Review"
-              : "Payment failed"
-          );
         }
 
-        // const msg = response.getMessages().getMessage()[0];
-        // console.warn(`[${requestId}] Gateway error`, {
-        //   errorCode: msg.getCode(),
-        //   errorMessage: msg.getText(),
-        // });
+        const msg = response.getMessages().getMessage()[0];
+        console.warn(`[${requestId}] Gateway error`, {
+          errorCode: msg.getCode(),
+          errorMessage: msg.getText(),
+        });
+
+        reject({
+          success: false,
+          errorCode: msg.getCode(),
+          errorMessage: msg.getText(),
+        });
       });
     });
 
     console.info(`[${requestId}] Payment flow completed successfully`);
-    return sendSuccessResponse(res, "payment processed successfully");
+    return sendSuccessResponse(res, "payment processed successfully", response);
   } catch (error) {
     console.error(`[${requestId}] Payment processing error`, {
       message: error.errorMessage,
       code: error.errorCode,
     });
-    return sendErrorResponse(res, "Payment failed");
+    return sendErrorResponse(
+      res,
+      error?.errorCode === "2"
+        ? "Payment Declined"
+        : error?.errorCode === "3"
+        ? "Payment Error"
+        : error?.errorCode === "4"
+        ? "Payment Under Review"
+        : "Payment failed"
+    );
   }
 });
 
