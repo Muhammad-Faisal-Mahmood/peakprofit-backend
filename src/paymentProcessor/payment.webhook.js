@@ -152,9 +152,10 @@ async function handlePaymentAccepted(payload) {
     throw new Error(`Payment not found for invoice ${invoiceNumber}`);
   }
 
-  if (payment.status !== "pending") {
+  const PROCESSABLE_STATUSES = ["pending", "approved"];
+  if (!PROCESSABLE_STATUSES.includes(payment.status)) {
     console.log(`⚠️ Payment already processed with status: ${payment.status}`);
-    return; // Don't throw, just skip
+    return;
   }
 
   // Extract all available information

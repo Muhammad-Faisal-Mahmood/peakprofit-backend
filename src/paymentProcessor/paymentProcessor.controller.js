@@ -186,7 +186,7 @@ const config = {
   apiLoginID: process.env.AUTHORIZE_NET_API_LOGIN_ID,
   transactionKey: process.env.AUTHORIZE_NET_TRANSACTION_KEY,
   environment:
-    process.env.NODE_ENV === "production"
+    process.env.AUTHORIZE_NET_ENVIRONMENT === "production"
       ? SDKConstants.endpoint.production
       : SDKConstants.endpoint.sandbox,
 };
@@ -199,57 +199,87 @@ function getMerchantAuth() {
 }
 
 router.post("/process-payment", async (req, res) => {
+  const requestId = `pay_${Date.now()}_${Math.random()
+    .toString(36)
+    .slice(2, 8)}`;
+  console.info(`[${requestId}] Process payment called`);
+
   try {
     const { dataDescriptor, dataValue, paymentId, billingAddress } =
-      req.body.paymentData;
+      req.body.paymentData || {};
 
+    console.info(`[${requestId}] Incoming request`, {
+      paymentId,
+      hasBillingAddress: !!billingAddress,
+    });
+
+    // ---- Load payment ----
     const paymentObject = await Payment.findById(paymentId);
 
     if (!paymentObject) {
+      console.warn(`[${requestId}] Payment not found`, { paymentId });
       return sendErrorResponse(res, "Payment not found");
     }
 
-    const sessionObject = PaymentSession.findById(paymentObject.sessionId);
+    console.info(`[${requestId}] Payment loaded`, {
+      paymentId: paymentObject._id,
+      status: paymentObject.status,
+      amount: paymentObject.authAmount,
+      sessionId: paymentObject.sessionId,
+    });
 
-    if (!sessionObject && session?.expiresAt < new Date()) {
+    // ---- Load session ----
+    const sessionObject = await PaymentSession.findById(
+      paymentObject.sessionId
+    );
+
+    if (!sessionObject || sessionObject.expiresAt < new Date()) {
+      console.warn(`[${requestId}] Invalid or expired session`, {
+        sessionId: paymentObject.sessionId,
+        expired:
+          sessionObject?.expiresAt && sessionObject.expiresAt < new Date(),
+      });
       return sendErrorResponse(res, "Invalid session");
     }
-    // Validate required fields
+
+    console.info(`[${requestId}] Session validated`, {
+      sessionId: sessionObject._id,
+      expiresAt: sessionObject.expiresAt,
+    });
+
+    // ---- Validate token ----
     if (!dataDescriptor || !dataValue) {
+      console.warn(`[${requestId}] Missing Accept.js token`);
       return sendErrorResponse(
         res,
         "Missing required fields: dataDescriptor, dataValue"
       );
     }
 
-    // Create payment data from token
+    // ---- Build opaque payment ----
+    console.info(`[${requestId}] Creating Authorize.Net transaction`);
+
     const opaqueData = new ApiContracts.OpaqueDataType();
     opaqueData.setDataDescriptor(dataDescriptor);
     opaqueData.setDataValue(dataValue);
 
-    const payment = new ApiContracts.PaymentType(); // Changed variable name from paymentType to payment
+    const payment = new ApiContracts.PaymentType();
     payment.setOpaqueData(opaqueData);
 
-    // Create order information
     const orderDetails = new ApiContracts.OrderType();
     orderDetails.setInvoiceNumber(paymentObject.invoiceNumber);
     orderDetails.setDescription("Payment transaction");
 
-    // Create transaction request
     const transactionRequestType = new ApiContracts.TransactionRequestType();
     transactionRequestType.setTransactionType(
       ApiContracts.TransactionTypeEnum.AUTHCAPTURETRANSACTION
     );
-    transactionRequestType.setPayment(payment); // Use 'payment' instead of 'paymentType'
+    transactionRequestType.setPayment(payment);
     transactionRequestType.setAmount(paymentObject.authAmount);
     transactionRequestType.setOrder(orderDetails);
-    // transactionRequestType.setRefId(paymentId || `ref-${Date.now()}`); // Use paymentId or generate one
 
-    // REMOVED - customerEmail is not in your req.body destructuring - ISSUE #2
-    // If you want to add customer email, add it to your frontend request body first
-
-    // Add billing information if provided
     if (billingAddress) {
+      console.info(`[${requestId}] Billing address provided`);
       const billTo = new ApiContracts.CustomerAddressType();
       billTo.setFirstName(billingAddress.firstName || "");
       billTo.setLastName(billingAddress.lastName || "");
@@ -262,23 +292,20 @@ router.post("/process-payment", async (req, res) => {
       transactionRequestType.setBillTo(billTo);
     }
 
-    // Create the API request
     const createRequest = new ApiContracts.CreateTransactionRequest();
     createRequest.setMerchantAuthentication(getMerchantAuth());
-    createRequest.setTransactionRequest(transactionRequestType); // setRefId should be on transactionRequestType, not here
+    createRequest.setTransactionRequest(transactionRequestType);
 
-    const updatePaymentStatusToApproved = async () => {
-      paymentObject.status = "approved";
-      await paymentObject.save();
-    };
+    // ---- Execute transaction ----
+    console.info(`[${requestId}] Sending request to Authorize.Net`, {
+      environment: config.environment,
+    });
 
-    // Execute the transaction
     const ctrl = new ApiControllers.CreateTransactionController(
       createRequest.getJSON()
     );
     ctrl.setEnvironment(config.environment);
 
-    // Execute the request
     const response = await new Promise((resolve, reject) => {
       ctrl.execute(() => {
         const apiResponse = ctrl.getResponse();
@@ -286,81 +313,80 @@ router.post("/process-payment", async (req, res) => {
           apiResponse
         );
 
-        if (response !== null) {
-          if (
-            response.getMessages().getResultCode() ===
-            ApiContracts.MessageTypeEnum.OK
-          ) {
-            const transactionResponse = response.getTransactionResponse();
+        if (!response) {
+          console.error(`[${requestId}] No gateway response`);
+          return reject({ error: "No response from payment gateway" });
+        }
 
-            if (transactionResponse.getMessages() !== null) {
-              updatePaymentStatusToApproved();
-              resolve({
-                success: true,
-                transactionId: transactionResponse.getTransId(),
-                authCode: transactionResponse.getAuthCode(),
-                accountNumber: transactionResponse.getAccountNumber(),
-                accountType: transactionResponse.getAccountType(),
-                message: transactionResponse
-                  .getMessages()
-                  .getMessage()[0]
-                  .getDescription(),
-                responseCode: transactionResponse.getResponseCode(),
-              });
-            } else {
-              if (transactionResponse.getErrors() !== null) {
-                reject({
-                  success: false,
-                  errorCode: transactionResponse
-                    .getErrors()
-                    .getError()[0]
-                    .getErrorCode(),
-                  errorMessage: transactionResponse
-                    .getErrors()
-                    .getError()[0]
-                    .getErrorText(),
-                });
-              }
-            }
-          } else {
-            if (
-              response.getTransactionResponse() !== null &&
-              response.getTransactionResponse().getErrors() !== null
-            ) {
-              reject({
-                success: false,
-                errorCode: response
-                  .getTransactionResponse()
-                  .getErrors()
-                  .getError()[0]
-                  .getErrorCode(),
-                errorMessage: response
-                  .getTransactionResponse()
-                  .getErrors()
-                  .getError()[0]
-                  .getErrorText(),
-              });
-            } else {
-              reject({
-                success: false,
-                errorCode: response.getMessages().getMessage()[0].getCode(),
-                errorMessage: response.getMessages().getMessage()[0].getText(),
-              });
-            }
+        if (response.getTransactionResponse().getResponseCode() === "1") {
+          const trx = response.getTransactionResponse();
+
+          if (trx?.getMessages()) {
+            console.info(`[${requestId}] Payment approved`, {
+              transactionId: trx.getTransId(),
+              responseCode: trx.getResponseCode(),
+            });
+
+            paymentObject.status = "approved";
+            paymentObject.gatewayTransactionId = trx.getTransId();
+            paymentObject.gatewayResponseCode = trx.getResponseCode();
+            paymentObject.save();
+
+            return resolve({
+              success: true,
+              transactionId: trx.getTransId(),
+              authCode: trx.getAuthCode(),
+              accountNumber: trx.getAccountNumber(),
+              accountType: trx.getAccountType(),
+              message: trx.getMessages().getMessage()[0].getDescription(),
+              responseCode: trx.getResponseCode(),
+            });
           }
-        } else {
-          reject({
+
+          const err = trx.getErrors().getError()[0];
+          console.warn(`[${requestId}] Gateway declined`, {
+            errorCode: err.getErrorCode(),
+            errorMessage: err.getErrorText(),
+          });
+
+          return reject({
             success: false,
-            error: "No response from payment gateway",
+            errorCode: err.getErrorCode(),
+            errorMessage: err.getErrorText(),
           });
         }
+
+        const msg = response.getMessages().getMessage()[0];
+        console.warn(`[${requestId}] Gateway error`, {
+          errorCode: msg.getCode(),
+          errorMessage: msg.getText(),
+        });
+
+        reject({
+          success: false,
+          errorCode: msg.getCode(),
+          errorMessage: msg.getText(),
+        });
       });
     });
 
+    console.info(`[${requestId}] Payment flow completed successfully`);
     return sendSuccessResponse(res, "payment processed successfully", response);
   } catch (error) {
-    console.error("Payment processing error:", error);
-    return sendErrorResponse(res, "Couldn't process payment");
+    console.error(`[${requestId}] Payment processing error`, {
+      message: error.errorMessage,
+      code: error.errorCode,
+    });
+    return sendErrorResponse(
+      res,
+      error?.errorCode === "2"
+        ? "Payment Declined"
+        : error?.errorCode === "3"
+        ? "Payment Error"
+        : error?.errorCode === "4"
+        ? "Payment Under Review"
+        : "Payment failed"
+    );
   }
 });
 
