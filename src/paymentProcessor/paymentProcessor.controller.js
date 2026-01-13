@@ -267,6 +267,11 @@ router.post("/process-payment", async (req, res) => {
     createRequest.setMerchantAuthentication(getMerchantAuth());
     createRequest.setTransactionRequest(transactionRequestType); // setRefId should be on transactionRequestType, not here
 
+    const updatePaymentStatusToApproved = async () => {
+      paymentObject.status = "approved";
+      await paymentObject.save();
+    };
+
     // Execute the transaction
     const ctrl = new ApiControllers.CreateTransactionController(
       createRequest.getJSON()
@@ -289,6 +294,7 @@ router.post("/process-payment", async (req, res) => {
             const transactionResponse = response.getTransactionResponse();
 
             if (transactionResponse.getMessages() !== null) {
+              updatePaymentStatusToApproved();
               resolve({
                 success: true,
                 transactionId: transactionResponse.getTransId(),
