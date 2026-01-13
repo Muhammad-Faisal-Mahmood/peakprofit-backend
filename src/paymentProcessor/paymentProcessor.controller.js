@@ -307,7 +307,7 @@ router.post("/process-payment", async (req, res) => {
     ctrl.setEnvironment(config.environment);
 
     const response = await new Promise((resolve, reject) => {
-      ctrl.execute(() => {
+      ctrl.execute(async () => {
         const apiResponse = ctrl.getResponse();
         const response = new ApiContracts.CreateTransactionResponse(
           apiResponse
@@ -328,9 +328,9 @@ router.post("/process-payment", async (req, res) => {
             });
 
             paymentObject.status = "approved";
-            paymentObject.gatewayTransactionId = trx.getTransId();
-            paymentObject.gatewayResponseCode = trx.getResponseCode();
-            paymentObject.save();
+            await paymentObject.save();
+            sessionObject.status = "expired";
+            await sessionObject.save();
 
             return resolve({
               success: true,
