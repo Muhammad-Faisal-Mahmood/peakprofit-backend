@@ -9,6 +9,9 @@ const express = require("express");
 const router = express.Router();
 const jwt = require("../middleware/jwt");
 const PaymentSession = require("./paymentSession/paymentSession.model");
+const ApiContracts = require("authorizenet").APIContracts;
+const ApiControllers = require("authorizenet").APIControllers;
+const SDKConstants = require("authorizenet").Constants;
 
 router.post("/checkout/create", jwt, async (req, res) => {
   try {
@@ -176,6 +179,189 @@ router.post("/checkout/session/expire", jwt, async (req, res) => {
   } catch (err) {
     console.error(err);
     return sendErrorResponse(res, "Failed to expire session");
+  }
+});
+
+const config = {
+  apiLoginID: process.env.AUTHORIZE_NET_API_LOGIN_ID,
+  transactionKey: process.env.AUTHORIZE_NET_TRANSACTION_KEY,
+  environment:
+    process.env.NODE_ENV === "production"
+      ? SDKConstants.endpoint.production
+      : SDKConstants.endpoint.sandbox,
+};
+function getMerchantAuth() {
+  const merchantAuthenticationType =
+    new ApiContracts.MerchantAuthenticationType();
+  merchantAuthenticationType.setName(config.apiLoginID);
+  merchantAuthenticationType.setTransactionKey(config.transactionKey);
+  return merchantAuthenticationType;
+}
+
+router.post("/process-payment", async (req, res) => {
+  try {
+    const {
+      dataDescriptor,
+      dataValue,
+
+      paymentId,
+      invoiceNumber,
+      description,
+      billingAddress,
+    } = req.body;
+
+    const paymentObject = Payment.findById(paymentId);
+
+    if (!paymentObject) {
+      return sendErrorResponse(res, "Payment not found");
+    }
+
+    const sessionObject = PaymentSession.findById(paymentObject.sessionId);
+
+    if (!sessionObject && session?.expiresAt < new Date()) {
+      return sendErrorResponse(res, "Invalid session");
+    }
+    // Validate required fields
+    if (!dataDescriptor || !dataValue) {
+      return sendErrorResponse(
+        res,
+        "Missing required fields: dataDescriptor, dataValue"
+      );
+    }
+
+    // Create payment data from token
+    const opaqueData = new ApiContracts.OpaqueDataType();
+    opaqueData.setDataDescriptor(dataDescriptor);
+    opaqueData.setDataValue(dataValue);
+
+    const payment = new ApiContracts.PaymentType(); // Changed variable name from paymentType to payment
+    payment.setOpaqueData(opaqueData);
+
+    // Create order information
+    const orderDetails = new ApiContracts.OrderType();
+    orderDetails.setInvoiceNumber(invoiceNumber || `INV-${Date.now()}`); // Added fallback
+    orderDetails.setDescription(description || "Payment transaction");
+
+    // Create transaction request
+    const transactionRequestType = new ApiContracts.TransactionRequestType();
+    transactionRequestType.setTransactionType(
+      ApiContracts.TransactionTypeEnum.AUTHCAPTURETRANSACTION
+    );
+    transactionRequestType.setPayment(payment); // Use 'payment' instead of 'paymentType'
+    transactionRequestType.setAmount(paymentObject.authAmount);
+    transactionRequestType.setOrder(orderDetails);
+    transactionRequestType.setRefId(paymentId || `ref-${Date.now()}`); // Use paymentId or generate one
+
+    // REMOVED - customerEmail is not in your req.body destructuring - ISSUE #2
+    // If you want to add customer email, add it to your frontend request body first
+
+    // Add billing information if provided
+    if (billingAddress) {
+      const billTo = new ApiContracts.CustomerAddressType();
+      billTo.setFirstName(billingAddress.firstName || "");
+      billTo.setLastName(billingAddress.lastName || "");
+      billTo.setAddress(billingAddress.street || "");
+      billTo.setCity(billingAddress.city || "");
+      billTo.setState(billingAddress.state || "");
+      billTo.setZip(billingAddress.zipCode || "");
+      billTo.setCountry(billingAddress.country || "US");
+      billTo.setPhoneNumber(billingAddress.phoneNumber || "");
+      transactionRequestType.setBillTo(billTo);
+    }
+
+    // Create the API request
+    const createRequest = new ApiContracts.CreateTransactionRequest();
+    createRequest.setMerchantAuthentication(getMerchantAuth());
+    createRequest.setTransactionRequest(transactionRequestType); // setRefId should be on transactionRequestType, not here
+
+    // Execute the transaction
+    const ctrl = new ApiControllers.CreateTransactionController(
+      createRequest.getJSON()
+    );
+    ctrl.setEnvironment(config.environment);
+
+    // Execute the request
+    const response = await new Promise((resolve, reject) => {
+      ctrl.execute(() => {
+        const apiResponse = ctrl.getResponse();
+        const response = new ApiContracts.CreateTransactionResponse(
+          apiResponse
+        );
+
+        if (response !== null) {
+          if (
+            response.getMessages().getResultCode() ===
+            ApiContracts.MessageTypeEnum.OK
+          ) {
+            const transactionResponse = response.getTransactionResponse();
+
+            if (transactionResponse.getMessages() !== null) {
+              resolve({
+                success: true,
+                transactionId: transactionResponse.getTransId(),
+                authCode: transactionResponse.getAuthCode(),
+                accountNumber: transactionResponse.getAccountNumber(),
+                accountType: transactionResponse.getAccountType(),
+                message: transactionResponse
+                  .getMessages()
+                  .getMessage()[0]
+                  .getDescription(),
+                responseCode: transactionResponse.getResponseCode(),
+              });
+            } else {
+              if (transactionResponse.getErrors() !== null) {
+                reject({
+                  success: false,
+                  errorCode: transactionResponse
+                    .getErrors()
+                    .getError()[0]
+                    .getErrorCode(),
+                  errorMessage: transactionResponse
+                    .getErrors()
+                    .getError()[0]
+                    .getErrorText(),
+                });
+              }
+            }
+          } else {
+            if (
+              response.getTransactionResponse() !== null &&
+              response.getTransactionResponse().getErrors() !== null
+            ) {
+              reject({
+                success: false,
+                errorCode: response
+                  .getTransactionResponse()
+                  .getErrors()
+                  .getError()[0]
+                  .getErrorCode(),
+                errorMessage: response
+                  .getTransactionResponse()
+                  .getErrors()
+                  .getError()[0]
+                  .getErrorText(),
+              });
+            } else {
+              reject({
+                success: false,
+                errorCode: response.getMessages().getMessage()[0].getCode(),
+                errorMessage: response.getMessages().getMessage()[0].getText(),
+              });
+            }
+          }
+        } else {
+          reject({
+            success: false,
+            error: "No response from payment gateway",
+          });
+        }
+      });
+    });
+
+    return sendSuccessResponse(res, "payment processed successfully", response);
+  } catch (error) {
+    console.error("Payment processing error:", error);
+    return sendErrorResponse(res, "Couldn't process payment");
   }
 });
 

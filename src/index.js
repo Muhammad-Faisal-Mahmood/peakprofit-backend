@@ -42,7 +42,7 @@ const PORT = process.env.PORT || 3000;
 const allowedOrigins = [
   process.env.MARKETING_SITE_URL,
   process.env.FRONT_APP_URL_DEV,
-  "https://5e529d6b3807.ngrok-free.app",
+  "https://unduly-intent-polecat.ngrok-free.app",
 ];
 
 app.use("/api/paymentEvents", require("./paymentProcessor/payment.webhook"));
