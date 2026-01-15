@@ -5,13 +5,23 @@ const {
   promoteAccountToLive,
   shouldPromoteAccount,
 } = require("./accountPromotion.service");
+const calculateSpread = require("./calculateSpread");
 
 async function closeTradeService(trade, currentPrice, reason) {
-  const { side, entryPrice, tradeSize, leverage = 50, _id, accountId } = trade;
+  const {
+    side,
+    entryPrice,
+    tradeSize,
+    leverage = 50,
+    _id,
+    accountId,
+    market,
+    units,
+  } = trade;
 
   // 🔒 CRITICAL: Check if trade is already closed (idempotency check)
   const existingTrade = await Trade.findById(_id);
-
+  const spread = calculateSpread(market, units, entryPrice);
   if (!existingTrade) {
     console.warn(`[closeTrade] Trade ${_id} not found in database. Skipping.`);
     return null;
@@ -50,7 +60,7 @@ async function closeTradeService(trade, currentPrice, reason) {
 
   const marginToRelease = (tradeSize * entryPrice) / leverage;
   account.marginUsed = Math.max(0, account.marginUsed - marginToRelease);
-  account.balance += pnl;
+  account.balance = account.balance + pnl - spread;
   account.equity = account.balance;
 
   account.openPositions = account.openPositions.filter(

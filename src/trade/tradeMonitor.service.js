@@ -62,7 +62,6 @@ async function addPendingOrderForMonitoring(accountDoc, orderDoc) {
 }
 
 async function addTradeForMonitoring(accountDoc, tradeDoc) {
-  console.log(polygonManager, "polygonManager in addPendingOrderForMonitoring");
   const accountId = accountDoc._id.toString();
   const tradeId = tradeDoc._id.toString();
 

@@ -4,8 +4,10 @@ const {
   sendSuccessResponse,
   sendErrorResponse,
 } = require("../../shared/response.service");
+const redis = require("../../utils/redis.helper");
 
 const TradeMonitor = require("../tradeMonitor.service");
+const calculateSpread = require("../../utils/calculateSpread");
 
 const placeOrder = async (req, res) => {
   try {
@@ -18,19 +20,25 @@ const placeOrder = async (req, res) => {
       units,
       orderType = "market", // NEW
       triggerPrice, // NEW - required for limit/stop
-      entryPrice, // For market orders, this is current price
+      // entryPrice, // For market orders, this is current price
       stopLoss,
       takeProfit,
       leverage = 50,
     } = req.body;
 
     const userId = req.user.userId;
+    const price = await redis.getSymbolPrice(symbol);
+    const entryPrice = Number(price?.price);
 
-    // Validation
+    if (!entryPrice) {
+      return sendErrorResponse(res, "Service unavailable at the moment");
+    }
+
+    // user Validation
     if (!userId) {
       return sendErrorResponse(res, "User not authenticated.");
     }
-
+    //req validation
     if (!accountId || !symbol || !polygonSymbol || !side || !units) {
       return sendErrorResponse(res, "Missing required order parameters.");
     }
@@ -45,9 +53,9 @@ const placeOrder = async (req, res) => {
       }
     }
 
-    if (orderType === "market" && !entryPrice) {
-      return sendErrorResponse(res, "Entry price required for market orders.");
-    }
+    // if (orderType === "market" && !entryPrice) {
+    //   return sendErrorResponse(res, "Entry price required for market orders.");
+    // }
 
     // Fetch account
     const account = await Account.findById(accountId);
@@ -137,6 +145,9 @@ const placeOrder = async (req, res) => {
     await trade.save();
 
     // Handle based on order type
+    const spread = calculateSpread(market, units, entryPrice);
+    account.balance -= spread;
+    account.equity -= spread;
     if (orderType === "market") {
       // Immediate execution - existing logic
       account.marginUsed += marginUsed;

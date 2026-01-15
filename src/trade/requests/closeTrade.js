@@ -6,21 +6,25 @@ const {
 const closeTradeService = require("../../utils/closeTrade.service");
 const redisTradeCleanup = require("../../utils/redisTradeCleanup");
 const sendLiveAccountEmail = require("../../utils/sendLiveAccountEmail");
+const redis = require("../../utils/redis.helper");
 
 const closeTrade = async (req, res) => {
   try {
-    const { tradeId, price } = req.body;
+    const { tradeId } = req.body;
     const userId = req.user.userId;
 
-    if (!tradeId || !price) {
-      return sendErrorResponse(
-        res,
-        "Missing required parameters: tradeId, price"
-      );
+    if (!tradeId) {
+      return sendErrorResponse(res, "Missing required parameters: tradeId");
     }
 
     // Fetch the trade
     const trade = await Trade.findById(tradeId);
+    const priceObjectFromRedis = await redis.getSymbolPrice(trade.symbol);
+    const price = Number(priceObjectFromRedis?.price);
+
+    if (!price) {
+      return sendErrorResponse(res, "Service unavailable at the moment");
+    }
     if (!trade) {
       return sendErrorResponse(res, "Trade not found.");
     }
