@@ -5,6 +5,7 @@ const { polygonManager } = require("../polygon/polygonManager");
 const closeTradeService = require("../utils/closeTrade.service");
 const redisTradeCleanup = require("../utils/redisTradeCleanup");
 const sendAccountClosureEmail = require("../utils/sendAccountClosureEmail");
+const calculateSpread = require("../utils/calculateSpread");
 
 async function addPendingOrderForMonitoring(accountDoc, orderDoc) {
   const accountId = accountDoc._id.toString();
@@ -532,7 +533,15 @@ async function executePendingOrder(order, executionPrice) {
       (id) => id.toString() !== orderId.toString()
     );
     account.openPositions.push(orderId);
+    const spread = calculateSpread(
+      existingOrder.market,
+      existingOrder.units,
+      executionPrice
+    );
 
+    console.log("spread in execute pending order:", spread);
+    account.balance -= spread;
+    account.equity -= spread;
     await account.save();
 
     // Remove from pending orders in Redis

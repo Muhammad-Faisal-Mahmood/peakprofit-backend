@@ -145,13 +145,14 @@ const placeOrder = async (req, res) => {
     await trade.save();
 
     // Handle based on order type
-    const spread = calculateSpread(market, units, entryPrice);
-    account.balance -= spread;
-    account.equity -= spread;
+
     if (orderType === "market") {
       // Immediate execution - existing logic
       account.marginUsed += marginUsed;
       account.openPositions.push(trade._id);
+      const spread = calculateSpread(market, units, entryPrice);
+      account.balance -= spread;
+      account.equity -= spread;
       await account.save();
 
       await TradeMonitor.addTradeForMonitoring(account, trade);
