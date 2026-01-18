@@ -20,8 +20,10 @@ async function closeTradeService(trade, currentPrice, reason) {
   } = trade;
 
   // 🔒 CRITICAL: Check if trade is already closed (idempotency check)
+  console.log("trade data in closeTrade service: ", trade);
   const existingTrade = await Trade.findById(_id);
-  const spread = calculateSpread(market, units, entryPrice);
+  const spread = 50 * calculateSpread(market, units, entryPrice);
+  console.log("spread in closeTrade service: ", spread);
   if (!existingTrade) {
     console.warn(`[closeTrade] Trade ${_id} not found in database. Skipping.`);
     return null;

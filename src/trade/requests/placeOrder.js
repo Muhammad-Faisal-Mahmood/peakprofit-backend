@@ -150,7 +150,8 @@ const placeOrder = async (req, res) => {
       // Immediate execution - existing logic
       account.marginUsed += marginUsed;
       account.openPositions.push(trade._id);
-      const spread = calculateSpread(market, units, entryPrice);
+      const spread = 50 * calculateSpread(market, units, entryPrice);
+      console.log("spread in place order: ", spread);
       account.balance -= spread;
       account.equity -= spread;
       await account.save();

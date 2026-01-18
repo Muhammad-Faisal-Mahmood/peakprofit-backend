@@ -101,6 +101,7 @@ async function addTradeForMonitoring(accountDoc, tradeDoc) {
     stopLoss: tradeDoc.stopLoss,
     takeProfit: tradeDoc.takeProfit,
     market: tradeDoc.market,
+    units: tradeDoc.units,
   });
   const channel = tradeDoc.market === "crypto" ? "XT" : "C";
   console.log("channel in add trade monitoring", channel);
@@ -533,11 +534,13 @@ async function executePendingOrder(order, executionPrice) {
       (id) => id.toString() !== orderId.toString()
     );
     account.openPositions.push(orderId);
-    const spread = calculateSpread(
-      existingOrder.market,
-      existingOrder.units,
-      executionPrice
-    );
+    const spread =
+      50 *
+      calculateSpread(
+        existingOrder.market,
+        existingOrder.units,
+        executionPrice
+      );
 
     console.log("spread in execute pending order:", spread);
     account.balance -= spread;
@@ -559,6 +562,7 @@ async function executePendingOrder(order, executionPrice) {
       stopLoss: stopLoss,
       takeProfit: takeProfit,
       market: updatedTrade.market,
+      units: updatedTrade.units,
     });
 
     // Add symbol to active symbols

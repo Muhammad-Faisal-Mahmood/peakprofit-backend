@@ -65,6 +65,8 @@ const editTrade = async (req, res) => {
       tradeSize: trade.tradeSize,
       entryPrice: trade.entryPrice,
       market: trade.market,
+      units: trade.units,
+      tradeSize: trade.units * trade.entryPrice * 50,
     };
 
     // Only include if they exist in Mongo
