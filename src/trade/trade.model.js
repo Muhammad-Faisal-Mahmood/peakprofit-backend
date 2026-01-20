@@ -45,6 +45,11 @@ const tradeSchema = new Schema(
       required: true,
     },
 
+    platformFee: {
+      type: Number,
+      default: 0,
+    },
+
     tradeSize: {
       type: Number,
       required: true,
@@ -146,7 +151,7 @@ const tradeSchema = new Schema(
       ],
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 module.exports = mongoose.model("Trade", tradeSchema);

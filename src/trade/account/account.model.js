@@ -71,6 +71,11 @@ const AccountSchema = new mongoose.Schema(
       default: 0,
     },
 
+    platformFee: {
+      type: Number,
+      default: 0,
+    },
+
     lastPayoutDate: {
       type: Date,
       default: null,
@@ -109,7 +114,7 @@ const AccountSchema = new mongoose.Schema(
       default: null,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // NEW: Method to check if user has 5 days with 0.5% profit
@@ -124,7 +129,7 @@ AccountSchema.methods.hasConsistentProfitDays = function () {
 
   // Filter days that meet the 0.5% minimum profit requirement
   const qualifiedDays = this.dailyProfits.filter(
-    (day) => day.meetsMinimum === true && day.profitPercentage >= 0.5
+    (day) => day.meetsMinimum === true && day.profitPercentage >= 0.5,
   );
 
   const hasFiveDays = qualifiedDays.length >= 5;
@@ -151,7 +156,7 @@ AccountSchema.methods.canRequestPayout = function () {
   // Check if account is active
   if (this.status !== "active") {
     errors.push(
-      `Account status must be active. Current status: ${this.status}`
+      `Account status must be active. Current status: ${this.status}`,
     );
   }
 
@@ -159,7 +164,7 @@ AccountSchema.methods.canRequestPayout = function () {
   const profitCheck = this.hasConsistentProfitDays();
   if (!profitCheck.hasFiveDays) {
     errors.push(
-      `Consistency requirement not met: ${profitCheck.message}. You need at least 5 trading days with 0.5% or more profit.`
+      `Consistency requirement not met: ${profitCheck.message}. You need at least 5 trading days with 0.5% or more profit.`,
     );
   }
 
@@ -168,8 +173,8 @@ AccountSchema.methods.canRequestPayout = function () {
   if (this.balance < minRequiredBalance) {
     errors.push(
       `Minimum balance of $${minRequiredBalance.toFixed(
-        2
-      )} required. Current: $${this.balance.toFixed(2)}`
+        2,
+      )} required. Current: $${this.balance.toFixed(2)}`,
     );
   }
 
@@ -230,7 +235,7 @@ AccountSchema.methods.resetDrawdownLimitsAfterPayout = async function () {
   this.maxDrawdownLimit = 0;
 
   console.log(
-    `[Account] Drawdown limits reset to 0 for account ${this._id} after first payout. User cannot go below initial balance of ${this.initialBalance}`
+    `[Account] Drawdown limits reset to 0 for account ${this._id} after first payout. User cannot go below initial balance of ${this.initialBalance}`,
   );
 
   try {
@@ -245,13 +250,13 @@ AccountSchema.methods.resetDrawdownLimitsAfterPayout = async function () {
       });
 
       console.log(
-        `[Account] Redis risk data updated for account ${this._id}. Protected balance set to ${this.initialBalance}`
+        `[Account] Redis risk data updated for account ${this._id}. Protected balance set to ${this.initialBalance}`,
       );
     }
   } catch (error) {
     console.error(
       `[Account] Error updating Redis risk data for account ${this._id}:`,
-      error
+      error,
     );
     // Don't throw - we can continue even if Redis update fails
   }
@@ -264,16 +269,16 @@ AccountSchema.methods.processPayout = async function (withdrawId, amount) {
   if (amount > availablePayout) {
     throw new Error(
       `Requested amount ($${amount.toFixed(
-        2
-      )}) exceeds available payout ($${availablePayout.toFixed(2)})`
+        2,
+      )}) exceeds available payout ($${availablePayout.toFixed(2)})`,
     );
   }
 
   if (this.canRequestPayout().eligible === false) {
     throw new Error(
       `Account is not eligible for payout: ${this.canRequestPayout().errors.join(
-        "; "
-      )}`
+        "; ",
+      )}`,
     );
   }
 
@@ -314,12 +319,12 @@ AccountSchema.methods.processPayout = async function (withdrawId, amount) {
         maxDrawdownThreshold: this.initialBalance,
       });
       console.log(
-        `[Account] Redis updated after first payout for account ${this._id}`
+        `[Account] Redis updated after first payout for account ${this._id}`,
       );
     } catch (error) {
       console.error(
         `[Account] Error updating Redis after first payout:`,
-        error
+        error,
       );
     }
   } else {
@@ -331,7 +336,7 @@ AccountSchema.methods.processPayout = async function (withdrawId, amount) {
           equity: this.equity,
         });
         console.log(
-          `[Account] Redis updated after payout for account ${this._id}`
+          `[Account] Redis updated after payout for account ${this._id}`,
         );
       } catch (error) {
         console.error(`[Account] Error updating Redis after payout:`, error);
@@ -349,7 +354,7 @@ AccountSchema.methods.processPayout = async function (withdrawId, amount) {
 
 AccountSchema.methods.processRejectedPayout = async function (
   amount,
-  withdrawId
+  withdrawId,
 ) {
   this.balance += amount;
   this.totalPayoutAmount -= amount;
@@ -389,12 +394,12 @@ AccountSchema.methods.processRejectedPayout = async function (
           maxDrawdownThreshold: this.initialBalance - this.maxDrawdownLimit,
         });
         console.log(
-          `[Account] Redis updated after first payout rejection for account ${this._id}`
+          `[Account] Redis updated after first payout rejection for account ${this._id}`,
         );
       } catch (error) {
         console.error(
           `[Account] Error updating Redis after payout rejection:`,
-          error
+          error,
         );
       }
     }
@@ -423,7 +428,7 @@ AccountSchema.methods.processRejectedPayout = async function (
 
     if (wasRejectedWithdrawHalfSplit && lastValidWithdraw) {
       const rejectedIndex = this.payoutHistory.findIndex(
-        (id) => id.toString() === withdrawId.toString()
+        (id) => id.toString() === withdrawId.toString(),
       );
 
       if (
@@ -468,12 +473,12 @@ AccountSchema.methods.processRejectedPayout = async function (
           equity: this.equity,
         });
         console.log(
-          `[Account] Redis updated after subsequent payout rejection for account ${this._id}`
+          `[Account] Redis updated after subsequent payout rejection for account ${this._id}`,
         );
       } catch (error) {
         console.error(
           `[Account] Error updating Redis after payout rejection:`,
-          error
+          error,
         );
       }
     }

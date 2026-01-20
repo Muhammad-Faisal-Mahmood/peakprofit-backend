@@ -49,7 +49,7 @@ async function addPendingOrderForMonitoring(accountDoc, orderDoc) {
   });
 
   console.log(
-    `[TradeMonitor] Pending ${orderDoc.orderType} order ${orderId} added for monitoring.`
+    `[TradeMonitor] Pending ${orderDoc.orderType} order ${orderId} added for monitoring.`,
   );
 
   const channel = orderDoc.market === "crypto" ? "XT" : "C";
@@ -58,7 +58,7 @@ async function addPendingOrderForMonitoring(accountDoc, orderDoc) {
     `server_${accountId}`,
     orderDoc.market,
     orderDoc.symbol,
-    channel
+    channel,
   );
 }
 
@@ -109,11 +109,11 @@ async function addTradeForMonitoring(accountDoc, tradeDoc) {
     `server_${accountId}`,
     tradeDoc.market,
     tradeDoc.symbol,
-    channel
+    channel,
   );
 
   console.log(
-    `[TradeMonitor] Trade ${tradeId} added for real-time monitoring.`
+    `[TradeMonitor] Trade ${tradeId} added for real-time monitoring.`,
   );
 }
 
@@ -130,7 +130,7 @@ async function removeTradeFromMonitoring(tradeId, accountId) {
   // Check if other open trades use this symbol before removing it
   const allAccountTrades = await redis.getOpenTradesByAccount(accountId);
   const symbolStillInUse = allAccountTrades.some(
-    (t) => t.symbol === trade.symbol && t._id !== tradeId
+    (t) => t.symbol === trade.symbol && t._id !== tradeId,
   );
 
   if (!symbolStillInUse) {
@@ -162,8 +162,8 @@ async function checkAccountRules(accountId, newEquity) {
     violation = violation || "dailyDrawdown";
     console.warn(
       `[TradeMonitor] ⚠️ Daily drawdown exceeded! Loss: ${dailyLoss.toFixed(
-        2
-      )} > Threshold: ${dailyDrawdownThreshold.toFixed(2)}`
+        2,
+      )} > Threshold: ${dailyDrawdownThreshold.toFixed(2)}`,
     );
   }
 
@@ -253,7 +253,7 @@ async function processPriceUpdate(priceData) {
 
       if (violation) {
         console.warn(
-          `[TradeMonitor] Account ${accountId} violated ${violation} rule. Marking for liquidation.`
+          `[TradeMonitor] Account ${accountId} violated ${violation} rule. Marking for liquidation.`,
         );
         accountsToLiquidate.add(accountId);
         affectedAccounts.get(accountId).violation = violation;
@@ -268,7 +268,7 @@ async function processPriceUpdate(priceData) {
         accountId,
         accountData.violation,
         riskData.currentEquity,
-        priceData
+        priceData,
       );
     }
 
@@ -283,7 +283,7 @@ async function processPriceUpdate(priceData) {
         if (hitSL || hitTP) {
           const closureReason = hitSL ? "stopLossHit" : "takeProfitHit";
           console.log(
-            `[TradeMonitor] Trade ${trade._id} hit ${closureReason}. Closing...`
+            `[TradeMonitor] Trade ${trade._id} hit ${closureReason}. Closing...`,
           );
 
           await closeTrade(trade, price, closureReason);
@@ -313,10 +313,10 @@ async function handleAccountLiquidation(
   accountId,
   violationRule,
   finalEquity,
-  priceData // { symbol, price }
+  priceData, // { symbol, price }
 ) {
   console.warn(
-    `[LIQUIDATION] Account ${accountId} failed due to ${violationRule}. Triggered by ${priceData?.symbol} at ${priceData?.price}`
+    `[LIQUIDATION] Account ${accountId} failed due to ${violationRule}. Triggered by ${priceData?.symbol} at ${priceData?.price}`,
   );
 
   // Get ALL open trades from MongoDB (source of truth)
@@ -326,7 +326,7 @@ async function handleAccountLiquidation(
   });
 
   console.log(
-    `[LIQUIDATION] Found ${tradesToClose.length} open trades in MongoDB for account ${accountId}`
+    `[LIQUIDATION] Found ${tradesToClose.length} open trades in MongoDB for account ${accountId}`,
   );
   const riskData = await redis.getAccountRisk(accountId);
   let fallbackEquity = riskData?.currentEquity;
@@ -370,7 +370,7 @@ async function handleAccountLiquidation(
     if (trade.symbol === priceData?.symbol) {
       currentPrice = priceData?.price;
       console.log(
-        `[LIQUIDATION] Closing ${trade.symbol} trade ${trade._id} at trigger price ${currentPrice}`
+        `[LIQUIDATION] Closing ${trade.symbol} trade ${trade._id} at trigger price ${currentPrice}`,
       );
     } else {
       // For other symbols, get the latest price from Redis
@@ -378,7 +378,7 @@ async function handleAccountLiquidation(
 
       if (!symbolPriceData) {
         console.error(
-          `[LIQUIDATION] No price data found for ${trade.symbol}, using entry price as fallback`
+          `[LIQUIDATION] No price data found for ${trade.symbol}, using entry price as fallback`,
         );
         currentPrice = trade.entryPrice;
       } else {
@@ -388,7 +388,7 @@ async function handleAccountLiquidation(
             trade._id
           } at Redis price ${currentPrice} (age: ${
             Date.now() - symbolPriceData.timestamp
-          }ms)`
+          }ms)`,
         );
       }
     }
@@ -406,12 +406,12 @@ async function handleAccountLiquidation(
   for (const redisTrade of redisTradeIds) {
     await redis.deleteOpenTrade(redisTrade._id);
     console.log(
-      `[LIQUIDATION] Cleaned up orphaned Redis trade: ${redisTrade._id}`
+      `[LIQUIDATION] Cleaned up orphaned Redis trade: ${redisTrade._id}`,
     );
   }
 
   console.log(
-    `[LIQUIDATION] Account ${accountId} fully liquidated and cleaned up.`
+    `[LIQUIDATION] Account ${accountId} fully liquidated and cleaned up.`,
   );
 
   if (accountStatus === "failed") {
@@ -430,7 +430,7 @@ async function checkPendingOrders(symbol, currentPrice) {
   if (!pendingOrders.length) return;
 
   console.log(
-    `[TradeMonitor] Checking ${pendingOrders.length} pending orders for ${symbol}`
+    `[TradeMonitor] Checking ${pendingOrders.length} pending orders for ${symbol}`,
   );
 
   for (const order of pendingOrders) {
@@ -459,7 +459,7 @@ async function checkPendingOrders(symbol, currentPrice) {
 
     if (shouldExecute) {
       console.log(
-        `[TradeMonitor] ${orderType.toUpperCase()} order ${orderId} triggered at ${currentPrice}`
+        `[TradeMonitor] ${orderType.toUpperCase()} order ${orderId} triggered at ${currentPrice}`,
       );
       await executePendingOrder(order, currentPrice);
     }
@@ -485,12 +485,12 @@ async function executePendingOrder(order, executionPrice) {
     const existingOrder = await redis.atomicDeletePendingOrder(
       orderId,
       accountId,
-      symbol
+      symbol,
     );
     console.log("existing order:", existingOrder);
     if (!existingOrder) {
       console.log(
-        `[executePendingOrder] Order ${orderId} already executed or cancelled. Skipping.`
+        `[executePendingOrder] Order ${orderId} already executed or cancelled. Skipping.`,
       );
       return;
     }
@@ -503,11 +503,21 @@ async function executePendingOrder(order, executionPrice) {
     // Check if account is still valid
     if (account.status === "failed" || account.status === "suspended") {
       console.warn(
-        `[executePendingOrder] Account ${accountId} is ${account.status}. Cancelling order.`
+        `[executePendingOrder] Account ${accountId} is ${account.status}. Cancelling order.`,
       );
       await cancelPendingOrder(orderId, accountId, symbol, "accountInvalid");
       return;
     }
+
+    const spread =
+      50 *
+      calculateSpread(
+        existingOrder.market,
+        existingOrder.units,
+        executionPrice,
+      );
+
+    console.log("spread in execute pending order:", spread);
 
     // Update trade in MongoDB
     const updatedTrade = await Trade.findByIdAndUpdate(
@@ -516,8 +526,9 @@ async function executePendingOrder(order, executionPrice) {
         status: "open",
         entryPrice: executionPrice,
         executedAt: new Date(),
+        platformFee: spread,
       },
-      { new: true }
+      { new: true },
     );
 
     if (!updatedTrade) {
@@ -531,20 +542,13 @@ async function executePendingOrder(order, executionPrice) {
 
     // Move order from pending to open
     account.pendingOrders = account.pendingOrders.filter(
-      (id) => id.toString() !== orderId.toString()
+      (id) => id.toString() !== orderId.toString(),
     );
     account.openPositions.push(orderId);
-    const spread =
-      50 *
-      calculateSpread(
-        existingOrder.market,
-        existingOrder.units,
-        executionPrice
-      );
 
-    console.log("spread in execute pending order:", spread);
     account.balance -= spread;
     account.equity -= spread;
+    account.platformFee += spread;
     await account.save();
 
     // Remove from pending orders in Redis
@@ -569,12 +573,12 @@ async function executePendingOrder(order, executionPrice) {
     await redis.addAccountSymbol(accountId, symbol);
 
     console.log(
-      `[TradeMonitor] Order ${orderId} executed successfully at ${executionPrice}`
+      `[TradeMonitor] Order ${orderId} executed successfully at ${executionPrice}`,
     );
   } catch (err) {
     console.error(
       `[executePendingOrder] Error executing order ${orderId}:`,
-      err
+      err,
     );
   }
 }
@@ -594,12 +598,12 @@ async function cancelPendingOrder(orderId, accountId, symbol, reason) {
     if (account) {
       account.pendingMargin = Math.max(
         0,
-        account.pendingMargin - order.marginUsed
+        account.pendingMargin - order.marginUsed,
       );
 
       // Move from pending to cancelled
       account.pendingOrders = account.pendingOrders.filter(
-        (id) => id.toString() !== orderId.toString()
+        (id) => id.toString() !== orderId.toString(),
       );
       account.cancelledOrders.push(orderId);
 
@@ -623,7 +627,7 @@ async function triggerUnsubscribeCheck(market, symbol, channel = "AM") {
 
     if (hasClientSubscribers) {
       console.log(
-        `[TradeMonitor] Keeping ${symbol} subscription - ${subscribers.size} client(s) still connected`
+        `[TradeMonitor] Keeping ${symbol} subscription - ${subscribers.size} client(s) still connected`,
       );
       return;
     }
@@ -634,7 +638,7 @@ async function triggerUnsubscribeCheck(market, symbol, channel = "AM") {
   } catch (err) {
     console.error(
       `[TradeMonitor] Error triggering unsubscribe check for ${symbol}:`,
-      err
+      err,
     );
   }
 }
@@ -648,7 +652,7 @@ async function cancelAllPendingOrders(accountId, reason) {
 
   const pendingOrderIds = account.pendingOrders.map((id) => id.toString());
   console.log(
-    `[LIQUIDATION] Cancelling ${pendingOrderIds.length} pending orders for account ${accountId}`
+    `[LIQUIDATION] Cancelling ${pendingOrderIds.length} pending orders for account ${accountId}`,
   );
 
   for (const orderId of pendingOrderIds) {

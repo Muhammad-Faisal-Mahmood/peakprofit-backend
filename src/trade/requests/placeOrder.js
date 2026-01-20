@@ -48,7 +48,7 @@ const placeOrder = async (req, res) => {
       if (!triggerPrice) {
         return sendErrorResponse(
           res,
-          `Trigger price required for ${orderType} orders.`
+          `Trigger price required for ${orderType} orders.`,
         );
       }
     }
@@ -67,7 +67,7 @@ const placeOrder = async (req, res) => {
     if (account.status != "active" && account.status != "passed") {
       return sendErrorResponse(
         res,
-        `Account is ${account.status}. No new orders allowed.`
+        `Account is ${account.status}. No new orders allowed.`,
       );
     }
 
@@ -80,7 +80,7 @@ const placeOrder = async (req, res) => {
     if (marginUsed > freeMargin) {
       return sendErrorResponse(
         res,
-        "Not enough free margin to place this order."
+        "Not enough free margin to place this order.",
       );
     }
 
@@ -96,7 +96,7 @@ const placeOrder = async (req, res) => {
 
       account.currentDayEquity = account.equity || account.balance;
       console.log(
-        `[Account] New trading day for account ${account._id}. Baseline: ${account.currentDayEquity}`
+        `[Account] New trading day for account ${account._id}. Baseline: ${account.currentDayEquity}`,
       );
 
       const startingBalance = account.balance;
@@ -133,10 +133,14 @@ const placeOrder = async (req, res) => {
       status: orderType === "market" ? "open" : "pending",
     };
 
+    const spread = 50 * calculateSpread(market, units, entryPrice);
+    console.log("spread in place order: ", spread);
+
     // Set appropriate price fields
     if (orderType === "market") {
       orderData.entryPrice = entryPrice;
       orderData.executedAt = now;
+      orderData.platformFee = spread;
     } else {
       orderData.triggerPrice = triggerPrice;
     }
@@ -150,10 +154,10 @@ const placeOrder = async (req, res) => {
       // Immediate execution - existing logic
       account.marginUsed += marginUsed;
       account.openPositions.push(trade._id);
-      const spread = 50 * calculateSpread(market, units, entryPrice);
-      console.log("spread in place order: ", spread);
+
       account.balance -= spread;
       account.equity -= spread;
+      account.platformFee += spread;
       await account.save();
 
       await TradeMonitor.addTradeForMonitoring(account, trade);
@@ -161,7 +165,7 @@ const placeOrder = async (req, res) => {
       return sendSuccessResponse(
         res,
         "Market order executed successfully.",
-        trade
+        trade,
       );
     } else {
       account.pendingMargin += marginUsed; // Changed from marginUsed
@@ -175,7 +179,7 @@ const placeOrder = async (req, res) => {
         `${
           orderType.charAt(0).toUpperCase() + orderType.slice(1)
         } order placed successfully.`,
-        trade
+        trade,
       );
     }
   } catch (err) {
