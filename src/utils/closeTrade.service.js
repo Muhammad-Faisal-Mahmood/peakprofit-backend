@@ -31,7 +31,7 @@ async function closeTradeService(trade, currentPrice, reason) {
 
   if (existingTrade.status === "closed") {
     console.warn(
-      `    [closeTrade] Trade ${_id} already closed at ${existingTrade.exitPrice}. Skipping duplicate close.`
+      `    [closeTrade] Trade ${_id} already closed at ${existingTrade.exitPrice}. Skipping duplicate close.`,
     );
     return existingTrade;
   }
@@ -43,12 +43,12 @@ async function closeTradeService(trade, currentPrice, reason) {
   }
 
   const isInOpenPositions = account.openPositions.some(
-    (posId) => posId.toString() === _id.toString()
+    (posId) => posId.toString() === _id.toString(),
   );
 
   if (!isInOpenPositions) {
     console.warn(
-      `  [closeTrade] Trade ${_id} not in account's open positions. Already processed. Skipping.`
+      `  [closeTrade] Trade ${_id} not in account's open positions. Already processed. Skipping.`,
     );
     return existingTrade;
   }
@@ -67,7 +67,7 @@ async function closeTradeService(trade, currentPrice, reason) {
   account.equity = account.balance;
 
   account.openPositions = account.openPositions.filter(
-    (posId) => posId.toString() !== _id.toString()
+    (posId) => posId.toString() !== _id.toString(),
   );
   account.closedPositions.push(_id);
   await updateDailyProfit(account);
@@ -101,20 +101,20 @@ async function closeTradeService(trade, currentPrice, reason) {
 
   console.log(
     `[closeTrade] Trade ${_id} closed at ${currentPrice}. Reason: ${reason}, PnL: ${pnl.toFixed(
-      2
-    )}`
+      2,
+    )}`,
   );
 
   // ✅ Check if account should be promoted (AFTER saving everything)
   const freshAccount = await Account.findById(accountId); // Get fresh account data
   if (reason == "userClosed" && shouldPromoteAccount(freshAccount)) {
     console.log(
-      ` [closeTrade] Account ${accountId} qualifies for promotion. Initiating promotion process...`
+      ` [closeTrade] Account ${accountId} qualifies for promotion. Initiating promotion process...`,
     );
 
     const promotionResult = await promoteAccountToLive(
       accountId.toString(),
-      "profitTargetReached"
+      "profitTargetReached",
     );
 
     // Return promotion result instead of trade
@@ -132,7 +132,7 @@ async function closeTradeService(trade, currentPrice, reason) {
       currentEquity: account.equity,
     });
     console.log(
-      `  [closeTrade] Updated Redis balance for account ${accountId}: ${account.balance}`
+      `  [closeTrade] Updated Redis balance for account ${accountId}: ${account.balance}`,
     );
   }
 
@@ -145,7 +145,7 @@ async function updateDailyProfit(account) {
 
   // Check if we already have an entry for today
   const todayEntry = account.dailyProfits.find(
-    (entry) => entry.date.toISOString().slice(0, 10) === today
+    (entry) => entry.date.toISOString().slice(0, 10) === today,
   );
 
   // Update existing entry
@@ -158,8 +158,8 @@ async function updateDailyProfit(account) {
 
     console.log(
       `[updateDailyProfit] Updated day ${today}: ${todayEntry.profitPercentage.toFixed(
-        2
-      )}% profit (meets 0.5% minimum: ${todayEntry.meetsMinimum})`
+        2,
+      )}% profit (meets 0.5% minimum: ${todayEntry.meetsMinimum})`,
     );
   }
 }
