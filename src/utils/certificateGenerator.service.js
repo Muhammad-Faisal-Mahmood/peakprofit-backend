@@ -141,8 +141,6 @@ async function generateCertificate(data) {
     const companyNameX = logoX + logoSize + 20;
 
     try {
-      // NOTE: Using the hardcoded URL for the logo
-      const logoPath = logoPath;
       const logo = await loadImage(logoPath);
       ctx.drawImage(logo, logoX, footerY, logoSize, logoSize);
     } catch (logoError) {
