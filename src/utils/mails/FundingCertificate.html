@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Certificate of Funding - {{traderName}}</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cedarville+Cursive&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Reset and Print Compliance */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      @media print {
+        body {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+      }
+
+      body {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #05080f; /* Dark background for the conversion canvas */
+      }
+
+      .cert {
+        position: relative;
+        /* Fixed dimensions for PDF consistency (e.g., roughly 10.5in x 7in) */
+        width: 1000px;
+        height: 650px;
+        background: #0b1322
+          linear-gradient(150deg, #0b1322 0%, #0e1c30 50%, #090e1b 100%);
+        overflow: hidden;
+        box-shadow: 0 40px 120px rgba(0, 0, 0, 0.85);
+      }
+
+      /* Borders */
+      .border-outer {
+        position: absolute;
+        inset: 14px;
+        border: 1px solid rgba(90, 145, 220, 0.22);
+        z-index: 3;
+      }
+      .border-inner {
+        position: absolute;
+        inset: 22px;
+        border: 1px solid rgba(90, 145, 220, 0.09);
+        z-index: 3;
+      }
+
+      .corner {
+        position: absolute;
+        width: 32px;
+        height: 32px;
+        z-index: 4;
+        border-color: rgba(110, 165, 235, 0.45);
+        border-style: solid;
+        border-width: 0;
+      }
+      .tl {
+        top: 10px;
+        left: 10px;
+        border-top-width: 2px;
+        border-left-width: 2px;
+      }
+      .tr {
+        top: 10px;
+        right: 10px;
+        border-top-width: 2px;
+        border-right-width: 2px;
+      }
+      .bl {
+        bottom: 10px;
+        left: 10px;
+        border-bottom-width: 2px;
+        border-left-width: 2px;
+      }
+      .br {
+        bottom: 10px;
+        right: 10px;
+        border-bottom-width: 2px;
+        border-right-width: 2px;
+      }
+
+      #chart-bg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+      }
+
+      .vignette {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        background: radial-gradient(
+          ellipse 85% 75% at 50% 50%,
+          transparent 25%,
+          rgba(7, 12, 24, 0.5) 65%,
+          rgba(7, 12, 24, 0.88) 100%
+        );
+      }
+
+      .content {
+        position: relative;
+        z-index: 5;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 80px;
+        text-align: center;
+      }
+
+      /* Removed Animations (opacity set to 1, no transform) */
+      .title {
+        font-family: "Cinzel", serif;
+        font-size: 32px;
+        font-weight: 600;
+        letter-spacing: 0.38em;
+        color: #d6e6f8;
+        margin-bottom: 15px;
+      }
+
+      .divider-short {
+        width: 68px;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(100, 165, 240, 0.65),
+          transparent
+        );
+        margin: 0 auto 18px;
+      }
+
+      .presented {
+        font-family: "EB Garamond", serif;
+        font-style: italic;
+        font-size: 18px;
+        color: rgba(182, 208, 238, 0.6);
+        margin-bottom: 10px;
+      }
+
+      .name {
+        font-family: "Cinzel", serif;
+        font-size: 48px;
+        font-weight: 700;
+        color: #ffffff;
+        letter-spacing: 0.03em;
+        text-shadow: 0 0 40px rgba(80, 160, 255, 0.2);
+        margin-bottom: 14px;
+      }
+
+      .divider-wide {
+        width: 60%;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(155, 198, 238, 0.22),
+          transparent
+        );
+        margin: 0 auto 20px;
+      }
+
+      .description {
+        font-family: "Arial";
+        font-size: 17px;
+        color: white;
+        line-height: 1.6;
+        max-width: 600px;
+        margin-bottom: 26px;
+      }
+
+      .footer {
+        position: absolute;
+        bottom: 30px;
+        left: 50px;
+        right: 50px;
+        z-index: 5;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+      }
+
+      .brand-block img {
+        width: 160px;
+        height: auto;
+      }
+
+      .auth-block {
+        text-align: center;
+      }
+      .auth-sig {
+        font-family: "Cedarville Cursive", cursive;
+        font-size: 28px;
+        color: #e2edfb;
+        display: block;
+        border-bottom: 1px solid rgba(155, 193, 232, 0.2);
+        padding-bottom: 5px;
+      }
+      .auth-label {
+        font-family: "EB Garamond", serif;
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        color: rgba(155, 193, 232, 0.42);
+        margin-top: 5px;
+        text-transform: uppercase;
+      }
+
+      .date-block {
+        text-align: right;
+      }
+      .date-text {
+        font-family: "EB Garamond", serif;
+        font-size: 14px;
+        color: #d0e2f5;
+        font-weight: 600;
+      }
+      .date-label {
+        font-family: "EB Garamond", serif;
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        color: rgba(155, 193, 232, 0.42);
+        text-transform: uppercase;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="cert">
+      <svg
+        id="chart-bg"
+        viewBox="0 0 1200 800"
+        preserveAspectRatio="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.09" />
+            <stop offset="100%" stop-color="#3b82f6" stop-opacity="0" />
+          </linearGradient>
+          <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#60a5fa" stop-opacity="0.25" />
+            <stop offset="45%" stop-color="#93c5fd" stop-opacity="0.9" />
+            <stop offset="100%" stop-color="#60a5fa" stop-opacity="0.25" />
+          </linearGradient>
+        </defs>
+      </svg>
+
+      <div class="vignette"></div>
+      <div class="border-outer"></div>
+      <div class="border-inner"></div>
+      <div class="corner tl"></div>
+      <div class="corner tr"></div>
+      <div class="corner bl"></div>
+      <div class="corner br"></div>
+
+      <div class="content">
+        <div class="title">CERTIFICATE OF FUNDING</div>
+        <div class="divider-short"></div>
+        <div class="presented">This certificate is proudly presented to</div>
+        <div class="name">{{traderName}}</div>
+        <div class="divider-wide"></div>
+        <p class="description">
+          In recognition of successfully completing the {{accountSize}}
+          evaluation challenge and demonstrating exceptional trading discipline,
+          this trader has been officially funded with {{accountSize}} in
+          capital.
+        </p>
+      </div>
+
+      <div class="footer">
+        <div class="brand-block">
+          <img
+            src="https://api.peakprofitfunding.com/images/logo.png"
+            alt="logo"
+          />
+        </div>
+        <div class="auth-block">
+          <span class="auth-sig">Peak Profit</span>
+          <span class="auth-label">Authorized Signature</span>
+        </div>
+        <div class="date-block">
+          <div class="date-text">{{issuedDate}}</div>
+          <div class="date-label">Date Issued</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function generateOHLC({
+        n = 56,
+        seed = 2025,
+        start = 100,
+        volatility = 2.8,
+      } = {}) {
+        let s = seed >>> 0;
+        const rand = () => {
+          s = (s * 1664525 + 1013904223) >>> 0;
+          return s / 0xffffffff;
+        };
+        const candles = [];
+        let price = start;
+        for (let i = 0; i < n; i++) {
+          const open = price;
+          const close = Math.max(1, open + (rand() - 0.48) * volatility * 2);
+          const high = Math.max(open, close) + rand() * volatility * 1.2;
+          const low = Math.min(open, close) - rand() * volatility * 1.2;
+          candles.push({ open, high, low, close });
+          price = close;
+        }
+        return candles;
+      }
+
+      (function buildChart() {
+        const NS = "http://www.w3.org/2000/svg";
+        const svg = document.getElementById("chart-bg");
+        const candles = generateOHLC({
+          n: 56,
+          seed: 2025,
+          start: 100,
+          volatility: 2.8,
+        });
+
+        const W = 1200,
+          H = 800,
+          padX = 60,
+          padY = 90;
+        const minP = Math.min(...candles.map((c) => c.low));
+        const maxP = Math.max(...candles.map((c) => c.high));
+        const xStep = (W - padX * 2) / (candles.length - 1);
+        const candleW = Math.max(10, Math.min(16, xStep * 0.65));
+        const yFn = (p) =>
+          padY + (1 - (p - minP) / (maxP - minP || 1)) * (H - padY * 2);
+
+        const mk = (tag) => document.createElementNS(NS, tag);
+        const set = (el, attrs) => {
+          Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
+          return el;
+        };
+
+        const pts = candles.map((c, i) => [
+          +(padX + i * xStep).toFixed(2),
+          +yFn(c.close).toFixed(2),
+        ]);
+        const areaD =
+          `M ${padX},${H} ` +
+          pts.map(([x, y]) => `L ${x},${y}`).join(" ") +
+          ` L ${pts[pts.length - 1][0]},${H} Z`;
+        svg.appendChild(set(mk("path"), { d: areaD, fill: "url(#areaGrad)" }));
+
+        candles.forEach((c, i) => {
+          const x = padX + i * xStep;
+          const yO = yFn(c.open),
+            yC = yFn(c.close),
+            yH = yFn(c.high),
+            yL = yFn(c.low);
+          const top = Math.min(yO, yC);
+          const bodyH = Math.max(4, Math.abs(yC - yO));
+          const bull = c.close >= c.open;
+          const g = set(mk("g"), { opacity: "0.14" });
+
+          g.appendChild(
+            set(mk("line"), {
+              x1: x,
+              y1: yH.toFixed(2),
+              x2: x,
+              y2: yL.toFixed(2),
+              stroke: "#7ecbff",
+              "stroke-width": "1.8",
+              "stroke-linecap": "round",
+            }),
+          );
+          g.appendChild(
+            set(mk("rect"), {
+              x: (x - candleW / 2).toFixed(2),
+              y: top.toFixed(2),
+              width: candleW.toFixed(2),
+              height: bodyH.toFixed(2),
+              fill: bull ? "#7ecbff" : "#1c3f6a",
+              rx: "1",
+            }),
+          );
+          svg.appendChild(g);
+        });
+
+        svg.appendChild(
+          set(mk("polyline"), {
+            fill: "none",
+            stroke: "url(#lineGrad)",
+            "stroke-width": "2.5",
+            points: pts.map(([x, y]) => `${x},${y}`).join(" "),
+            opacity: "0.65",
+            "stroke-linejoin": "round",
+          }),
+        );
+      })();
+    </script>
+  </body>
+</html>

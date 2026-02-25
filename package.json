@@ -21,6 +21,7 @@
     "nodemailer": "^7.0.3",
     "passport": "^0.7.0",
     "pdfkit": "^0.17.2",
+    "puppeteer": "^24.37.5",
     "redis": "^5.9.0",
     "ws": "^8.18.3"
   }
