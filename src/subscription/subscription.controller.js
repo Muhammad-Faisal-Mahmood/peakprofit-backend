@@ -7,6 +7,7 @@ const {
   sendSuccessResponse,
   sendErrorResponse,
 } = require("../shared/response.service");
+const logoPath = require("../constants/logoPath");
 
 // POST endpoint to create a new subscription
 router.post("/subscribe", async (req, res) => {
@@ -34,7 +35,7 @@ router.post("/subscribe", async (req, res) => {
     return sendSuccessResponse(
       res,
       "Subscription successful! Welcome email sent.",
-      { email }
+      { email },
     );
   } catch (error) {
     console.error("Error creating subscription:", error);
@@ -50,6 +51,7 @@ async function sendWelcomeEmail(email) {
       year: new Date(Date.now()).getFullYear(),
       email: email,
       unsubscribe_url: "#",
+      logoUrl: logoPath,
     };
 
     const template = path.join(__dirname, "mails", "welcomeSubscriber.html");

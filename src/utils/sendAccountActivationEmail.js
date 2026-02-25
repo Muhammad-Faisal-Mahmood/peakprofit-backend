@@ -1,6 +1,7 @@
 const User = require("../user/user.model");
 const { sendEmail } = require("../shared/mail.service");
 const path = require("path");
+const logoPath = require("../constants/logoPath");
 async function sendAccountActivationEmail(account, userId) {
   try {
     // Fetch user data
@@ -54,6 +55,7 @@ async function sendAccountActivationEmail(account, userId) {
       min_trading_days: account.minTradingDays,
       year: new Date().getFullYear(),
       unsubscribe_url: "#", // Placeholder until unsubscribe functionality is implemented
+      logoUrl: logoPath,
     };
 
     const template = path.join(__dirname, "mails", "FundedAccount.html");
@@ -62,7 +64,7 @@ async function sendAccountActivationEmail(account, userId) {
       "Your Evaluation Account Is Active ✅",
       template,
       user.email,
-      replacements
+      replacements,
     );
 
     console.log(`Account activation email sent to ${user.email}`);

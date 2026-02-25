@@ -42,6 +42,7 @@ const {
   sendSuccessResponse,
   sendErrorResponse,
 } = require("../shared/response.service");
+const logoPath = require("../constants/logoPath.js");
 
 //SignUp
 router.post("/sign-up", checkCreateParams, async (req, res, next) => {
@@ -61,7 +62,7 @@ router.post("/sign-up", checkCreateParams, async (req, res, next) => {
       try {
         referralResult = await affiliateService.processReferralSignup(
           refcode,
-          user._id
+          user._id,
         );
 
         if (referralResult) {
@@ -70,7 +71,7 @@ router.post("/sign-up", checkCreateParams, async (req, res, next) => {
           user.referralCode = refcode;
           await user.save();
           console.log(
-            `User ${user._id} referred by ${referralResult.affiliateUserId} using code ${refcode}`
+            `User ${user._id} referred by ${referralResult.affiliateUserId} using code ${refcode}`,
           );
         }
       } catch (referralError) {
@@ -147,7 +148,7 @@ router.post("/login", async (req, res, next) => {
 
   let matched = await GeneralHelper.comparePassword(
     request.password,
-    user.password
+    user.password,
   );
 
   if (!matched) return sendErrorResponse(res, "Invalid Password!");
@@ -237,7 +238,7 @@ router.get("/verify-account", async (req, res) => {
       process.env.JWT_SECRET,
       {
         expiresIn: "24h",
-      }
+      },
     );
 
     // Instead of setting to null, mark as verified
@@ -250,11 +251,11 @@ router.get("/verify-account", async (req, res) => {
       { _id: user._id },
       {
         isVerified: true,
-      }
+      },
     );
     if (challengeId)
       return res.redirect(
-        `${process.env.FRONT_APP_URL_DEV}/login?challengeId=${challengeId}`
+        `${process.env.FRONT_APP_URL_DEV}/login?challengeId=${challengeId}`,
       );
     return res.redirect(`${process.env.FRONT_APP_URL_DEV}`);
   } catch (error) {
@@ -319,7 +320,7 @@ router.post("/forgot-password", async (req, res) => {
 
     return sendSuccessResponse(
       res,
-      "Password reset instructions sent to your email!"
+      "Password reset instructions sent to your email!",
     );
   } catch (error) {
     return sendErrorResponse(res, "Internal server error");
@@ -410,7 +411,7 @@ router.post("/change-password", jwt, checkPasswordParams, async (req, res) => {
 async function sendVerificationLink(user, otp, challengeId) {
   const encrypted = CryptoJS.AES.encrypt(
     `${user.email}/${otp.code}`,
-    process.env.JWT_SECRET
+    process.env.JWT_SECRET,
   ).toString();
 
   let link = `${process.env.BACKEND_URL}/api/auth/verify-account?token=${encrypted}`;
@@ -424,6 +425,7 @@ async function sendVerificationLink(user, otp, challengeId) {
     year: new Date(Date.now()).getFullYear(),
     verification_link: link,
     unsubscribe_url: "#",
+    logoUrl: logoPath,
   };
   const template = path.join(__dirname, "mails", "verifyEmail.html");
   sendEmail("Verification Link", template, user.email, replacements);
@@ -432,7 +434,7 @@ async function sendVerificationLink(user, otp, challengeId) {
 async function sendForgotLink(user, resetToken) {
   const encrypted = CryptoJS.AES.encrypt(
     `${user.email}/${resetToken}`,
-    process.env.JWT_SECRET
+    process.env.JWT_SECRET,
   ).toString();
 
   const link = `${process.env.FRONT_APP_URL_DEV}/reset-password?token=${encrypted}`;

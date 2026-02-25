@@ -1,5 +1,6 @@
 const { sendEmail } = require("../shared/mail.service");
 const path = require("path");
+const logoPath = require("../constants/logoPath");
 async function sendAccountClosureEmail(account, violationRule) {
   try {
     const user = account.userId;
@@ -57,8 +58,8 @@ async function sendAccountClosureEmail(account, violationRule) {
       account.accountType === "demo"
         ? "Demo Account"
         : account.accountType === "funded"
-        ? "Funded Account"
-        : "Evaluation Account";
+          ? "Funded Account"
+          : "Evaluation Account";
 
     // Calculate rule percentages
     const dailyDD = 2.5;
@@ -81,6 +82,7 @@ async function sendAccountClosureEmail(account, violationRule) {
       min_trading_days: account.minTradingDays || 5,
       year: new Date().getFullYear(),
       unsubscribe_url: "#", // Placeholder until unsubscribe functionality is implemented
+      logoUrl: logoPath,
     };
 
     const template = path.join(__dirname, "mails", "AccountFailed.html");
@@ -89,11 +91,11 @@ async function sendAccountClosureEmail(account, violationRule) {
       "Evaluation Account Closed – Rule Violation ⚠",
       template,
       user.email,
-      replacements
+      replacements,
     );
 
     console.log(
-      `[LIQUIDATION] Account closure email sent to ${user.email} (Breach: ${breachType})`
+      `[LIQUIDATION] Account closure email sent to ${user.email} (Breach: ${breachType})`,
     );
   } catch (error) {
     console.error("Error sending account closure email:", error);

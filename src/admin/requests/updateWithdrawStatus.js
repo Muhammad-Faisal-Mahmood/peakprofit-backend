@@ -9,6 +9,7 @@ const User = require("../../user/user.model");
 const path = require("path");
 const { sendEmail } = require("../../shared/mail.service");
 const formatDate = require("../../utils/formatDate");
+const logoPath = require("../../constants/logoPath");
 
 const updateWithdrawStatus = async (req, res) => {
   const VALID_STATUSES = ["APPROVED", "DENIED", "PAID"];
@@ -26,7 +27,7 @@ const updateWithdrawStatus = async (req, res) => {
     if (!status || !VALID_STATUSES.includes(status.toUpperCase())) {
       return sendErrorResponse(
         res,
-        "Invalid status. Allowed values are: APPROVED, DENIED, PAID"
+        "Invalid status. Allowed values are: APPROVED, DENIED, PAID",
       );
     }
 
@@ -57,7 +58,7 @@ const updateWithdrawStatus = async (req, res) => {
         `Cannot change status from ${currentStatus} to ${uppercaseStatus}. ` +
           `Allowed transitions from ${currentStatus}: ${
             allowedNextStatuses.join(", ") || "NONE"
-          }`
+          }`,
       );
     }
 
@@ -84,7 +85,7 @@ const updateWithdrawStatus = async (req, res) => {
         await affiliate.processWithdraw(
           withdrawId,
           withdraw.amount,
-          uppercaseStatus
+          uppercaseStatus,
         );
       } catch (error) {
         return sendErrorResponse(res, error.message);
@@ -115,6 +116,7 @@ const updateWithdrawStatus = async (req, res) => {
         year: new Date().getFullYear(),
         unsubscribe_url: "#",
         decline_date: formatDate(new Date()),
+        logoUrl: logoPath,
       };
 
       await sendPayoutDeclinedEmail(user.email, replacementObject);
@@ -151,11 +153,12 @@ const updateWithdrawStatus = async (req, res) => {
         next_payout_date: formatDate(
           new Date(
             new Date(account.lastPayoutDate).setDate(
-              new Date(account.lastPayoutDate).getDate() + 5
-            )
-          )
+              new Date(account.lastPayoutDate).getDate() + 5,
+            ),
+          ),
         ),
         scaling_eligible: "-",
+        logoUrl: logoPath,
       };
 
       await sendPayoutApprovalEmail(user.email, replacementObject);
@@ -237,7 +240,7 @@ const updateWithdrawStatus = async (req, res) => {
     return sendSuccessResponse(
       res,
       `Withdraw status updated from ${currentStatus} to ${uppercaseStatus} successfully`,
-      formattedWithdraw
+      formattedWithdraw,
     );
   } catch (error) {
     console.error("Error updating withdraw status:", error);
@@ -256,14 +259,14 @@ async function sendPayoutApprovalEmail(email, replacements) {
       __dirname,
       "..",
       "mails",
-      "traderPayoutApproved.html"
+      "traderPayoutApproved.html",
     );
 
     await sendEmail(
       "Your Payout Has Been Approved ✔",
       template,
       email,
-      replacements
+      replacements,
     );
 
     console.log(`payout approval email sent to ${email}`);
@@ -279,14 +282,14 @@ async function sendPayoutDeclinedEmail(email, replacements) {
       __dirname,
       "..",
       "mails",
-      "traderPayoutDeclined.html"
+      "traderPayoutDeclined.html",
     );
 
     await sendEmail(
       "Your Payout Has Been Declined ",
       template,
       email,
-      replacements
+      replacements,
     );
 
     console.log(`payout decline email sent to ${email}`);

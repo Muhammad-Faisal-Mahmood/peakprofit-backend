@@ -4,6 +4,7 @@ const { sendEmail } = require("../shared/mail.service");
 const { generateCertificate } = require("./certificateGenerator.service");
 const path = require("path");
 const fs = require("fs");
+const logoPath = require("../constants/logoPath");
 
 /**
  * Send funded account email with personalized certificate
@@ -14,7 +15,7 @@ async function sendLiveAccountEmail(fundedAccountId) {
     // Get funded account with user data
     const fundedAccount = await Account.findById(fundedAccountId).populate(
       "userId",
-      "name email"
+      "name email",
     );
 
     if (!fundedAccount) {
@@ -48,7 +49,7 @@ async function sendLiveAccountEmail(fundedAccountId) {
         year: "numeric",
         month: "long",
         day: "numeric",
-      }
+      },
     );
 
     // Format account details
@@ -123,6 +124,7 @@ async function sendLiveAccountEmail(fundedAccountId) {
       unsubscribe_url: "#",
       certificate_image_url: certificateDataUrl, // Embedded certificate
       certificate_download_url: certificateDownloadUrl,
+      logoUrl: logoPath,
     };
 
     const template = path.join(__dirname, "mails", "AccountPassed.html");
@@ -144,7 +146,7 @@ async function sendLiveAccountEmail(fundedAccountId) {
       user.email,
       replacements,
       null, // html (template will be used)
-      attachments
+      attachments,
     );
 
     console.log(`Funded account email with certificate sent to ${user.email}`);
