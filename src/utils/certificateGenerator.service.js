@@ -2,6 +2,7 @@
 const { createCanvas, loadImage, registerFont } = require("canvas");
 const fs = require("fs");
 const path = require("path");
+const logoPath = require("../constants/logoPath");
 
 // --- Font Registration ---
 
@@ -141,12 +142,12 @@ async function generateCertificate(data) {
 
     try {
       // NOTE: Using the hardcoded URL for the logo
-      const logoPath = "https://api.peakprofitfunding.com/images/logo.jpg";
+      const logoPath = logoPath;
       const logo = await loadImage(logoPath);
       ctx.drawImage(logo, logoX, footerY, logoSize, logoSize);
     } catch (logoError) {
       console.log(
-        "Logo not found or failed to load. Drawing placeholder text."
+        "Logo not found or failed to load. Drawing placeholder text.",
       );
       // Placeholder for logo if loading fails
       ctx.font = "bold 150px Arial";
@@ -156,7 +157,7 @@ async function generateCertificate(data) {
       ctx.fillText(
         "PEAKPROFIT FUNDING",
         logoX + logoSize / 2,
-        footerY + logoSize + 20
+        footerY + logoSize + 20,
       );
     }
 
@@ -203,7 +204,7 @@ async function generateCertificate(data) {
       "..",
       "..",
       "uploads",
-      "certificates"
+      "certificates",
     );
     if (!fs.existsSync(certificatesDir)) {
       fs.mkdirSync(certificatesDir, { recursive: true });
@@ -253,11 +254,11 @@ async function generateCertificatePDF(data) {
       const garamond8ItalicPath = path.join(fontDir, "garamond8-italic.ttf");
       const garamond12RegularPath = path.join(
         fontDir,
-        "garamond12-regular.ttf"
+        "garamond12-regular.ttf",
       );
       const greatVibesRegularPath = path.join(
         fontDir,
-        "greatVibes-regular.ttf"
+        "greatVibes-regular.ttf",
       );
       const trajanProRegularPath = path.join(fontDir, "TrajanPro-Regular.ttf");
       const trajanProBoldPath = path.join(fontDir, "TrajanPro-Bold.otf");
@@ -306,7 +307,7 @@ async function generateCertificatePDF(data) {
           `This trader has successfully been funded with ${accountSize} after passing`,
           0,
           420,
-          { align: "center", width: 1200 }
+          { align: "center", width: 1200 },
         )
         .text(
           `a ${accountSize} evaluation challenge, and we are happy for his`,
@@ -315,7 +316,7 @@ async function generateCertificatePDF(data) {
           {
             align: "center",
             width: 1200,
-          }
+          },
         )
         .text("discipline as a trader and grit", 0, 500, {
           align: "center",

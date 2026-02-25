@@ -5,6 +5,7 @@ const {
 } = require("../../shared/response.service");
 const { sendEmail } = require("../../shared/mail.service");
 const path = require("path");
+const logoPath = require("../../constants/logoPath");
 
 const reviewKYCApplication = async (req, res) => {
   const VALID_STATUSES = ["approved", "rejected"];
@@ -26,14 +27,14 @@ const reviewKYCApplication = async (req, res) => {
     if (!VALID_STATUSES.includes(status.toLowerCase())) {
       return sendErrorResponse(
         res,
-        "Invalid status. Allowed values are: approved, rejected"
+        "Invalid status. Allowed values are: approved, rejected",
       );
     }
 
     // Find the KYC application
     const kycApplication = await KYC.findById(kycId).populate(
       "user",
-      "name email"
+      "name email",
     );
 
     if (!kycApplication) {
@@ -44,7 +45,7 @@ const reviewKYCApplication = async (req, res) => {
     if (kycApplication.status !== "pending") {
       return sendErrorResponse(
         res,
-        `Cannot review application. Current status: ${kycApplication.status}`
+        `Cannot review application. Current status: ${kycApplication.status}`,
       );
     }
 
@@ -109,6 +110,7 @@ async function sendKYCApprovalEmail(kycApplication) {
       kyc_reference_id: referenceId,
       year: new Date().getFullYear(),
       unsubscribe_url: "#", // Placeholder until unsubscribe functionality is implemented
+      logoUrl: logoPath,
     };
 
     const template = path.join(__dirname, "..", "mails", "kycApproved.html");
@@ -117,7 +119,7 @@ async function sendKYCApprovalEmail(kycApplication) {
       "Your KYC Has Been Approved ✔",
       template,
       user.email,
-      replacements
+      replacements,
     );
 
     console.log(`KYC approval email sent to ${user.email}`);
@@ -151,7 +153,7 @@ async function sendKYCRejectionEmail(kycApplication) {
 
     // Format submission date (using createdAt from KYC document)
     const submissionDate = new Date(
-      kycApplication.createdAt
+      kycApplication.createdAt,
     ).toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
@@ -189,6 +191,7 @@ async function sendKYCRejectionEmail(kycApplication) {
       support_ticket_link: "", // Add your support ticket URL if available
       year: new Date().getFullYear(),
       unsubscribe_url: "#", // Placeholder until unsubscribe functionality is implemented
+      logoUrl: logoPath,
     };
 
     const template = path.join(__dirname, "..", "mails", "kycDeclined.html");
@@ -197,11 +200,11 @@ async function sendKYCRejectionEmail(kycApplication) {
       "Your KYC Submission - Action Required",
       template,
       user.email,
-      replacements
+      replacements,
     );
 
     console.log(
-      `KYC rejection email sent to ${user.email} (Resubmit allowed: ${canResubmit})`
+      `KYC rejection email sent to ${user.email} (Resubmit allowed: ${canResubmit})`,
     );
   } catch (error) {
     console.error("Error sending KYC rejection email:", error);
