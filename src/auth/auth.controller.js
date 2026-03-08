@@ -80,8 +80,10 @@ router.post("/sign-up", checkCreateParams, async (req, res, next) => {
       }
     }
 
+    console.log("referral result", referralResult);
+
     // Handle invitation if token exists
-    let projectId = null;
+    // let projectId = null;
     // if (inviteToken) {
     //   try {
     //     const invitation = await Invitation.findOne({ token: inviteToken });
@@ -116,6 +118,10 @@ router.post("/sign-up", checkCreateParams, async (req, res, next) => {
     await authData.save();
 
     sendVerificationLink(user, otp, challengeId);
+    sendSignUpNotificationToAdmin(user, {
+      name: referralResult?.affiliateName ? referralResult?.affiliateName : "-",
+      referralCode: user?.referralCode ? user.referralCode : "-",
+    });
 
     return sendSuccessResponse(res, "Verification sent to your email", {
       userId: user._id,
@@ -444,6 +450,20 @@ async function sendForgotLink(user, resetToken) {
   };
   const template = path.join(__dirname, "mails", "forgot.html");
   sendEmail("Reset Your Password", template, user.email, replacements);
+}
+
+async function sendSignUpNotificationToAdmin(user, affiliate) {
+  const replacements = {
+    email: user.email,
+    createdAt: user.createdAt,
+    username: user.name,
+    userId: user._id,
+    referrer: affiliate.name,
+    referralCode: affiliate.referralCode,
+    LOGO_URL: logoPath,
+  };
+  const template = path.join(__dirname, "mails", "signUpNotification.html");
+  sendEmail("New Sign Up", template, process.env.ADMIN_EMAIL, replacements);
 }
 
 // router.get("/google", (req, res, next) => {

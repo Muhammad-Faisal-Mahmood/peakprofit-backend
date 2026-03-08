@@ -1,0 +1,481 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>New Trader Signup — Peak Profit Funding</title>
+  </head>
+
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      background: #070a12;
+      font-family: Inter, Arial, Helvetica, sans-serif;
+      color: white;
+    "
+  >
+    <!--
+      ADMIN NOTIFICATION EMAIL (to you)
+
+      ✅ Company colors used: blue / black / white / purple
+      ✅ Logo: set LOGO_URL below (or replace the <img src="...">)
+      ✅ Variables to replace: {{firstName}} {{lastName}} {{email}} {{username}} {{phone}}
+         {{country}} {{state}} {{city}} {{ip}} {{userAgent}} {{referrer}} {{createdAt}}
+         {{affiliateCode}} {{utmSource}} {{utmMedium}} {{utmCampaign}} {{utmTerm}} {{utmContent}}
+         {{challengePlan}} {{platform}} {{kycStatus}}
+    -->
+
+    <div
+      style="
+        --pp-black: #070a12;
+        --pp-card: #0b1020;
+        --pp-white: #ffffff;
+        --pp-muted: #fff;
+        --pp-border: rgba(255, 255, 255, 0.1);
+        --pp-blue: #2f6bff;
+        --pp-purple: #7c3aed;
+        --pp-softBlue: rgba(47, 107, 255, 0.14);
+        --pp-softPurple: rgba(124, 58, 237, 0.14);
+        background: var(--pp-black);
+        padding: 28px 14px;
+      "
+    >
+      <!-- Preheader (inbox preview text) -->
+      <div
+        style="
+          display: none;
+          max-height: 0;
+          overflow: hidden;
+          opacity: 0;
+          color: transparent;
+        "
+      >
+        New trader signup: {{email}} • {{createdAt}}
+      </div>
+
+      <div style="max-width: 760px; margin: 0 auto">
+        <!-- Outer frame -->
+        <div
+          style="
+            border-radius: 18px;
+            border: 1px solid var(--pp-border);
+            background: linear-gradient(
+              135deg,
+              rgba(47, 107, 255, 0.18),
+              rgba(124, 58, 237, 0.14) 55%,
+              rgba(255, 255, 255, 0.02)
+            );
+            padding: 16px;
+          "
+        >
+          <!-- Header -->
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 12px;
+              padding: 8px 8px 14px 8px;
+            "
+          >
+            <div style="min-width: 0">
+              <div
+                style="
+                  color: var(--pp-white);
+                  font-weight: 900;
+                  font-size: 16px;
+                  line-height: 1.2;
+                "
+              >
+                Peak Profit Funding
+              </div>
+              <div
+                style="
+                  color: var(--pp-muted);
+                  font-size: 12.5px;
+                  line-height: 1.3;
+                "
+              >
+                Admin alert • New trader signup
+              </div>
+            </div>
+
+            <div
+              style="
+                margin-left: auto;
+                display: flex;
+                gap: 10px;
+                flex-wrap: wrap;
+                justify-content: flex-end;
+              "
+            >
+              <span
+                style="
+                  display: inline-block;
+                  padding: 8px 12px;
+                  border-radius: 999px;
+                  font-size: 12px;
+                  font-weight: 800;
+                  color: var(--pp-white);
+                  background: linear-gradient(
+                    90deg,
+                    var(--pp-blue),
+                    var(--pp-purple)
+                  );
+                "
+              >
+                NEW SIGNUP
+              </span>
+            </div>
+          </div>
+
+          <!-- Card -->
+          <div
+            style="
+              background: var(--pp-card);
+              border: 1px solid var(--pp-border);
+              border-radius: 16px;
+              padding: 18px;
+              box-shadow: 0 18px 45px rgba(0, 0, 0, 0.4);
+            "
+          >
+            <h1
+              style="
+                margin: 0 0 10px 0;
+                color: var(--pp-white);
+                font-size: 18px;
+                line-height: 1.25;
+              "
+            >
+              New trader account created 🎯
+            </h1>
+
+            <p
+              style="
+                margin: 0 0 16px 0;
+                color: var(--pp-muted);
+                font-size: 13.5px;
+                line-height: 1.6;
+              "
+            >
+              Here are the details of the trader who just signed up on
+              <b style="color: var(--pp-white)"
+                >dashboard.peakprofitfunding.com</b
+              >
+            </p>
+
+            <!-- Trader summary strip -->
+            <div
+              style="
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                padding: 12px;
+                border-radius: 14px;
+                border: 1px solid var(--pp-border);
+                background: linear-gradient(
+                  135deg,
+                  var(--pp-softBlue),
+                  var(--pp-softPurple)
+                );
+                margin-bottom: 14px;
+              "
+            >
+              <div style="min-width: 220px; flex: 1">
+                <div
+                  style="
+                    color: rgba(255, 255, 255, 0.65);
+                    font-size: 11.5px;
+                    font-weight: 800;
+                    letter-spacing: 0.4px;
+                  "
+                >
+                  TRADER
+                </div>
+                <div
+                  style="
+                    color: var(--pp-white);
+                    font-size: 15px;
+                    font-weight: 900;
+                    line-height: 1.25;
+                  "
+                >
+                  {{username}}
+                </div>
+                <div style="margin-top: 2px">
+                  <a
+                    href="mailto:{{email}}"
+                    style="
+                      color: var(--pp-white);
+                      text-decoration: none;
+                      font-weight: 800;
+                    "
+                  >
+                    {{email}}
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Details table -->
+            <table
+              role="presentation"
+              cellpadding="0"
+              cellspacing="0"
+              border="0"
+              style="width: 100%; border-collapse: collapse"
+            >
+              <!-- Account -->
+              <tr>
+                <td colspan="2" style="padding: 8px 0 6px 0">
+                  <div
+                    style="
+                      color: rgba(255, 255, 255, 0.72);
+                      font-size: 11.5px;
+                      font-weight: 900;
+                      letter-spacing: 0.4px;
+                    "
+                  >
+                    ACCOUNT
+                  </div>
+                </td>
+              </tr>
+
+              <tr>
+                <td
+                  style="
+                    padding: 10px 0;
+                    border-top: 1px solid var(--pp-border);
+                    color: rgba(255, 255, 255, 0.68);
+                    font-size: 12.5px;
+                    width: 210px;
+                  "
+                >
+                  Email
+                </td>
+                <td
+                  style="
+                    padding: 10px 0;
+                    border-top: 1px solid var(--pp-border);
+                    color: var(--pp-white);
+                    font-size: 13.5px;
+                    font-weight: 800;
+                  "
+                >
+                  <a
+                    href="mailto:{{email}}"
+                    style="
+                      color: var(--pp-blue);
+                      text-decoration: none;
+                      font-weight: 900;
+                    "
+                  >
+                    {{email}}
+                  </a>
+                </td>
+              </tr>
+
+              <tr>
+                <td
+                  style="
+                    padding: 10px 0;
+                    border-top: 1px solid var(--pp-border);
+                    color: rgba(255, 255, 255, 0.68);
+                    font-size: 12.5px;
+                  "
+                >
+                  Username
+                </td>
+                <td
+                  style="
+                    padding: 10px 0;
+                    border-top: 1px solid var(--pp-border);
+                    color: var(--pp-white);
+                    font-size: 13.5px;
+                    font-weight: 800;
+                  "
+                >
+                  @{{username}}
+                </td>
+              </tr>
+
+              <tr>
+                <td
+                  style="
+                    padding: 10px 0;
+                    border-top: 1px solid var(--pp-border);
+                    color: rgba(255, 255, 255, 0.68);
+                    font-size: 12.5px;
+                  "
+                >
+                  User ID
+                </td>
+                <td
+                  style="
+                    padding: 10px 0;
+                    border-top: 1px solid var(--pp-border);
+                    color: var(--pp-white);
+                    font-size: 13.5px;
+                    font-weight: 800;
+                  "
+                >
+                  {{userId}}
+                </td>
+              </tr>
+
+              <tr>
+                <td
+                  style="
+                    padding: 10px 0;
+                    border-top: 1px solid var(--pp-border);
+                    color: rgba(255, 255, 255, 0.68);
+                    font-size: 12.5px;
+                  "
+                >
+                  Created At
+                </td>
+                <td
+                  style="
+                    padding: 10px 0;
+                    border-top: 1px solid var(--pp-border);
+                    color: var(--pp-white);
+                    font-size: 13.5px;
+                    font-weight: 800;
+                  "
+                >
+                  {{createdAt}}
+                </td>
+              </tr>
+
+              <!-- Tracking -->
+              <tr>
+                <td colspan="2" style="padding: 14px 0 6px 0">
+                  <div
+                    style="
+                      color: rgba(255, 255, 255, 0.72);
+                      font-size: 11.5px;
+                      font-weight: 900;
+                      letter-spacing: 0.4px;
+                    "
+                  >
+                    TRACKING
+                  </div>
+                </td>
+              </tr>
+
+              <tr>
+                <td
+                  style="
+                    padding: 10px 0;
+                    border-top: 1px solid var(--pp-border);
+                    color: rgba(255, 255, 255, 0.68);
+                    font-size: 12.5px;
+                  "
+                >
+                  Referral Code
+                </td>
+                <td
+                  style="
+                    padding: 10px 0;
+                    border-top: 1px solid var(--pp-border);
+                    color: var(--pp-white);
+                    font-size: 13.5px;
+                    font-weight: 800;
+                  "
+                >
+                  {{referralCode}}
+                </td>
+              </tr>
+
+              <!-- Security -->
+
+              <tr>
+                <td
+                  style="
+                    padding: 10px 0;
+                    border-top: 1px solid var(--pp-border);
+                    color: rgba(255, 255, 255, 0.68);
+                    font-size: 12.5px;
+                  "
+                >
+                  Referrered By
+                </td>
+                <td
+                  style="
+                    padding: 10px 0;
+                    border-top: 1px solid var(--pp-border);
+                    color: var(--pp-white);
+                    font-size: 13.5px;
+                    font-weight: 800;
+                  "
+                >
+                  {{referrer}}
+                </td>
+              </tr>
+            </table>
+
+            <!-- Actions -->
+            <div
+              style="
+                margin-top: 18px;
+                display: flex;
+                gap: 10px;
+                flex-wrap: wrap;
+              "
+            >
+              <a
+                href="mailto:{{email}}"
+                style="
+                  display: inline-block;
+                  padding: 12px 14px;
+                  border-radius: 12px;
+                  font-size: 13px;
+                  font-weight: 900;
+                  text-decoration: none;
+                  color: var(--pp-white);
+                  background: rgba(255, 255, 255, 0.06);
+                  border: 1px solid var(--pp-border);
+                "
+              >
+                Email Trader
+              </a>
+
+              <a
+                href="https://dashboard.peakprofitfunding.com/user/{{userId}}"
+                style="
+                  display: inline-block;
+                  padding: 12px 14px;
+                  border-radius: 12px;
+                  font-size: 13px;
+                  font-weight: 900;
+                  text-decoration: none;
+                  color: var(--pp-white);
+                  background: linear-gradient(
+                    90deg,
+                    var(--pp-blue),
+                    var(--pp-purple)
+                  );
+                "
+              >
+                View in Admin
+              </a>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div
+            style="
+              padding: 12px 8px 0 8px;
+              color: rgba(255, 255, 255, 0.55);
+              font-size: 11.5px;
+              line-height: 1.5;
+            "
+          >
+            Automated admin notification from Peak Profit Funding • Please do
+            not forward publicly.
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -35,8 +35,8 @@ const TIER_CONFIG = {
   },
 };
 
-async function findByReferralCode(referralCode) {
-  return await Affiliate.findOne({ referralCode });
+async function findByReferralCode(code) {
+  return Affiliate.findOne({ referralCode: code }).populate("userId", "name");
 }
 
 // Function to create a commission entry
@@ -76,7 +76,7 @@ async function createCommissionEntry({
     await commission.save();
 
     console.log(
-      `💰 Commission entry created: ${type} - $${amount} for affiliate ${referralCode}`
+      `💰 Commission entry created: ${type} - $${amount} for affiliate ${referralCode}`,
     );
 
     return commission;
@@ -130,7 +130,7 @@ async function checkAndUpgradeTier(affiliate) {
     await affiliate.save();
 
     console.log(
-      `🎉 Affiliate ${affiliate.referralCode} upgraded to ${newTier} tier! New commission: ${affiliate.commissionPercentage}%`
+      `🎉 Affiliate ${affiliate.referralCode} upgraded to ${newTier} tier! New commission: ${affiliate.commissionPercentage}%`,
     );
 
     return {
@@ -158,7 +158,7 @@ async function processReferralSignup(referralCode, newUserId) {
 
     // Create detailed commission entry
     await createCommissionEntry({
-      affiliateId: affiliate._id,
+      affiliateId: affiliate.userId._id,
       referredUserId: newUserId,
       type: "SIGNUP",
       amount: signupCommission,
@@ -173,11 +173,12 @@ async function processReferralSignup(referralCode, newUserId) {
     const upgradeResult = await checkAndUpgradeTier(affiliate);
 
     console.log(
-      `✅ Referral signup processed: ${referralCode} -> User ${newUserId}`
+      `✅ Referral signup processed: ${referralCode} -> User ${newUserId}`,
     );
 
     return {
-      affiliateUserId: affiliate.userId,
+      affiliateUserId: affiliate.userId._id,
+      affiliateName: affiliate.userId.name,
       commissionEarned: signupCommission,
       currentTier: affiliate.tier,
       tierUpgrade: upgradeResult,
@@ -226,7 +227,7 @@ async function processPurchase(userId, challengeId, challengeCost) {
     const savedAffiliate = await affiliate.save();
 
     console.log(
-      `💰 Purchase commission processed: $${commissionAmount} for affiliate ${affiliate.referralCode}`
+      `💰 Purchase commission processed: $${commissionAmount} for affiliate ${affiliate.referralCode}`,
     );
 
     checkAndUpgradeTier(savedAffiliate);
@@ -283,7 +284,7 @@ async function getAffiliateCommissions(affiliateId, options = {}) {
       searchTerms.forEach((term) => {
         searchConditions.push(
           { name: { $regex: term, $options: "i" } },
-          { email: { $regex: term, $options: "i" } }
+          { email: { $regex: term, $options: "i" } },
         );
       });
 
@@ -357,7 +358,7 @@ async function getCommissionAnalytics(affiliateId, timeframe = "last30days") {
     });
     const monthlyData = await Commission.getMonthlyBreakdown(
       affiliateId,
-      new Date().getFullYear()
+      new Date().getFullYear(),
     );
 
     return {
@@ -424,7 +425,7 @@ async function getAffiliateYearlyStats(affiliateId, year = null) {
     // Get monthly breakdown from Commission model
     const monthlyData = await Commission.getMonthlyBreakdown(
       affiliateId,
-      targetYear
+      targetYear,
     );
 
     // Initialize months array with zero values
@@ -503,7 +504,7 @@ async function getAffiliateYearlyStats(affiliateId, year = null) {
         signups: { count: 0, amount: 0 },
         purchases: { count: 0, amount: 0 },
         total: { count: 0, amount: 0 },
-      }
+      },
     );
 
     // Find best and worst performing months
@@ -555,9 +556,8 @@ async function getAffiliateYearlyStats(affiliateId, year = null) {
 
 async function getAffiliateDashboardStats(affiliateId) {
   try {
-    const affiliate = await Affiliate.findById(affiliateId).populate(
-      "withdraws"
-    );
+    const affiliate =
+      await Affiliate.findById(affiliateId).populate("withdraws");
     if (!affiliate) {
       throw new Error("Affiliate not found");
     }
