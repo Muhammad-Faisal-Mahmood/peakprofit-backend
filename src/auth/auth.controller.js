@@ -80,7 +80,7 @@ router.post("/sign-up", checkCreateParams, async (req, res, next) => {
       }
     }
 
-    console.log("referral result", referralResult);
+    // console.log("referral result", referralResult);
 
     // Handle invitation if token exists
     // let projectId = null;
@@ -466,56 +466,58 @@ async function sendSignUpNotificationToAdmin(user, affiliate) {
   sendEmail("New Sign Up", template, process.env.ADMIN_EMAIL, replacements);
 }
 
-// router.get("/google", (req, res, next) => {
-//   const inviteToken = req.query.invite;
-//   passport.authenticate("google", {
-//     scope: ["profile", "email"],
-//     state: inviteToken ? `invite=${inviteToken}` : undefined,
-//   })(req, res, next);
-// });
+router.get("/google", (req, res, next) => {
+  const refcode = req.query.refcode;
+  passport.authenticate("google", {
+    scope: ["profile", "email"],
+    state: refcode ? `refcode=${refcode}` : undefined,
+  })(req, res, next);
+});
 
-// // Google callback
-// router.get(
-//   "/google/callback",
-//   passport.authenticate("google", {
-//     failureRedirect: `${process.env.FRONT_APP_URL_DEV}`,
-//   }),
-//   async (req, res) => {
-//     try {
-//       const user = req.user;
-//       const inviteToken =
-//         req.query.invite ||
-//         (req.query.state && req.query.state.includes("invite=")
-//           ? req.query.state.split("invite=")[1]
-//           : null); // Handle token from query or state
+// Google callback
+router.get(
+  "/google/callback",
+  passport.authenticate("google", {
+    failureRedirect: `${process.env.FRONT_APP_URL_DEV}`,
+  }),
+  async (req, res) => {
+    try {
+      const user = req.user;
+      // const inviteToken =
+      //   req.query.invite ||
+      //   (req.query.state && req.query.state.includes("invite=")
+      //     ? req.query.state.split("invite=")[1]
+      //     : null); // Handle token from query or state
 
-//       if (user) {
-//         // Process invitation if token exists
-//         if (inviteToken) {
-//           await processInvitation(user.email, inviteToken, user._id);
-//         }
+      if (user) {
+        // Process invitation if token exists
+        // if (inviteToken) {
+        //   await processInvitation(user.email, inviteToken, user._id);
+        // }
 
-//         const tokenData = {
-//           email: user.email,
-//           userId: user._id,
-//         };
-//         const token = simplejwt.sign(tokenData, process.env.JWT_SECRET);
+        let tokenData = {
+          email: user.email,
+          userId: user._id,
+          role: user?.role,
+          name: user.name,
+          affiliateId: user?.affiliateId,
+          status: user?.status,
+        };
+        const token = simplejwt.sign(tokenData, process.env.JWT_SECRET);
 
-//         // Redirect to frontend with token and any project ID if applicable
-//         const redirectUrl = inviteToken
-//           ? `${process.env.FRONT_APP_URL_DEV}/?token=${token}&inviteProcessed=true`
-//           : `${process.env.FRONT_APP_URL_DEV}/?token=${token}`;
+        // Redirect to frontend with token and any project ID if applicable
+        const redirectUrl = `${process.env.FRONT_APP_URL_DEV}?token=${token}`;
 
-//         res.redirect(redirectUrl);
-//       } else {
-//         res.redirect(`${process.env.FRONT_APP_URL_DEV}`);
-//       }
-//     } catch (error) {
-//       console.error("OAuth callback error:", error);
-//       res.redirect(`${process.env.FRONT_APP_URL_DEV}/login?error=oauth_failed`);
-//     }
-//   }
-// );
+        res.redirect(redirectUrl);
+      } else {
+        res.redirect(`${process.env.FRONT_APP_URL_DEV}`);
+      }
+    } catch (error) {
+      console.error("OAuth callback error:", error);
+      res.redirect(`${process.env.FRONT_APP_URL_DEV}/login?error=oauth_failed`);
+    }
+  },
+);
 
 // // GitHub Login route
 // router.get(

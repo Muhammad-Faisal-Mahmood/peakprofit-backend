@@ -1,91 +1,117 @@
-// const passport = require("passport");
-// const GoogleStrategy = require("passport-google-oauth20").Strategy;
-// const UserService = require("../user/user.service");
+const passport = require("passport");
+const GoogleStrategy = require("passport-google-oauth20").Strategy;
+const UserService = require("../user/user.service");
+const affiliateService = require("../affiliate/affiliate.service.js");
 // const Invitation = require("../project/invitation/invitation.model");
 // const Project = require("../project/project.model");
 
-// passport.use(
-//   new GoogleStrategy(
-//     {
-//       clientID: process.env.GOOGLE_CLIENT_ID,
-//       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-//       callbackURL: `${process.env.BACKEND_URL}/api/auth/google/callback`,
-//       passReqToCallback: true, // Add this to access the request object
-//     },
-//     async (req, accessToken, refreshToken, profile, done) => {
-//       try {
-//         const email =
-//           profile.emails && profile.emails[0] ? profile.emails[0].value : null;
-//         const name =
-//           profile.displayName ||
-//           `${profile.name.givenName} ${profile.name.familyName}`;
-//         const picture = profile._json.picture;
-//         const password = "";
-//         const inviteToken =
-//           req.query.invite ||
-//           (req.query.state ? req.query.state.split("=")[1] : null);
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: `${process.env.BACKEND_URL}/api/auth/google/callback`,
+      passReqToCallback: true, // Add this to access the request object
+    },
+    async (req, accessToken, refreshToken, profile, done) => {
+      try {
+        const email =
+          profile.emails && profile.emails[0] ? profile.emails[0].value : null;
+        const name =
+          profile.displayName ||
+          `${profile.name.givenName} ${profile.name.familyName}`;
+        const picture = profile._json.picture;
+        const password = "";
+        const refcode =
+          req.query.refcode ||
+          (req.query.state ? req.query.state.split("=")[1] : null);
 
-//         let user = await UserService.findByEmail(email);
+        let user = await UserService.findByEmail(email);
 
-//         if (!user) {
-//           user = await UserService.create(name, email, password, picture);
+        if (!user) {
+          user = await UserService.create(name, email, password, picture);
 
-//           // Process invitation if token exists
-//           if (inviteToken) {
-//             const invitation = await Invitation.findOne({ token: inviteToken });
+          let referralResult = null; // Define this outside the if block
 
-//             if (invitation && invitation.inviteeEmail === email.toLowerCase()) {
-//               const project = await Project.findById(invitation.project);
+          if (refcode) {
+            try {
+              referralResult = await affiliateService.processReferralSignup(
+                refcode,
+                user._id,
+              );
 
-//               if (!project.members.includes(user._id)) {
-//                 project.members.push(user._id);
-//                 await project.save();
-//               }
+              if (referralResult) {
+                // Extract just the affiliateUserId (which is the referring user's ID)
+                user.referredBy = referralResult.affiliateUserId;
+                user.referralCode = refcode;
+                await user.save();
+                console.log(
+                  `User ${user._id} referred by ${referralResult.affiliateUserId} using code ${refcode}`,
+                );
+              }
+            } catch (referralError) {
+              console.error("Error processing referral:", referralError);
+              // Don't fail signup if referral processing fails
+            }
+          }
 
-//               invitation.status = "Accepted";
-//               await invitation.save();
-//             }
-//           }
-//         } else if (inviteToken) {
-//           // Handle case where user exists but has an invite
-//           const invitation = await Invitation.findOne({
-//             token: inviteToken,
-//             inviteeEmail: email.toLowerCase(),
-//           });
+          // Process invitation if token exists
+          //   if (inviteToken) {
+          //     const invitation = await Invitation.findOne({ token: inviteToken });
 
-//           if (invitation) {
-//             const project = await Project.findById(invitation.project);
+          //     if (invitation && invitation.inviteeEmail === email.toLowerCase()) {
+          //       const project = await Project.findById(invitation.project);
 
-//             if (!project.members.includes(user._id)) {
-//               project.members.push(user._id);
-//               await project.save();
-//             }
+          //       if (!project.members.includes(user._id)) {
+          //         project.members.push(user._id);
+          //         await project.save();
+          //       }
 
-//             invitation.status = "Accepted";
-//             await invitation.save();
-//           }
-//         }
+          //       invitation.status = "Accepted";
+          //       await invitation.save();
+          //     }
+          //   }
+        }
+        //  else if (inviteToken) {
+        //   // Handle case where user exists but has an invite
+        //   const invitation = await Invitation.findOne({
+        //     token: inviteToken,
+        //     inviteeEmail: email.toLowerCase(),
+        //   });
 
-//         return done(null, user);
-//       } catch (error) {
-//         console.error("Error during Google OAuth authentication:", error);
-//         return done(error, null);
-//       }
-//     }
-//   )
-// );
+        //   if (invitation) {
+        //     const project = await Project.findById(invitation.project);
 
-// // Keep existing serialize/deserialize functions
+        //     if (!project.members.includes(user._id)) {
+        //       project.members.push(user._id);
+        //       await project.save();
+        //     }
 
-// passport.serializeUser((user, done) => {
-//   done(null, user.id);
-// });
+        //     invitation.status = "Accepted";
+        //     await invitation.save();
+        //   }
+        // }
 
-// passport.deserializeUser(async (id, done) => {
-//   try {
-//     const user = await UserService.findById(id);
-//     done(null, user);
-//   } catch (error) {
-//     done(error, null);
-//   }
-// });
+        return done(null, user);
+      } catch (error) {
+        console.error("Error during Google OAuth authentication:", error);
+        return done(error, null);
+      }
+    },
+  ),
+);
+
+// Keep existing serialize/deserialize functions
+
+passport.serializeUser((user, done) => {
+  done(null, user.id);
+});
+
+passport.deserializeUser(async (id, done) => {
+  try {
+    const user = await UserService.findById(id);
+    done(null, user);
+  } catch (error) {
+    done(error, null);
+  }
+});

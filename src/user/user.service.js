@@ -69,7 +69,7 @@ exports.list = async (pageNo = 1, searchValue = null, accountType = null) => {
   pipeline.push(
     { $sort: { _id: -1 } },
     { $skip: pg.skip },
-    { $limit: pg.pageSize }
+    { $limit: pg.pageSize },
   );
 
   // Populate accounts
@@ -90,7 +90,7 @@ exports.list = async (pageNo = 1, searchValue = null, accountType = null) => {
       pg.pageSize,
       pg.skip,
       total,
-      result.length
+      result.length,
     ),
     data: result,
   };
@@ -145,6 +145,7 @@ exports.create = async (name, email, password, picture) => {
     email: email.trim().toLowerCase(),
     password: hashPassword,
     profilePicture: picture || "",
+    isVerified: password ? false : true,
   });
   return await user.save();
 };
