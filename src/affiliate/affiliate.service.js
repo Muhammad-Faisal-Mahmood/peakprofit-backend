@@ -150,12 +150,12 @@ async function processReferralSignup(referralCode, newUserId) {
   try {
     const affiliate = await findByReferralCode(referralCode);
     if (!affiliate) {
-      console.log(`Invalid referral code: ${referralCode}`);
+      // console.log(`Invalid referral code: ${referralCode}`);
       return null;
     }
 
     await affiliate.addReferral(newUserId);
-
+    // console.log("affiliate in process referral sign up: ", affiliate);
     // Create detailed commission entry
     await createCommissionEntry({
       affiliateId: affiliate.userId._id,

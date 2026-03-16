@@ -4,6 +4,11 @@ const UserService = require("../user/user.service");
 const affiliateService = require("../affiliate/affiliate.service.js");
 // const Invitation = require("../project/invitation/invitation.model");
 // const Project = require("../project/project.model");
+const {
+  notifyAdminSignup,
+  handleReferral,
+} = require("../utils/auth.helper.js");
+const path = require("path");
 
 passport.use(
   new GoogleStrategy(
@@ -31,29 +36,14 @@ passport.use(
         if (!user) {
           user = await UserService.create(name, email, password, picture);
 
-          let referralResult = null; // Define this outside the if block
+          const referralResult = await handleReferral(user, refcode);
 
-          if (refcode) {
-            try {
-              referralResult = await affiliateService.processReferralSignup(
-                refcode,
-                user._id,
-              );
-
-              if (referralResult) {
-                // Extract just the affiliateUserId (which is the referring user's ID)
-                user.referredBy = referralResult.affiliateUserId;
-                user.referralCode = refcode;
-                await user.save();
-                console.log(
-                  `User ${user._id} referred by ${referralResult.affiliateUserId} using code ${refcode}`,
-                );
-              }
-            } catch (referralError) {
-              console.error("Error processing referral:", referralError);
-              // Don't fail signup if referral processing fails
-            }
-          }
+          const template = path.join(
+            __dirname,
+            "mails",
+            "signUpNotification.html",
+          );
+          notifyAdminSignup(user, referralResult, template);
 
           // Process invitation if token exists
           //   if (inviteToken) {

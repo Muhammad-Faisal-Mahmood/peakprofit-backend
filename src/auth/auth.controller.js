@@ -43,6 +43,10 @@ const {
   sendErrorResponse,
 } = require("../shared/response.service");
 const logoPath = require("../constants/logoPath.js");
+const {
+  notifyAdminSignup,
+  handleReferral,
+} = require("../utils/auth.helper.js");
 
 //SignUp
 router.post("/sign-up", checkCreateParams, async (req, res, next) => {
@@ -56,57 +60,10 @@ router.post("/sign-up", checkCreateParams, async (req, res, next) => {
 
     let user = await UserService.create(name, email, password);
 
-    let referralResult = null; // Define this outside the if block
+    const referralResult = await handleReferral(user, refcode);
 
-    if (refcode) {
-      try {
-        referralResult = await affiliateService.processReferralSignup(
-          refcode,
-          user._id,
-        );
-
-        if (referralResult) {
-          // Extract just the affiliateUserId (which is the referring user's ID)
-          user.referredBy = referralResult.affiliateUserId;
-          user.referralCode = refcode;
-          await user.save();
-          console.log(
-            `User ${user._id} referred by ${referralResult.affiliateUserId} using code ${refcode}`,
-          );
-        }
-      } catch (referralError) {
-        console.error("Error processing referral:", referralError);
-        // Don't fail signup if referral processing fails
-      }
-    }
-
-    // console.log("referral result", referralResult);
-
-    // Handle invitation if token exists
-    // let projectId = null;
-    // if (inviteToken) {
-    //   try {
-    //     const invitation = await Invitation.findOne({ token: inviteToken });
-
-    //     if (invitation && invitation.inviteeEmail === email.toLowerCase()) {
-    //       const project = await Project.findById(invitation.project);
-
-    //       if (!project.members.includes(user._id)) {
-    //         project.members.push(user._id);
-    //         await project.save();
-    //         projectId = project._id;
-    //       }
-
-    //       invitation.status = "Accepted";
-    //       await invitation.save();
-    //     }
-    //   } catch (inviteError) {
-    //     console.error("Error processing invitation:", inviteError);
-    //   }
-    // }
-
-    // Generate OTP and send verification
     const otp = GeneralHelper.getOtp();
+
     const authData = new TwoFactorAuth({
       userId: user._id,
       email: user.email,
@@ -118,10 +75,8 @@ router.post("/sign-up", checkCreateParams, async (req, res, next) => {
     await authData.save();
 
     sendVerificationLink(user, otp, challengeId);
-    sendSignUpNotificationToAdmin(user, {
-      name: referralResult?.affiliateName ? referralResult?.affiliateName : "-",
-      referralCode: user?.referralCode ? user.referralCode : "-",
-    });
+    const template = path.join(__dirname, "mails", "signUpNotification.html");
+    notifyAdminSignup(user, referralResult, template);
 
     return sendSuccessResponse(res, "Verification sent to your email", {
       userId: user._id,
@@ -503,7 +458,9 @@ router.get(
           affiliateId: user?.affiliateId,
           status: user?.status,
         };
+        // console.log("token data in google callback ", tokenData);
         const token = simplejwt.sign(tokenData, process.env.JWT_SECRET);
+        // console.log("token sent to frontend:", token);
 
         // Redirect to frontend with token and any project ID if applicable
         const redirectUrl = `${process.env.FRONT_APP_URL_DEV}?token=${token}`;
