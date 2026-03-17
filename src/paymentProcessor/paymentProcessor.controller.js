@@ -465,13 +465,13 @@ router.post("/generate-crypto-checkout", jwt, async (req, res) => {
         res,
         "Crypto payment checkout generated successfully",
         {
-          paymentId: payment._id,
-          walletAddress: data?.pay_address,
-          payCurrency: data?.pay_currency,
-          payAmount: data?.pay_amount,
-          createdAt: data?.created_at,
-          validTill: data?.valid_until,
-          timeLimit: data?.time_limit,
+          order_id: payment._id,
+          pay_address: data?.pay_address,
+          pay_currency: data?.pay_currency,
+          pay_amount: data?.pay_amount,
+          created_at: data?.created_at,
+          valid_until: data?.valid_until,
+          time_limit: data?.time_limit,
         },
       );
     } catch (apiError) {
