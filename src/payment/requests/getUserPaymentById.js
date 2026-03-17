@@ -22,6 +22,8 @@ const getUserPaymentById = async (req, res) => {
       .populate("accountId", "initialBalance balance equity accountType")
       .lean();
 
+    if (payment.userId._id != userId)
+      return sendErrorResponse(res, "Unauthorized");
     if (!payment) {
       return sendErrorResponse(res, "Couldn't find the payment");
     }

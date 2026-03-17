@@ -46,6 +46,10 @@ const allowedOrigins = [
 ];
 
 app.use("/api/paymentEvents", require("./paymentProcessor/payment.webhook"));
+app.use(
+  "/api/cryptoPaymentEvents",
+  require("./paymentProcessor/cryptoPayment.webhook"),
+);
 
 app.use(express.json());
 
@@ -64,7 +68,7 @@ app.use(
       }
     },
     credentials: true,
-  })
+  }),
 );
 
 // Passport setup
@@ -73,7 +77,7 @@ app.use(
     secret: process.env.PASSPORT_SECRET,
     resave: false,
     saveUninitialized: true,
-  })
+  }),
 );
 app.use(passport.initialize());
 app.use(passport.session());
@@ -191,7 +195,7 @@ const initializePolygonConnections = async () => {
 
     // Step 6: Subscribe to all symbols
     console.log(
-      `[Startup] Found ${symbolsToSubscribe.size} unique symbols to subscribe`
+      `[Startup] Found ${symbolsToSubscribe.size} unique symbols to subscribe`,
     );
 
     if (symbolsToSubscribe.size > 0) {
@@ -204,17 +208,17 @@ const initializePolygonConnections = async () => {
         } catch (error) {
           console.error(
             `[Startup] Failed to subscribe to ${symbol}:`,
-            error.message
+            error.message,
           );
         }
       }
 
       console.log(
-        `\n✅ Successfully subscribed to ${symbolsToSubscribe.size} symbols`
+        `\n✅ Successfully subscribed to ${symbolsToSubscribe.size} symbols`,
       );
     } else {
       console.log(
-        "\n✅ No active trades or pending orders found. Ready to start server."
+        "\n✅ No active trades or pending orders found. Ready to start server.",
       );
     }
 

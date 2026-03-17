@@ -13,7 +13,9 @@ const paymentSchema = new mongoose.Schema(
     sessionId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "PaymentSession",
-      required: true,
+      required: function () {
+        return this.paymentMethodType !== "crypto";
+      },
       index: true,
     },
 
@@ -44,7 +46,7 @@ const paymentSchema = new mongoose.Schema(
     /* -------------------- STATUS -------------------- */
     status: {
       type: String,
-      enum: ["pending", "accepted", "approved", "failed"],
+      enum: ["pending", "accepted", "approved", "failed", "partial"],
       default: "pending",
       index: true,
     },
@@ -76,7 +78,7 @@ const paymentSchema = new mongoose.Schema(
     /* -------------------- PAYMENT METHOD -------------------- */
     paymentMethodType: {
       type: String,
-      enum: ["card", "bank_account"],
+      enum: ["card", "bank_account", "crypto"],
     },
 
     /* ---- CARD ---- */
@@ -125,7 +127,7 @@ const paymentSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 const Payment = mongoose.model("Payment", paymentSchema);

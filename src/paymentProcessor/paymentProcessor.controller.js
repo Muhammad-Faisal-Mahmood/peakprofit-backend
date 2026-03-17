@@ -22,6 +22,8 @@ router.post("/checkout/create", jwt, async (req, res) => {
       return sendErrorResponse(res, "Not authenticated");
     }
 
+    if (!challengeId) return sendErrorResponse(res, "challenge Id is required");
+
     const challenge = await Challenge.findById(challengeId);
     if (!challenge || challenge.cost <= 0) {
       return sendErrorResponse(res, "Invalid challenge");
@@ -37,12 +39,12 @@ router.post("/checkout/create", jwt, async (req, res) => {
 
     await PaymentSession.updateMany(
       { _id: { $in: oldSessionIds } },
-      { status: "expired" }
+      { status: "expired" },
     );
 
     await Payment.updateMany(
       { sessionId: { $in: oldSessionIds }, status: "pending" },
-      { status: "failed" }
+      { status: "failed" },
     );
 
     /* -------------------- CREATE SESSION -------------------- */
@@ -156,7 +158,7 @@ router.post("/checkout/session/expire", jwt, async (req, res) => {
     if (session.paymentId) {
       await Payment.updateOne(
         { _id: session.paymentId._id, status: "pending" },
-        { status: "failed" }
+        { status: "failed" },
       );
     }
 
@@ -230,7 +232,7 @@ router.post("/process-payment", async (req, res) => {
 
     // ---- Load session ----
     const sessionObject = await PaymentSession.findById(
-      paymentObject.sessionId
+      paymentObject.sessionId,
     );
 
     if (!sessionObject || sessionObject.expiresAt < new Date()) {
@@ -252,7 +254,7 @@ router.post("/process-payment", async (req, res) => {
       console.warn(`[${requestId}] Missing Accept.js token`);
       return sendErrorResponse(
         res,
-        "Missing required fields: dataDescriptor, dataValue"
+        "Missing required fields: dataDescriptor, dataValue",
       );
     }
 
@@ -272,7 +274,7 @@ router.post("/process-payment", async (req, res) => {
 
     const transactionRequestType = new ApiContracts.TransactionRequestType();
     transactionRequestType.setTransactionType(
-      ApiContracts.TransactionTypeEnum.AUTHCAPTURETRANSACTION
+      ApiContracts.TransactionTypeEnum.AUTHCAPTURETRANSACTION,
     );
     transactionRequestType.setPayment(payment);
     transactionRequestType.setAmount(paymentObject.authAmount);
@@ -302,7 +304,7 @@ router.post("/process-payment", async (req, res) => {
     });
 
     const ctrl = new ApiControllers.CreateTransactionController(
-      createRequest.getJSON()
+      createRequest.getJSON(),
     );
     ctrl.setEnvironment(config.environment);
 
@@ -310,7 +312,7 @@ router.post("/process-payment", async (req, res) => {
       ctrl.execute(async () => {
         const apiResponse = ctrl.getResponse();
         const response = new ApiContracts.CreateTransactionResponse(
-          apiResponse
+          apiResponse,
         );
 
         if (!response) {
@@ -382,11 +384,154 @@ router.post("/process-payment", async (req, res) => {
       error?.errorCode === "2"
         ? "Payment Declined"
         : error?.errorCode === "3"
-        ? "Payment Error"
-        : error?.errorCode === "4"
-        ? "Payment Under Review"
-        : "Payment failed"
+          ? "Payment Error"
+          : error?.errorCode === "4"
+            ? "Payment Under Review"
+            : "Payment failed",
     );
+  }
+});
+
+router.post("/generate-crypto-checkout", jwt, async (req, res) => {
+  try {
+    const { challengeId, payCurrency = "btc" } = req.body;
+    const userId = req.user?.userId;
+
+    if (!userId) return sendErrorResponse(res, "Not authenticated");
+    if (!challengeId) return sendErrorResponse(res, "Challenge Id is required");
+
+    const challenge = await Challenge.findById(challengeId);
+    if (!challenge || challenge.cost <= 0)
+      return sendErrorResponse(res, "Invalid Challenge");
+
+    const payment = await Payment.create({
+      userId,
+      challengeId,
+      invoiceNumber: generateInvoiceNumber(),
+      authAmount: challenge.cost,
+      currency: "USD",
+      status: "pending",
+      orderDescription: challenge.name,
+      paymentMethodType: "crypto",
+      metadata: {
+        provider: "nowpayments",
+      },
+    });
+
+    try {
+      /* -------------------- CALL NOWPAYMENTS -------------------- */
+      const response = await fetch(
+        "https://api-sandbox.nowpayments.io/v1/payment",
+        {
+          method: "POST",
+          headers: {
+            "x-api-key": process.env.NOWPAYMENTS_API_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            price_amount: challenge.cost,
+            price_currency: "usd",
+            pay_currency: payCurrency,
+            order_id: payment._id.toString(),
+            // success_url: `${process.env.FRONT_APP_URL_DEV}/successful-payment/${payment._id}`,
+            // cancel_url: `${process.env.FRONT_APP_URL_DEV}`,
+            ipn_callback_url: process.env.NOWPAYMENTS_IPN_CALLBACK_URL,
+            // case: "success",
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(JSON.stringify(data));
+      }
+
+      payment.metadata = {
+        ...payment.metadata,
+        crypto: {
+          expectedAmountCrypto: data.pay_amount, // VERY IMPORTANT
+          payCurrency,
+          paymentAddress: data.pay_address,
+          paymentId: data.payment_id,
+        },
+      };
+
+      await payment.save();
+
+      console.log("data: ", data);
+
+      return sendSuccessResponse(
+        res,
+        "Crypto payment checkout generated successfully",
+        {
+          paymentId: payment._id,
+          walletAddress: data?.pay_address,
+          payCurrency: data?.pay_currency,
+          payAmount: data?.pay_amount,
+          createdAt: data?.created_at,
+          validTill: data?.valid_until,
+          timeLimit: data?.time_limit,
+        },
+      );
+    } catch (apiError) {
+      console.error("NOWPayments error:", apiError.message);
+
+      await Payment.findByIdAndDelete(payment._id);
+
+      return sendErrorResponse(res, "Failed to create crypto payment");
+    }
+  } catch (err) {
+    console.error(err);
+    return sendErrorResponse(res, "Something went wrong");
+  }
+});
+
+router.get("/crypto-payment-status/:paymentId", jwt, async (req, res) => {
+  try {
+    const userId = req.user?.userId;
+    const { paymentId } = req.params;
+
+    if (!userId) return sendErrorResponse(res, "Not authenticated");
+    if (!paymentId) return sendErrorResponse(res, "payment id is required");
+
+    // Fetch payment from DB
+    const payment = await Payment.findById(paymentId);
+
+    if (!payment) return sendErrorResponse(res, "Payment not found");
+
+    if (!payment.userId.equals(userId))
+      return sendErrorResponse("Unauthorized access");
+
+    if (!payment.metadata?.crypto?.paymentId)
+      return sendErrorResponse(res, "No crypto payment associated");
+
+    const nowPaymentId = payment.metadata.crypto.paymentId;
+
+    // Call NOWPayments API
+    const response = await fetch(
+      `https://api-sandbox.nowpayments.io/v1/payment/${nowPaymentId}`,
+      {
+        method: "GET",
+        headers: {
+          "x-api-key": process.env.NOWPAYMENTS_API_KEY,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("NOWPayments API error:", data);
+      return sendErrorResponse(res, "Failed to fetch payment");
+    }
+
+    // Return the NOWPayments response to the user
+    return sendSuccessResponse(res, "Payment Fetched Successfully", data);
+  } catch (err) {
+    console.error("Error fetching crypto payment status:", err);
+    return sendErrorResponse(res, "Something went wrong");
   }
 });
 
