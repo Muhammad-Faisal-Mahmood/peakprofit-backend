@@ -13,35 +13,110 @@ const ApiContracts = require("authorizenet").APIContracts;
 const ApiControllers = require("authorizenet").APIControllers;
 const SDKConstants = require("authorizenet").Constants;
 
+// router.post("/checkout/create", jwt, async (req, res) => {
+//   try {
+//     const { challengeId, paymentMethod } = req.body;
+//     const userId = req.user?.userId;
+
+//     if (!userId) {
+//       return sendErrorResponse(res, "Not authenticated");
+//     }
+
+//     if (!challengeId) return sendErrorResponse(res, "challenge Id is required");
+
+//     const challenge = await Challenge.findById(challengeId);
+//     if (!challenge || challenge.cost <= 0) {
+//       return sendErrorResponse(res, "Invalid challenge");
+//     }
+
+//     if (!paymentMethod)
+//       return sendErrorResponse(res, "payment method is required");
+
+//     /* -------------------- EXPIRE OLD SESSIONS -------------------- */
+//     const oldSessions = await PaymentSession.find({
+//       userId,
+//       status: "pending",
+//     });
+
+//     const oldSessionIds = oldSessions.map((s) => s._id);
+
+//     await PaymentSession.updateMany(
+//       { _id: { $in: oldSessionIds } },
+//       { status: "expired" },
+//     );
+
+//     await Payment.updateMany(
+//       { sessionId: { $in: oldSessionIds }, status: "pending" },
+//       { status: "failed" },
+//     );
+
+//     /* -------------------- CREATE SESSION -------------------- */
+//     const session = await PaymentSession.create({
+//       userId,
+//       expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+//       status: "pending",
+//     });
+
+//     /* -------------------- CREATE PAYMENT -------------------- */
+//     const payment = await Payment.create({
+//       userId,
+//       sessionId: session._id,
+//       challengeId,
+//       invoiceNumber: generateInvoiceNumber(),
+//       authAmount: challenge.cost,
+//       currency: "USD",
+//       status: "pending",
+//       orderDescription: challenge.name,
+//       metadata: { provider: "authorize_net" },
+//     });
+
+//     /* -------------------- LINK SESSION → PAYMENT -------------------- */
+//     session.paymentId = payment._id;
+//     await session.save();
+
+//     return sendSuccessResponse(res, "Checkout session created", {
+//       sessionId: session._id,
+//       sessionCreatedAt: session.createdAt,
+//       sessionExpiresAt: session.expiresAt,
+//       sessionStatus: session.status,
+//       paymentStatus: payment.status,
+//       challenge: {
+//         id: challenge._id,
+//         name: challenge.name,
+//         cost: challenge.cost,
+//       },
+//     });
+//   } catch (err) {
+//     console.error(err);
+//     return sendErrorResponse(res, "Couldn't create checkout session");
+//   }
+// });
+
 router.post("/checkout/create", jwt, async (req, res) => {
   try {
-    const { challengeId } = req.body;
+    const { challengeId, paymentMethod, payCurrency = "btc" } = req.body;
     const userId = req.user?.userId;
 
-    if (!userId) {
-      return sendErrorResponse(res, "Not authenticated");
-    }
-
-    if (!challengeId) return sendErrorResponse(res, "challenge Id is required");
+    if (!userId) return sendErrorResponse(res, "Not authenticated");
+    if (!challengeId) return sendErrorResponse(res, "Challenge Id is required");
+    if (!paymentMethod)
+      return sendErrorResponse(res, "Payment method is required");
 
     const challenge = await Challenge.findById(challengeId);
-    if (!challenge || challenge.cost <= 0) {
+    if (!challenge || challenge.cost <= 0)
       return sendErrorResponse(res, "Invalid challenge");
-    }
 
     /* -------------------- EXPIRE OLD SESSIONS -------------------- */
     const oldSessions = await PaymentSession.find({
       userId,
       status: "pending",
     });
-
     const oldSessionIds = oldSessions.map((s) => s._id);
 
     await PaymentSession.updateMany(
       { _id: { $in: oldSessionIds } },
       { status: "expired" },
     );
-
     await Payment.updateMany(
       { sessionId: { $in: oldSessionIds }, status: "pending" },
       { status: "failed" },
@@ -64,13 +139,83 @@ router.post("/checkout/create", jwt, async (req, res) => {
       currency: "USD",
       status: "pending",
       orderDescription: challenge.name,
-      metadata: { provider: "authorize_net" },
+      paymentMethodType: paymentMethod,
+      metadata: {
+        provider: paymentMethod === "crypto" ? "nowpayments" : "authorize_net",
+      },
     });
 
-    /* -------------------- LINK SESSION → PAYMENT -------------------- */
+    // Link session to payment
     session.paymentId = payment._id;
     await session.save();
 
+    /* -------------------- CRYPTO FLOW -------------------- */
+    if (paymentMethod === "crypto") {
+      try {
+        const response = await fetch(
+          "https://api-sandbox.nowpayments.io/v1/payment",
+          {
+            method: "POST",
+            headers: {
+              "x-api-key": process.env.NOWPAYMENTS_API_KEY,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              price_amount: challenge.cost,
+              price_currency: "usd",
+              pay_currency: payCurrency,
+              order_id: payment._id.toString(),
+              ipn_callback_url: process.env.NOWPAYMENTS_IPN_CALLBACK_URL,
+            }),
+          },
+        );
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(JSON.stringify(data));
+
+        // Store crypto info in metadata
+        payment.metadata = {
+          ...payment.metadata,
+          crypto: {
+            expectedAmountCrypto: data.pay_amount,
+            payCurrency,
+            paymentAddress: data.pay_address,
+            paymentId: data.payment_id,
+          },
+        };
+        await payment.save();
+        session.expiresAt = data.valid_until;
+        await session.save();
+
+        return sendSuccessResponse(
+          res,
+          "Crypto payment checkout generated successfully",
+          {
+            sessionId: session._id,
+            paymentId: payment._id,
+            pay_address: data?.pay_address,
+            pay_currency: data?.pay_currency,
+            pay_amount: data?.pay_amount,
+            sessionCreatedAt: session.createdAt,
+            sessionExpiresAt: session.expiresAt,
+            sessionStatus: session.status,
+            paymentStatus: payment.status,
+            time_limit: data?.time_limit,
+            challenge: {
+              id: challenge._id,
+              name: challenge.name,
+              cost: challenge.cost,
+            },
+          },
+        );
+      } catch (apiError) {
+        console.error("NOWPayments error:", apiError.message);
+        await Payment.findByIdAndDelete(payment._id);
+        return sendErrorResponse(res, "Failed to create crypto payment");
+      }
+    }
+
+    /* -------------------- CARD/BANK FLOW -------------------- */
     return sendSuccessResponse(res, "Checkout session created", {
       sessionId: session._id,
       sessionCreatedAt: session.createdAt,
@@ -120,6 +265,7 @@ router.get("/checkout/session", jwt, async (req, res) => {
         id: session.paymentId._id,
         amount: session.paymentId.authAmount,
         invoiceNumber: session.paymentId.invoiceNumber,
+        paymentMethod: session.paymentId.paymentMethodType,
       },
       challenge: session.paymentId.challengeId,
     });
