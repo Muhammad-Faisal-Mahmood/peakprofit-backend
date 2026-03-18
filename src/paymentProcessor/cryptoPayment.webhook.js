@@ -2,6 +2,7 @@ const express = require("express");
 const crypto = require("crypto");
 const Payment = require("../payment/payment.model");
 const challengeBuyingService = require("../utils/challengeBuying.service");
+const PaymentSession = require("./paymentSession/paymentSession.model");
 
 const router = express.Router();
 
@@ -103,6 +104,11 @@ async function handleNowPaymentsEvent(event) {
     nowpayments: event,
   };
 
+  let session = null;
+  if (payment.sessionId) {
+    session = await PaymentSession.findById(payment.sessionId);
+  }
+
   /* -------------------- STATUS HANDLING -------------------- */
   const SLIPPAGE = 0.98;
   switch (payment_status) {
@@ -128,6 +134,11 @@ async function handleNowPaymentsEvent(event) {
         payment.settledAmount = actuallyPaid;
 
         await payment.save();
+        if (session) {
+          session.status = "completed";
+          session.expiresAt = new Date(); // mark session as done
+          await session.save();
+        }
         await handleSuccessfulPayment(payment);
       } else {
         console.log("⚠️ Still underpaid");
@@ -145,6 +156,11 @@ async function handleNowPaymentsEvent(event) {
 
       payment.status = "failed";
       await payment.save();
+      if (session) {
+        session.status = "failed";
+        session.expiresAt = new Date();
+        await session.save();
+      }
       break;
     }
 
