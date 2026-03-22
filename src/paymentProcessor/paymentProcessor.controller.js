@@ -152,25 +152,24 @@ router.post("/checkout/create", jwt, async (req, res) => {
     /* -------------------- CRYPTO FLOW -------------------- */
     if (paymentMethod === "crypto") {
       try {
-        const response = await fetch(
-          "https://api-sandbox.nowpayments.io/v1/payment",
-          {
-            method: "POST",
-            headers: {
-              "x-api-key": process.env.NOWPAYMENTS_API_KEY,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              price_amount: challenge.cost,
-              price_currency: "usd",
-              pay_currency: payCurrency,
-              order_id: payment._id.toString(),
-              ipn_callback_url: process.env.NOWPAYMENTS_IPN_CALLBACK_URL,
-            }),
+        const response = await fetch("https://api.nowpayments.io/v1/payment", {
+          method: "POST",
+          headers: {
+            "x-api-key": process.env.NOWPAYMENTS_API_KEY,
+            "Content-Type": "application/json",
           },
-        );
+          body: JSON.stringify({
+            price_amount: challenge.cost,
+            price_currency: "usd",
+            pay_currency: payCurrency,
+            order_id: payment._id.toString(),
+            ipn_callback_url: process.env.NOWPAYMENTS_IPN_CALLBACK_URL,
+            // is_fixed_rate: true,
+          }),
+        });
 
         const data = await response.json();
+        console.log("api data: ", data);
         if (!response.ok) throw new Error(JSON.stringify(data));
 
         // Store crypto info in metadata
@@ -185,6 +184,7 @@ router.post("/checkout/create", jwt, async (req, res) => {
         };
         await payment.save();
         session.expiresAt = data.valid_until;
+        console.log("valid until: ", data.valid_until);
         await session.save();
 
         return sendSuccessResponse(
@@ -656,7 +656,7 @@ router.get("/crypto-payment-status/:paymentId", jwt, async (req, res) => {
 
     // Call NOWPayments API
     const response = await fetch(
-      `https://api-sandbox.nowpayments.io/v1/payment/${nowPaymentId}`,
+      `https://api.nowpayments.io/v1/payment/${nowPaymentId}`,
       {
         method: "GET",
         headers: {

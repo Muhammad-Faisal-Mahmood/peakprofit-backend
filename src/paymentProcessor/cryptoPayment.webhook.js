@@ -92,7 +92,7 @@ async function handleNowPaymentsEvent(event) {
   console.log("💳 Found payment:", payment._id);
 
   /* -------------------- IDEMPOTENCY -------------------- */
-  const FINAL_STATUSES = ["approved", "failed"];
+  const FINAL_STATUSES = ["accepted", "failed"];
   if (FINAL_STATUSES.includes(payment.status)) {
     console.log("⚠️ Already processed:", payment.status);
     return;
@@ -130,7 +130,7 @@ async function handleNowPaymentsEvent(event) {
       if (actuallyPaid >= expected * SLIPPAGE) {
         console.log("✅ Payment meets threshold");
 
-        payment.status = "approved";
+        payment.status = "accepted";
         payment.settledAmount = actuallyPaid;
 
         await payment.save();
