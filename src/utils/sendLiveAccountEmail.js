@@ -73,15 +73,17 @@ async function sendLiveAccountEmail(fundedAccountId) {
 
     // Generate certificate
     console.log("Generating certificate...");
-    const certificateDate = new Date().toLocaleDateString("en-US", {
-      month: "long",
-      day: "numeric",
-    });
 
+    function formatDate(date = new Date()) {
+      const day = date.getDate();
+      const month = date.toLocaleDateString("en-US", { month: "long" });
+      const year = date.getFullYear();
+      return `${day} ${month}, ${year}`;
+    }
     const certificateData = {
       traderName: user.name || user.email.split("@")[0],
       accountSize: formattedAccountSize,
-      date: certificateDate,
+      date: formatDate(),
       userId: user._id.toString(),
     };
 
@@ -104,7 +106,7 @@ async function sendLiveAccountEmail(fundedAccountId) {
     // Read certificate as base64 for embedding (this part is correct for embedding)
     const certificateBuffer = fs.readFileSync(certificatePath);
     const certificateBase64 = certificateBuffer.toString("base64");
-    const certificateDataUrl = `data:image/jpeg;base64,${certificateBase64}`;
+    const certificateDataUrl = `data:application/pdf;base64,${certificateBase64}`;
 
     const replacements = {
       first_name: firstName,
@@ -122,7 +124,7 @@ async function sendLiveAccountEmail(fundedAccountId) {
       max_dd: maxDD,
       year: new Date().getFullYear(),
       unsubscribe_url: "#",
-      certificate_image_url: certificateDataUrl, // Embedded certificate
+      // certificate_image_url: certificateDataUrl, // Embedded certificate
       certificate_download_url: certificateDownloadUrl,
       logoUrl: logoPath,
     };
@@ -134,8 +136,9 @@ async function sendLiveAccountEmail(fundedAccountId) {
       {
         filename: `PeakProfit_Certificate_${
           user.name?.replace(/\s+/g, "_") || "Trader"
-        }.jpg`,
+        }.pdf`,
         path: certificatePath,
+        contentType: "application/pdf",
         cid: "certificate@peakprofit", // CID for inline embedding
       },
     ];
