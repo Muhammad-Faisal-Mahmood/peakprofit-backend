@@ -5,6 +5,7 @@ const { generateCertificate } = require("./certificateGenerator.service");
 const path = require("path");
 const fs = require("fs");
 const logoPath = require("../constants/logoPath");
+const formatDate = require("./formatDate");
 
 /**
  * Send funded account email with personalized certificate
@@ -74,16 +75,10 @@ async function sendLiveAccountEmail(fundedAccountId) {
     // Generate certificate
     console.log("Generating certificate...");
 
-    function formatDate(date = new Date()) {
-      const day = date.getDate();
-      const month = date.toLocaleDateString("en-US", { month: "long" });
-      const year = date.getFullYear();
-      return `${day} ${month}, ${year}`;
-    }
     const certificateData = {
       traderName: user.name || user.email.split("@")[0],
       accountSize: formattedAccountSize,
-      date: formatDate(),
+      date: formatDate(new Date(), "short"),
       userId: user._id.toString(),
     };
 

@@ -10,6 +10,9 @@ const path = require("path");
 const { sendEmail } = require("../../shared/mail.service");
 const formatDate = require("../../utils/formatDate");
 const logoPath = require("../../constants/logoPath");
+const {
+  generatePayoutCertificate,
+} = require("../../utils/certificateGenerator.service");
 
 const updateWithdrawStatus = async (req, res) => {
   const VALID_STATUSES = ["APPROVED", "DENIED", "PAID"];
@@ -130,6 +133,22 @@ const updateWithdrawStatus = async (req, res) => {
         return sendErrorResponse(res, "User not found for this account");
       }
 
+      console.log("Generating payout certificate...");
+      const certificatePath = await generatePayoutCertificate({
+        traderName: user.name || user.email.split("@")[0],
+        payoutAmount: withdraw?.payable,
+        userId: user._id.toString(),
+        date: formatDate(new Date(), "short"),
+      });
+      // Build public download URL
+      const publicPathSegment = certificatePath
+        .split(path.sep)
+        .slice(-3)
+        .join("/"); // uploads/certificates/payout_certificate_<userId>_<timestamp>.pdf
+      const backendUrl =
+        process.env.BACKEND_URL || "https://api.peakprofitfunding.com";
+      const certificateDownloadUrl = `${backendUrl}/${publicPathSegment}`;
+
       const replacementObject = {
         first_name: user.name.split(" ")[0],
         funded_account_size: account.initialBalance,
@@ -159,9 +178,20 @@ const updateWithdrawStatus = async (req, res) => {
         ),
         scaling_eligible: "-",
         logoUrl: logoPath,
+        certificate_download_url: certificateDownloadUrl,
       };
 
-      await sendPayoutApprovalEmail(user.email, replacementObject);
+      const attachments = [
+        {
+          filename: `PeakProfit_Payout_Certificate_${
+            user.name?.replace(/\s+/g, "_") || "Trader"
+          }.pdf`,
+          path: certificatePath,
+          contentType: "application/pdf",
+        },
+      ];
+
+      await sendPayoutApprovalEmail(user.email, replacementObject, attachments);
     }
 
     // Save the updated withdraw
@@ -253,7 +283,7 @@ const updateWithdrawStatus = async (req, res) => {
   }
 };
 
-async function sendPayoutApprovalEmail(email, replacements) {
+async function sendPayoutApprovalEmail(email, replacements, attachments = []) {
   try {
     const template = path.join(
       __dirname,
@@ -267,9 +297,11 @@ async function sendPayoutApprovalEmail(email, replacements) {
       template,
       email,
       replacements,
+      null,
+      attachments,
     );
 
-    console.log(`payout approval email sent to ${email}`);
+    console.log(`Payout approval email sent to ${email}`);
   } catch (error) {
     console.error("Error sending payout approval email:", error);
     throw error;

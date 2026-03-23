@@ -34,7 +34,7 @@ async function createPayoutReadyAccount() {
     // ===== 1. Find existing user =====
     console.log("\n👤 Finding user...");
 
-    const userId = "693c46dc3f6918aeb92c9927";
+    const userId = "69b88c258b81438338fbb220";
     const testUser = await User.findById(userId);
 
     if (!testUser) {
@@ -106,9 +106,9 @@ async function createPayoutReadyAccount() {
       console.log(
         `  Day ${7 - i}: ${tradingDate.toISOString().split("T")[0]} - ` +
           `Profit: $${profitAmount.toFixed(2)} (${profitPercentage.toFixed(
-            2
+            2,
           )}%) ` +
-          `${profitPercentage >= 0.5 ? "✅" : "❌"}`
+          `${profitPercentage >= 0.5 ? "✅" : "❌"}`,
       );
     }
 
@@ -158,7 +158,7 @@ async function createPayoutReadyAccount() {
     await User.findByIdAndUpdate(
       userId,
       { $push: { accounts: testAccount._id } },
-      { new: true }
+      { new: true },
     );
     console.log(`✅ Created payout-ready account: ${testAccount._id}`);
 
@@ -181,25 +181,25 @@ async function createPayoutReadyAccount() {
     console.log(
       `Total Profit: $${(
         testAccount.balance - testAccount.initialBalance
-      ).toFixed(2)}`
+      ).toFixed(2)}`,
     );
     console.log(
       `Profit %: ${(
         ((testAccount.balance - testAccount.initialBalance) /
           testAccount.initialBalance) *
         100
-      ).toFixed(2)}%`
+      ).toFixed(2)}%`,
     );
     console.log(
-      `Qualified Days: ${dailyProfits.filter((d) => d.meetsMinimum).length}/5`
+      `Qualified Days: ${dailyProfits.filter((d) => d.meetsMinimum).length}/5`,
     );
     console.log(
-      `Has Received First Payout: ${testAccount.hasReceivedFirstPayout}`
+      `Has Received First Payout: ${testAccount.hasReceivedFirstPayout}`,
     );
     console.log(
       `\n💵 Available Payout Amount: $${availablePayout.toFixed(
-        2
-      )} (85% of profit)`
+        2,
+      )} (85% of profit)`,
     );
     console.log("\n✅ Payout Eligibility Check:");
     console.log(`Eligible: ${eligibility.eligible ? "✅ YES" : "❌ NO"}`);
@@ -235,8 +235,8 @@ async function createPayoutReadyAccount() {
           notes: "First payout test",
         },
         null,
-        2
-      )
+        2,
+      ),
     );
     console.log("═══════════════════════════════════════════");
 
@@ -245,7 +245,7 @@ async function createPayoutReadyAccount() {
     console.log("1. Use the accountId above to request a payout via API");
     console.log("2. After payout, check that hasReceivedFirstPayout = true");
     console.log(
-      "3. Verify drawdown limits are set to 0 in both MongoDB and Redis"
+      "3. Verify drawdown limits are set to 0 in both MongoDB and Redis",
     );
     console.log("4. Test that account cannot drop below initial balance");
     console.log("\n📝 Quick Copy:");
